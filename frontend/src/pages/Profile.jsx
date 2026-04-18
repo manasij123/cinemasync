@@ -14,8 +14,8 @@ export default function Profile() {
   const onFile = (e) => {
     const f = e.target.files?.[0];
     if (!f) return;
-    if (f.size > 800 * 1024) {
-      toast.error("Image must be under 800KB");
+    if (f.size > 10 * 1024 * 1024) {
+      toast.error("Image must be under 10MB");
       return;
     }
     const r = new FileReader();
@@ -57,8 +57,8 @@ export default function Profile() {
               Upload frame
               <input type="file" accept="image/*" className="hidden" onChange={onFile} data-testid="profile-upload-input" />
             </label>
-            <div className="mt-6">
-              <UniqueIdBadge value={user.unique_id} testid="profile-unique-id" />
+            <div className="mt-6 w-full">
+              <UniqueIdBadge value={user.unique_id} testid="profile-unique-id" multiline />
             </div>
             <div className="font-mono text-[10px] tracking-[0.3em] uppercase text-[#7a6a55] mt-3">{user.email}</div>
           </div>
