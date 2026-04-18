@@ -69,6 +69,7 @@ def public_user(user: dict) -> dict:
         "friends": user.get("friends", []),
         "requests_in": user.get("requests_in", []),
         "requests_out": user.get("requests_out", []),
+        "is_admin": bool(user.get("is_admin", False)),
         "created_at": user.get("created_at"),
     }
 
@@ -99,6 +100,13 @@ async def get_current_user(request: Request) -> dict:
         raise HTTPException(status_code=401, detail="Token expired")
     except jwt.InvalidTokenError:
         raise HTTPException(status_code=401, detail="Invalid token")
+
+
+async def require_admin(request: Request) -> dict:
+    user = await get_current_user(request)
+    if not user.get("is_admin"):
+        raise HTTPException(status_code=403, detail="Admin privileges required")
+    return user
 
 
 async def get_user_from_token_str(token: str) -> Optional[dict]:
@@ -609,6 +617,133 @@ async def websocket_room(websocket: WebSocket, room_id: str):
         })
 
 
+# ------------- Admin Routes -------------
+@api_router.get("/admin/stats")
+async def admin_stats(admin: dict = Depends(require_admin)):
+    users_count = await db.users.count_documents({})
+    rooms_count = await db.rooms.count_documents({})
+    msgs_count = await db.messages.count_documents({})
+    notifs_count = await db.notifications.count_documents({})
+    # recent signups (last 7d)
+    seven_ago = (datetime.now(timezone.utc) - timedelta(days=7)).isoformat()
+    recent_users = await db.users.count_documents({"created_at": {"$gte": seven_ago}})
+    recent_rooms = await db.rooms.count_documents({"created_at": {"$gte": seven_ago}})
+    return {
+        "total_users": users_count,
+        "total_rooms": rooms_count,
+        "total_messages": msgs_count,
+        "total_notifications": notifs_count,
+        "new_users_7d": recent_users,
+        "new_rooms_7d": recent_rooms,
+    }
+
+
+@api_router.get("/admin/users")
+async def admin_list_users(admin: dict = Depends(require_admin)):
+    cursor = db.users.find({}, {"_id": 0, "password_hash": 0}).sort("created_at", -1)
+    out = []
+    async for u in cursor:
+        out.append({
+            "id": u["id"],
+            "email": u.get("email"),
+            "name": u.get("name"),
+            "unique_id": u.get("unique_id"),
+            "is_admin": bool(u.get("is_admin", False)),
+            "friends_count": len(u.get("friends", [])),
+            "created_at": u.get("created_at"),
+        })
+    return {"users": out}
+
+
+@api_router.delete("/admin/users/{user_id}")
+async def admin_delete_user(user_id: str, admin: dict = Depends(require_admin)):
+    if user_id == admin["id"]:
+        raise HTTPException(status_code=400, detail="Cannot delete yourself")
+    target = await db.users.find_one({"id": user_id}, {"_id": 0})
+    if not target:
+        raise HTTPException(status_code=404, detail="User not found")
+    if target.get("is_admin"):
+        raise HTTPException(status_code=400, detail="Cannot delete another admin")
+    await db.users.delete_one({"id": user_id})
+    # Cleanup: pull from friends/requests of others, remove from rooms, delete their rooms-as-host, delete notifications
+    await db.users.update_many({}, {"$pull": {"friends": user_id, "requests_in": user_id, "requests_out": user_id}})
+    await db.rooms.update_many({}, {"$pull": {"participants": user_id}})
+    await db.rooms.delete_many({"host_id": user_id})
+    await db.notifications.delete_many({"$or": [{"user_id": user_id}, {"from_user_id": user_id}]})
+    await db.messages.delete_many({"sender_id": user_id})
+    return {"ok": True}
+
+
+@api_router.post("/admin/users/{user_id}/promote")
+async def admin_promote_user(user_id: str, admin: dict = Depends(require_admin)):
+    res = await db.users.update_one({"id": user_id}, {"$set": {"is_admin": True}})
+    if res.matched_count == 0:
+        raise HTTPException(status_code=404, detail="User not found")
+    return {"ok": True}
+
+
+@api_router.post("/admin/users/{user_id}/demote")
+async def admin_demote_user(user_id: str, admin: dict = Depends(require_admin)):
+    if user_id == admin["id"]:
+        raise HTTPException(status_code=400, detail="Cannot demote yourself")
+    res = await db.users.update_one({"id": user_id}, {"$set": {"is_admin": False}})
+    if res.matched_count == 0:
+        raise HTTPException(status_code=404, detail="User not found")
+    return {"ok": True}
+
+
+@api_router.get("/admin/rooms")
+async def admin_list_rooms(admin: dict = Depends(require_admin)):
+    cursor = db.rooms.find({}, {"_id": 0, "password_hash": 0}).sort("created_at", -1)
+    out = []
+    async for r in cursor:
+        out.append({
+            "id": r["id"],
+            "name": r["name"],
+            "host_id": r["host_id"],
+            "platform": r.get("platform"),
+            "participants": r.get("participants", []),
+            "state": r.get("state", {}),
+            "created_at": r.get("created_at"),
+        })
+    return {"rooms": out}
+
+
+@api_router.delete("/admin/rooms/{room_id}")
+async def admin_delete_room(room_id: str, admin: dict = Depends(require_admin)):
+    res = await db.rooms.delete_one({"id": room_id.upper()})
+    if res.deleted_count == 0:
+        raise HTTPException(status_code=404, detail="Room not found")
+    await db.messages.delete_many({"room_id": room_id.upper()})
+    return {"ok": True}
+
+
+class BroadcastIn(BaseModel):
+    title: str
+    body: str
+
+
+@api_router.post("/admin/broadcast")
+async def admin_broadcast(body: BroadcastIn, admin: dict = Depends(require_admin)):
+    """Creates a notification for every user."""
+    created = 0
+    async for u in db.users.find({}, {"_id": 0, "id": 1}):
+        await db.notifications.insert_one({
+            "id": str(uuid.uuid4()),
+            "user_id": u["id"],
+            "type": "admin-broadcast",
+            "room_id": None,
+            "room_name": body.title,
+            "password": body.body,  # re-using password field for body text
+            "from_user_id": admin["id"],
+            "from_name": admin.get("name", "Admin"),
+            "read": False,
+            "created_at": datetime.now(timezone.utc).isoformat(),
+        })
+        created += 1
+    return {"ok": True, "sent_to": created}
+
+
 # ------------- Health -------------
 @api_router.get("/")
 async def root():
@@ -636,8 +771,12 @@ async def startup():
             "friends": [],
             "requests_in": [],
             "requests_out": [],
+            "is_admin": True,
             "created_at": datetime.now(timezone.utc).isoformat(),
         })
+    else:
+        # Ensure existing admin is flagged
+        await db.users.update_one({"email": ADMIN_EMAIL}, {"$set": {"is_admin": True}})
 
 
 @app.on_event("shutdown")

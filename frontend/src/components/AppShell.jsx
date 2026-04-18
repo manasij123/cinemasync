@@ -2,7 +2,7 @@ import React, { useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import {
-  LayoutDashboard, Users, User, Bell, Radio, LogOut, Menu, X, Film,
+  LayoutDashboard, Users, User, Bell, Radio, LogOut, Menu, X, Film, ShieldCheck,
 } from "lucide-react";
 
 const NAV = [
@@ -10,6 +10,8 @@ const NAV = [
   { to: "/friends", label: "Friends", icon: Users, testid: "side-friends" },
   { to: "/profile", label: "Profile", icon: User, testid: "side-profile" },
 ];
+
+const ADMIN_NAV = { to: "/admin", label: "Admin", icon: ShieldCheck, testid: "side-admin" };
 
 function SideBody({ onNavigate }) {
   const { user, logout } = useAuth();
@@ -30,7 +32,7 @@ function SideBody({ onNavigate }) {
 
       {/* Nav */}
       <nav className="flex-1 py-6 px-3 space-y-1">
-        {NAV.map((item) => {
+        {[...NAV, ...(user?.is_admin ? [ADMIN_NAV] : [])].map((item) => {
           const active = pathname === item.to || pathname.startsWith(item.to + "/");
           const Icon = item.icon;
           return (
@@ -41,12 +43,13 @@ function SideBody({ onNavigate }) {
               data-testid={item.testid}
               className={`flex items-center gap-3 px-4 py-3 font-mono text-xs tracking-[0.2em] uppercase transition-all ${
                 active
-                  ? "bg-[#7209b7] text-[#1a0b2e]"
+                  ? "bg-[#7209b7] text-white"
                   : "text-[#6b5b84] hover:bg-[#7209b7]/10 hover:text-[#1a0b2e]"
               }`}
             >
               <Icon size={16} />
               <span>{item.label}</span>
+              {item.to === "/admin" && <span className="ml-auto text-[10px]">★</span>}
             </Link>
           );
         })}

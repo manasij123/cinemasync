@@ -12,6 +12,7 @@ import Friends from "./pages/Friends";
 import Lobby from "./pages/Lobby";
 import WatchRoom from "./pages/WatchRoom";
 import Invite from "./pages/Invite";
+import Admin from "./pages/Admin";
 import { Toaster } from "sonner";
 
 function App() {
@@ -29,6 +30,7 @@ function App() {
             <Route path="/lobby/:roomId" element={<ProtectedRoute><Lobby /></ProtectedRoute>} />
             <Route path="/room/:roomId" element={<ProtectedRoute><WatchRoom /></ProtectedRoute>} />
             <Route path="/invite/:roomId" element={<Invite />} />
+            <Route path="/admin" element={<ProtectedRoute><Admin /></ProtectedRoute>} />
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>
         </BrowserRouter>

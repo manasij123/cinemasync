@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Anton&family=Manrope:wght@300;400;500;600;700;800&family=IBM+Plex+Mono:wght@300;400;500;600&display=swap');
+@import url('https://fonts.bunny.net/css?family=allerta-stencil:400');
 
 @tailwind base;
 @tailwind components;
@@ -31,7 +31,8 @@ body {
     background: linear-gradient(135deg, #ffd6ff 0%, #e7c6ff 25%, #c8b6ff 50%, #b8c0ff 75%, #bbd0ff 100%);
     background-attachment: fixed;
     color: var(--text-primary);
-    font-family: 'Manrope', sans-serif;
+    font-family: 'Allerta Stencil', 'Impact', 'Arial Narrow', sans-serif;
+    letter-spacing: 0.02em;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
     overflow-x: hidden;
@@ -132,9 +133,9 @@ input:focus, textarea:focus {
     outline: none;
 }
 
-.font-head { font-family: 'Anton', sans-serif; letter-spacing: 0.02em; }
-.font-body { font-family: 'Manrope', sans-serif; }
-.font-mono { font-family: 'IBM Plex Mono', monospace; }
+.font-head { font-family: 'Allerta Stencil', 'Impact', 'Arial Narrow', sans-serif; letter-spacing: 0.04em; }
+.font-body { font-family: 'Allerta Stencil', 'Impact', 'Arial Narrow', sans-serif; letter-spacing: 0.02em; }
+.font-mono { font-family: 'Allerta Stencil', 'Courier New', monospace; letter-spacing: 0.08em; }
 
 /* Card glass */
 .glass-card {
