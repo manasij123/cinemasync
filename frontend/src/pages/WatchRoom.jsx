@@ -133,8 +133,9 @@ export default function WatchRoom() {
         }
         if (msg.joined && room && msg.joined.id !== user.id) {
           toast.success(`${msg.joined.name} joined`);
-          // If host is currently sharing, proactively offer the stream to new joiner
+          // If host is currently sharing, proactively re-announce + offer stream to new joiner
           if (room.host_id === user.id && localStreamRef.current) {
+            wsRef.current?.send(JSON.stringify({ type: "screenshare-start" }));
             createOfferTo(msg.joined.id, localStreamRef.current).catch(() => {});
           }
         }
@@ -278,15 +279,19 @@ export default function WatchRoom() {
       }
     };
     pc.ontrack = (ev) => {
+      console.log("[CinemaSync] ontrack fired from peer", peerId, "streams:", ev.streams.length);
       if (videoRef.current) {
         // Mute initially to satisfy browser autoplay policy — user can tap to unmute
         videoRef.current.muted = true;
         videoRef.current.srcObject = ev.streams[0];
         const play = videoRef.current.play();
-        if (play && typeof play.catch === "function") play.catch(() => {});
+        if (play && typeof play.catch === "function") play.catch((err) => {
+          console.warn("[CinemaSync] video.play() failed (expected in some cases):", err?.name);
+        });
       }
     };
     pc.onconnectionstatechange = () => {
+      console.log("[CinemaSync] peer", peerId, "state:", pc.connectionState);
       if (pc.connectionState === "failed" || pc.connectionState === "closed") {
         try { pc.close(); } catch {}
         delete peersRef.current[peerId];
@@ -316,6 +321,11 @@ export default function WatchRoom() {
     const pc = getOrCreatePeer(from);
 
     if (kind === "offer") {
+      // Receiving an offer implies the sender is sharing — unhide the video
+      // surface even if we missed the screenshare-start broadcast.
+      setRemoteSharerId(from);
+      setRemoteSharerName(msg.from_name || "Host");
+      setVideoMuted(true);
       await pc.setRemoteDescription(new RTCSessionDescription(signal));
       const answer = await pc.createAnswer();
       await pc.setLocalDescription(answer);
