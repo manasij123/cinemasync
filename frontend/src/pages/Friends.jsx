@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import Navbar from "../components/Navbar";
+import AppShell from "../components/AppShell";
 import { api } from "../lib/api";
 import { toast } from "sonner";
 import { useAuth } from "../context/AuthContext";
@@ -128,12 +128,8 @@ export default function Friends() {
   );
 
   return (
-    <div>
-      <Navbar />
-      <main className="max-w-[1000px] mx-auto px-6 md:px-10 py-10">
-        <div className="font-mono text-xs tracking-[0.3em] uppercase text-[#d4a373] mb-3">Your Crew</div>
-        <h1 className="font-head text-4xl sm:text-5xl uppercase mb-8">Friends</h1>
-
+    <AppShell subtitle="Your Crew" title="Friends">
+      <div className="max-w-[1000px]">
         <form onSubmit={doSearch} className="flex gap-2 mb-8">
           <div className="flex-1 relative">
             <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-[#7a6a55]" />
@@ -244,7 +240,7 @@ export default function Friends() {
               />
             )))}
         </div>
-      </main>
-    </div>
+      </div>
+    </AppShell>
   );
 }

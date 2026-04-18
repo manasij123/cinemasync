@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import Navbar from "../components/Navbar";
+import AppShell from "../components/AppShell";
 import { useAuth } from "../context/AuthContext";
 import UniqueIdBadge from "../components/UniqueIdBadge";
 import { api } from "../lib/api";
@@ -38,12 +38,8 @@ export default function Profile() {
   };
 
   return (
-    <div>
-      <Navbar />
-      <main className="max-w-[1000px] mx-auto px-6 md:px-10 py-10">
-        <div className="font-mono text-xs tracking-[0.3em] uppercase text-[#d4a373] mb-3">Your Ticket Stub</div>
-        <h1 className="font-head text-4xl sm:text-5xl uppercase mb-8">Profile</h1>
-
+    <AppShell subtitle="Your Ticket Stub" title="Profile">
+      <div className="max-w-[1000px]">
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           <div className="md:col-span-1 border border-[#d4a373]/30 bg-[#faedcd] p-6 flex flex-col items-center text-center">
             <div className="w-32 h-32 bg-[#fefae0] border border-[#d4a373]/30 overflow-hidden mb-4 flex items-center justify-center">
@@ -87,7 +83,7 @@ export default function Profile() {
             </button>
           </form>
         </div>
-      </main>
-    </div>
+      </div>
+    </AppShell>
   );
 }

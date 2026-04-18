@@ -262,15 +262,24 @@ export default function Lobby() {
                   {isHost ? "Open the curtain" : "Take your seat"}
                 </button>
                 {room.platform !== "custom" && (
-                  <a
-                    href={PLATFORM_URL[room.platform]}
-                    target="_blank"
-                    rel="noreferrer"
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const w = window.screen.availWidth;
+                      const h = window.screen.availHeight;
+                      const popW = Math.min(1280, Math.round(w * 0.7));
+                      const popH = Math.min(800, Math.round(h * 0.85));
+                      window.open(
+                        PLATFORM_URL[room.platform],
+                        "cinemasync-ott",
+                        `popup=yes,width=${popW},height=${popH},left=${w - popW - 20},top=40,scrollbars=yes,resizable=yes`
+                      );
+                    }}
                     data-testid="lobby-open-platform-link"
                     className="border border-[#d4a373]/40 font-mono tracking-[0.25em] uppercase text-xs px-6 py-4 hover:border-[#d4a373] hover:text-[#d4a373]"
                   >
-                    Open {PLATFORM_LABEL[room.platform]} ↗
-                  </a>
+                    Open {PLATFORM_LABEL[room.platform]} popup ↗
+                  </button>
                 )}
               </div>
             </div>

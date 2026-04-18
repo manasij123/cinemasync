@@ -522,15 +522,24 @@ export default function WatchRoom() {
                   </p>
                   <div className="flex justify-center gap-3 flex-wrap">
                     {room.platform !== "custom" && (
-                      <a
-                        href={PLATFORM_URL[room.platform]}
-                        target="_blank"
-                        rel="noreferrer"
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const w = window.screen.availWidth;
+                          const h = window.screen.availHeight;
+                          const popW = Math.min(1280, Math.round(w * 0.7));
+                          const popH = Math.min(800, Math.round(h * 0.85));
+                          window.open(
+                            PLATFORM_URL[room.platform],
+                            "cinemasync-ott",
+                            `popup=yes,width=${popW},height=${popH},left=${w - popW - 20},top=40,scrollbars=yes,resizable=yes`
+                          );
+                        }}
                         data-testid="watch-open-platform-link"
                         className="inline-flex items-center gap-2 border border-[#d4a373]/45 font-mono text-xs tracking-widest uppercase px-4 py-3 hover:border-[#d4a373] hover:text-[#d4a373]"
                       >
-                        <ExternalLink size={13} /> Open {PLATFORM_LABEL[room.platform]}
-                      </a>
+                        <ExternalLink size={13} /> Open {PLATFORM_LABEL[room.platform]} popup
+                      </button>
                     )}
                   </div>
                 </div>
