@@ -61,10 +61,13 @@ export default function WatchRoom() {
 
   // Fullscreen / chat collapse
   const [fullscreen, setFullscreen] = useState(false);
-  const [chatOpenInFs, setChatOpenInFs] = useState(true);
+  const [chatOpenInFs, setChatOpenInFs] = useState(false);
+  const [controlsVisible, setControlsVisible] = useState(true);
   const localStreamRef = useRef(null);
   const videoRef = useRef(null);
   const peersRef = useRef({}); // user_id -> RTCPeerConnection
+  const stageRef = useRef(null);
+  const idleTimerRef = useRef(null);
 
   const wsRef = useRef(null);
   const chatEndRef = useRef(null);
@@ -183,16 +186,51 @@ export default function WatchRoom() {
     chatEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
-  // Escape to exit fullscreen
+  // Native Fullscreen API + auto-hide controls
   useEffect(() => {
-    if (!fullscreen) return;
-    const onKey = (e) => { if (e.key === "Escape") setFullscreen(false); };
-    window.addEventListener("keydown", onKey);
-    // lock body scroll while fullscreen
-    document.body.style.overflow = "hidden";
+    const handler = () => {
+      const isFs = !!document.fullscreenElement;
+      setFullscreen(isFs);
+      if (!isFs) setChatOpenInFs(false);
+      setControlsVisible(true);
+    };
+    document.addEventListener("fullscreenchange", handler);
+    return () => document.removeEventListener("fullscreenchange", handler);
+  }, []);
+
+  const toggleFullscreen = async () => {
+    try {
+      if (!document.fullscreenElement) {
+        if (stageRef.current && stageRef.current.requestFullscreen) {
+          await stageRef.current.requestFullscreen();
+        }
+      } else {
+        await document.exitFullscreen();
+      }
+    } catch (e) {
+      toast.error("Fullscreen blocked by browser");
+    }
+  };
+
+  // Mouse-idle auto-hide of controls while in fullscreen
+  useEffect(() => {
+    if (!fullscreen) {
+      setControlsVisible(true);
+      return;
+    }
+    const ping = () => {
+      setControlsVisible(true);
+      if (idleTimerRef.current) clearTimeout(idleTimerRef.current);
+      idleTimerRef.current = setTimeout(() => setControlsVisible(false), 2500);
+    };
+    ping();
+    const el = stageRef.current;
+    el?.addEventListener("mousemove", ping);
+    el?.addEventListener("touchstart", ping);
     return () => {
-      window.removeEventListener("keydown", onKey);
-      document.body.style.overflow = "";
+      if (idleTimerRef.current) clearTimeout(idleTimerRef.current);
+      el?.removeEventListener("mousemove", ping);
+      el?.removeEventListener("touchstart", ping);
     };
   }, [fullscreen]);
 
@@ -407,19 +445,17 @@ export default function WatchRoom() {
           </div>
         </div>
 
-        <div className={
-          fullscreen
-            ? "fixed inset-0 z-50 bg-[#0A0908] grid grid-cols-1 lg:grid-cols-4 gap-0"
-            : "grid grid-cols-1 lg:grid-cols-4 gap-4"
-        }>
+        <div className="grid grid-cols-1 lg:grid-cols-4 gap-4">
           {/* Stage */}
-          <section className={
-            (fullscreen
-              ? (chatOpenInFs ? "lg:col-span-3" : "lg:col-span-4")
-              : "lg:col-span-3"
-            ) + " bg-[#fefae0] border border-[#d4a373]/30 relative overflow-hidden flex flex-col " +
-            (fullscreen ? "h-screen" : "h-[55vh] sm:h-[62vh] lg:h-[78vh]")
-          }>
+          <section
+            ref={stageRef}
+            className={
+              "relative overflow-hidden flex flex-col border " +
+              (fullscreen
+                ? "bg-black border-black h-screen w-screen lg:col-span-4 cursor-[auto]"
+                : "bg-[#fefae0] border-[#d4a373]/30 lg:col-span-3 h-[55vh] sm:h-[62vh] lg:h-[78vh]")
+            }
+          >
             <div className="flex-1 relative flex items-center justify-center">
               {/* Video surface: remote or own share */}
               <video
@@ -450,25 +486,34 @@ export default function WatchRoom() {
               )}
               {/* Fullscreen toggle — available to everyone */}
               <button
-                onClick={() => setFullscreen((v) => !v)}
+                onClick={toggleFullscreen}
                 data-testid="watch-fullscreen-button"
-                className="absolute top-3 left-3 bg-[#fefae0]/95 border border-[#d4a373] text-[#2b2118] p-2 font-mono hover:bg-[#d4a373]/20 z-10"
+                className={
+                  "absolute top-3 left-3 border p-2 font-mono z-10 transition-opacity duration-300 " +
+                  (fullscreen
+                    ? "bg-black/70 border-white/30 text-white hover:bg-white/10"
+                    : "bg-[#fefae0]/95 border-[#d4a373] text-[#2b2118] hover:bg-[#d4a373]/20") +
+                  (fullscreen && !controlsVisible ? " opacity-0 pointer-events-none" : " opacity-100")
+                }
                 title={fullscreen ? "Exit fullscreen (Esc)" : "Enter fullscreen"}
               >
                 {fullscreen ? <Minimize2 size={16} /> : <Maximize2 size={16} />}
               </button>
-              {/* Chat toggle (only while fullscreen) */}
+              {/* Chat toggle (only while fullscreen) — overlay */}
               {fullscreen && (
                 <button
                   onClick={() => setChatOpenInFs((v) => !v)}
                   data-testid="watch-chat-toggle-button"
-                  className="absolute top-3 left-14 bg-[#fefae0]/95 border border-[#d4a373] text-[#2b2118] p-2 font-mono hover:bg-[#d4a373]/20 z-10"
+                  className={
+                    "absolute top-3 left-14 bg-black/70 border border-white/30 text-white p-2 z-10 transition-opacity duration-300 hover:bg-white/10 " +
+                    (controlsVisible ? "opacity-100" : "opacity-0 pointer-events-none")
+                  }
                   title={chatOpenInFs ? "Hide chat" : "Show chat"}
                 >
                   {chatOpenInFs ? <MessageSquareOff size={16} /> : <MessageSquare size={16} />}
                 </button>
               )}
-              {!sharing && !remoteSharerId && (
+              {!sharing && !remoteSharerId && !fullscreen && (
                 <div className="text-center px-6">
                   <div className="font-head text-3xl sm:text-5xl uppercase text-[#d4a373] mb-3">Intermission</div>
                   <p className="text-[#7a6a55] max-w-md mx-auto mb-6">
@@ -498,7 +543,13 @@ export default function WatchRoom() {
             </div>
 
             {/* Sync control bar */}
-            <div className="absolute bottom-6 left-1/2 -translate-x-1/2 bg-[#fefae0]/85 backdrop-blur-xl border border-[#d4a373]/30 px-4 py-3 flex gap-4 items-center rounded-sm shadow-2xl"
+            <div className={
+              "absolute bottom-6 left-1/2 -translate-x-1/2 backdrop-blur-xl border px-4 py-3 flex gap-4 items-center rounded-sm shadow-2xl transition-opacity duration-300 " +
+              (fullscreen
+                ? "bg-black/70 border-white/20 text-white"
+                : "bg-[#fefae0]/85 border-[#d4a373]/30") +
+              (fullscreen && !controlsVisible ? " opacity-0 pointer-events-none" : " opacity-100")
+            }
                  data-testid="sync-control-bar">
               <button
                 onClick={() => seek(-10)}
@@ -564,19 +615,53 @@ export default function WatchRoom() {
                   </button>
                 )
               ) : (
-                <span className="font-mono text-[10px] tracking-widest uppercase text-[#7a6a55]">Guest</span>
+                <span className={"font-mono text-[10px] tracking-widest uppercase " + (fullscreen ? "text-white/60" : "text-[#7a6a55]")}>Guest</span>
               )}
             </div>
+
+            {/* In-stage chat overlay (only in fullscreen) */}
+            {fullscreen && chatOpenInFs && (
+              <div className={
+                "absolute top-0 right-0 bottom-0 w-[320px] max-w-[85vw] bg-black/80 backdrop-blur-xl border-l border-white/10 flex flex-col text-white z-20 transition-opacity duration-300 " +
+                (controlsVisible ? "opacity-100" : "opacity-0 pointer-events-none")
+              }>
+                <div className="border-b border-white/10 p-3">
+                  <span className="font-mono text-[10px] tracking-[0.3em] uppercase text-white/70">
+                    In the theatre · {presence.length}
+                  </span>
+                </div>
+                <div className="flex-1 overflow-y-auto p-3 space-y-2">
+                  {messages.map((m) => (
+                    <div key={m.id} className={"border-l-2 pl-2 py-0.5 " + (m.sender_id === room.host_id ? "border-[#d4a373]" : "border-[#a3b18a]")}>
+                      <div className="flex items-baseline gap-2">
+                        <span className={"font-mono text-[10px] tracking-widest uppercase " + (m.sender_id === room.host_id ? "text-[#d4a373]" : "text-[#a3b18a]")}>
+                          {m.sender_name}
+                        </span>
+                      </div>
+                      <div className="text-white text-sm break-words">{m.text}</div>
+                    </div>
+                  ))}
+                </div>
+                <form onSubmit={sendMessage} className="border-t border-white/10 p-2 flex gap-2">
+                  <input
+                    value={msgText}
+                    onChange={(e) => setMsgText(e.target.value)}
+                    placeholder="Message…"
+                    data-testid="chat-input-fs"
+                    className="flex-1 bg-white/5 border border-white/10 focus:border-white/40 px-2 py-1.5 text-sm text-white placeholder-white/40"
+                  />
+                  <button type="submit" className="bg-[#d4a373] text-[#2b2118] px-2 py-1.5 hover:bg-[#c08456]">
+                    <Send size={14} />
+                  </button>
+                </form>
+              </div>
+            )}
           </section>
 
-          {/* Chat & participants */}
+          {/* Chat & participants — hidden entirely in native fullscreen */}
           <aside className={
-            (fullscreen
-              ? (chatOpenInFs ? "flex" : "hidden")
-              : "flex"
-            ) +
-            " border border-[#d4a373]/30 bg-[#faedcd] flex-col " +
-            (fullscreen ? "h-screen" : "h-[55vh] sm:h-[62vh] lg:h-[78vh]")
+            (fullscreen ? "hidden" : "flex") +
+            " border border-[#d4a373]/30 bg-[#faedcd] flex-col h-[55vh] sm:h-[62vh] lg:h-[78vh]"
           }>
             {/* Participants strip */}
             <div className="border-b border-[#d4a373]/30 p-4">
