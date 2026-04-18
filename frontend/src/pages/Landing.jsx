@@ -12,10 +12,10 @@ const CONTEXT_IMG =
 const Feature = ({ icon: Icon, title, copy, testid }) => (
   <div
     data-testid={testid}
-    className="border border-white/5 bg-[#141211] p-6 hover:border-[#E5A93C]/70 transition-all group"
+    className="border border-white/5 bg-[#141211] p-6 hover:border-[#FACC15]/70 transition-all group"
   >
-    <Icon size={22} className="text-[#E5A93C] mb-4" />
-    <h3 className="font-head text-xl uppercase tracking-wide mb-2 group-hover:text-[#E5A93C]">{title}</h3>
+    <Icon size={22} className="text-[#FACC15] mb-4" />
+    <h3 className="font-head text-xl uppercase tracking-wide mb-2 group-hover:text-[#FACC15]">{title}</h3>
     <p className="text-[#99958E] text-sm leading-relaxed">{copy}</p>
   </div>
 );
@@ -28,7 +28,7 @@ export default function Landing() {
       <Navbar />
 
       {/* Hero */}
-      <section className="relative min-h-[90vh] overflow-hidden">
+      <section className="relative min-h-[85vh] sm:min-h-[90vh] overflow-hidden">
         <div
           className="absolute inset-0 bg-cover bg-center"
           style={{ backgroundImage: `url(${HERO_IMG})` }}
@@ -36,56 +36,56 @@ export default function Landing() {
         <div className="absolute inset-0 bg-gradient-to-b from-[#0A0908]/70 via-[#0A0908]/85 to-[#0A0908]" />
 
         {/* Marquee strip */}
-        <div className="absolute top-20 left-0 right-0 overflow-hidden border-y border-[#E5A93C]/40 bg-[#E5A93C]/5 py-2">
+        <div className="absolute top-16 left-0 right-0 overflow-hidden border-y border-[#FACC15]/40 bg-[#FACC15]/5 py-2">
           <div className="marquee-track whitespace-nowrap flex gap-12">
             {Array.from({ length: 8 }).map((_, i) => (
-              <span key={i} className="font-head text-xl uppercase tracking-[0.3em] text-[#E5A93C] flicker">
+              <span key={i} className="font-head text-base sm:text-xl uppercase tracking-[0.3em] text-[#FACC15] flicker">
                 {MARQUEE_TEXT}
               </span>
             ))}
           </div>
         </div>
 
-        <div className="relative max-w-[1400px] mx-auto px-6 md:px-10 pt-40 pb-24">
+        <div className="relative max-w-[1400px] mx-auto px-6 md:px-10 pt-32 sm:pt-40 pb-16 sm:pb-24">
           <div className="max-w-3xl reveal">
-            <div className="inline-flex items-center gap-2 px-3 py-1.5 border border-[#E5A93C]/40 bg-[#E5A93C]/5 text-[#E5A93C] font-mono text-[11px] tracking-[0.3em] uppercase mb-6">
-              <span className="w-2 h-2 bg-[#FF3B00] pulse-live" /> Live Watch Parties · Nightly
+            <div className="inline-flex items-center gap-2 px-3 py-1.5 border border-[#FACC15]/40 bg-[#FACC15]/5 text-[#FACC15] font-mono text-[10px] sm:text-[11px] tracking-[0.3em] uppercase mb-6">
+              <span className="w-2 h-2 bg-[#EF4444] pulse-live" /> Live Watch Parties · Nightly
             </div>
-            <h1 className="font-head text-5xl sm:text-6xl lg:text-7xl uppercase leading-[0.95] text-[#F7F7F2] mb-6">
+            <h1 className="font-head text-4xl sm:text-6xl lg:text-7xl uppercase leading-[0.95] text-[#F7F7F2] mb-6 break-words">
               The theatre you
               <br />
-              <span className="text-[#E5A93C]">carry in your browser.</span>
+              <span className="text-[#FACC15]">carry in your browser.</span>
             </h1>
-            <p className="text-[#99958E] text-lg max-w-xl mb-10 leading-relaxed">
+            <p className="text-[#99958E] text-base sm:text-lg max-w-xl mb-8 sm:mb-10 leading-relaxed">
               Host a synchronized watch party with your crew. Play, pause, and seek on every screen at
               once — with chat, emojis, and optional screen share. Your subscription stays yours.
             </p>
-            <div className="flex flex-wrap gap-4">
+            <div className="flex flex-wrap gap-3 sm:gap-4">
               <Link
                 to="/register"
                 data-testid="hero-cta-register"
-                className="bg-[#E5A93C] text-[#0A0908] font-mono tracking-[0.25em] uppercase text-sm px-7 py-4 hover:bg-[#F0B955] hover:shadow-[0_0_25px_rgba(229,169,60,0.35)] transition-all"
+                className="bg-[#FACC15] text-[#0A0908] font-mono tracking-[0.2em] sm:tracking-[0.25em] uppercase text-xs sm:text-sm px-5 sm:px-7 py-3 sm:py-4 hover:bg-[#FDE047] hover:shadow-[0_0_25px_rgba(250,204,21,0.35)] transition-all"
               >
                 Book your seat
               </Link>
               <Link
                 to="/login"
                 data-testid="hero-cta-login"
-                className="border border-white/20 text-[#F7F7F2] font-mono tracking-[0.25em] uppercase text-sm px-7 py-4 hover:border-white/60 transition-all"
+                className="border border-white/20 text-[#F7F7F2] font-mono tracking-[0.25em] uppercase text-xs sm:text-sm px-5 sm:px-7 py-3 sm:py-4 hover:border-[#3B82F6] hover:text-[#3B82F6] transition-all"
               >
                 Take me to my balcony
               </Link>
             </div>
 
-            <div className="mt-16 grid grid-cols-3 gap-6 max-w-xl">
+            <div className="mt-10 sm:mt-16 grid grid-cols-3 gap-4 sm:gap-6 max-w-xl">
               {[
                 { k: "01", v: "Sync to ±50ms" },
                 { k: "02", v: "No credential sharing" },
                 { k: "03", v: "6 OTT platforms" },
               ].map((s) => (
                 <div key={s.k}>
-                  <div className="font-mono text-[10px] tracking-[0.3em] text-[#E5A93C]">{s.k}</div>
-                  <div className="font-head text-sm uppercase text-[#F7F7F2] mt-1">{s.v}</div>
+                  <div className="font-mono text-[10px] tracking-[0.3em] text-[#FACC15]">{s.k}</div>
+                  <div className="font-head text-xs sm:text-sm uppercase text-[#F7F7F2] mt-1">{s.v}</div>
                 </div>
               ))}
             </div>
@@ -94,13 +94,13 @@ export default function Landing() {
       </section>
 
       {/* Features */}
-      <section className="max-w-[1400px] mx-auto px-6 md:px-10 py-20">
-        <div className="flex items-end justify-between flex-wrap gap-6 mb-12">
+      <section className="max-w-[1400px] mx-auto px-6 md:px-10 py-12 sm:py-20">
+        <div className="flex items-end justify-between flex-wrap gap-6 mb-8 sm:mb-12">
           <div>
-            <div className="font-mono text-xs tracking-[0.3em] uppercase text-[#E5A93C] mb-3">Feature Reel</div>
-            <h2 className="font-head text-4xl sm:text-5xl uppercase">What's on the programme</h2>
+            <div className="font-mono text-xs tracking-[0.3em] uppercase text-[#FACC15] mb-3">Feature Reel</div>
+            <h2 className="font-head text-3xl sm:text-5xl uppercase">What's on the programme</h2>
           </div>
-          <p className="text-[#99958E] max-w-md">
+          <p className="text-[#99958E] max-w-md text-sm sm:text-base">
             Sync without streaming someone else's Netflix. Your app, your rules, your friends, one timestamp.
           </p>
         </div>
@@ -116,27 +116,27 @@ export default function Landing() {
       </section>
 
       {/* Context */}
-      <section className="max-w-[1400px] mx-auto px-6 md:px-10 py-20">
+      <section className="max-w-[1400px] mx-auto px-6 md:px-10 py-12 sm:py-20">
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-10 items-center">
-          <div className="relative h-[420px]">
+          <div className="relative h-[280px] sm:h-[420px]">
             <img src={CONTEXT_IMG} alt="Friends watching" className="w-full h-full object-cover grayscale-[30%]" />
-            <div className="absolute -bottom-4 -left-4 bg-[#E5A93C] text-[#0A0908] font-head text-xl uppercase tracking-wider px-4 py-2">
+            <div className="absolute -bottom-4 -left-4 bg-[#FACC15] text-[#0A0908] font-head text-lg sm:text-xl uppercase tracking-wider px-4 py-2">
               Reel #42
             </div>
           </div>
           <div>
-            <div className="font-mono text-xs tracking-[0.3em] uppercase text-[#E5A93C] mb-3">Intermission</div>
-            <h2 className="font-head text-4xl sm:text-5xl uppercase leading-tight mb-6">
+            <div className="font-mono text-xs tracking-[0.3em] uppercase text-[#FACC15] mb-3">Intermission</div>
+            <h2 className="font-head text-3xl sm:text-5xl uppercase leading-tight mb-6">
               Distance is just bad editing.
             </h2>
-            <p className="text-[#99958E] text-lg leading-relaxed mb-6">
+            <p className="text-[#99958E] text-base sm:text-lg leading-relaxed mb-6">
               CinemaSync stitches the timeline between you and your people. Same scene. Same second.
               Same laughs.
             </p>
             <Link
               to="/register"
               data-testid="context-cta-register"
-              className="inline-block bg-[#E5A93C] text-[#0A0908] font-mono tracking-[0.25em] uppercase text-sm px-7 py-4 hover:bg-[#F0B955] transition-all"
+              className="inline-block bg-[#FACC15] text-[#0A0908] font-mono tracking-[0.25em] uppercase text-xs sm:text-sm px-5 sm:px-7 py-3 sm:py-4 hover:bg-[#FDE047] transition-all"
             >
               Start a private screening
             </Link>

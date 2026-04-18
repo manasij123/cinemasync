@@ -8,9 +8,11 @@
     --void: #0A0908;
     --surface: #141211;
     --panel: #1E1C1A;
-    --primary: #E5A93C;
-    --primary-hover: #F0B955;
-    --danger: #FF3B00;
+    --primary: #FACC15;
+    --primary-hover: #FDE047;
+    --danger: #EF4444;
+    --blue: #2563EB;
+    --blue-hover: #3B82F6;
     --text-primary: #F7F7F2;
     --text-secondary: #99958E;
     --text-muted: #5C5A56;
@@ -45,7 +47,7 @@ body {
     background: var(--void);
 }
 ::-webkit-scrollbar-thumb {
-    background: rgba(229, 169, 60, 0.3);
+    background: rgba(250, 204, 21, 0.3);
     border-radius: 0;
 }
 ::-webkit-scrollbar-thumb:hover {
@@ -60,19 +62,19 @@ body {
         --card-foreground: 60 15% 96%;
         --popover: 24 11% 9%;
         --popover-foreground: 60 15% 96%;
-        --primary: 39 76% 56%;
+        --primary: 48 96% 53%;
         --primary-foreground: 10 7% 4%;
         --secondary: 24 11% 12%;
         --secondary-foreground: 60 15% 96%;
         --muted: 24 11% 12%;
         --muted-foreground: 36 5% 58%;
-        --accent: 39 76% 56%;
+        --accent: 48 96% 53%;
         --accent-foreground: 10 7% 4%;
-        --destructive: 14 100% 50%;
+        --destructive: 0 84% 60%;
         --destructive-foreground: 60 15% 96%;
         --border: 40 10% 20%;
         --input: 24 11% 12%;
-        --ring: 39 76% 56%;
+        --ring: 48 96% 53%;
         --radius: 0.125rem;
     }
 }
@@ -120,8 +122,8 @@ body {
 .reveal { animation: reveal 0.8s cubic-bezier(0.22, 1, 0.36, 1) forwards; }
 
 @keyframes pulse-glow {
-    0%, 100% { box-shadow: 0 0 0 0 rgba(255, 59, 0, 0.6); }
-    50% { box-shadow: 0 0 0 8px rgba(255, 59, 0, 0); }
+    0%, 100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.6); }
+    50% { box-shadow: 0 0 0 8px rgba(239, 68, 68, 0); }
 }
 .pulse-live { animation: pulse-glow 1.5s infinite; }
 

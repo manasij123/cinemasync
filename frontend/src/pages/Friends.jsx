@@ -9,7 +9,7 @@ function Row({ u, actions }) {
   return (
     <div className="flex items-center justify-between p-3 border border-white/10 bg-[#1E1C1A] rounded-sm">
       <div className="flex items-center gap-3 min-w-0">
-        <div className="w-9 h-9 bg-[#E5A93C]/20 border border-white/10 flex items-center justify-center font-head">
+        <div className="w-9 h-9 bg-[#FACC15]/20 border border-white/10 flex items-center justify-center font-head">
           {u.profile_image ? (
             <img src={u.profile_image} alt="" className="w-full h-full object-cover" />
           ) : (
@@ -120,10 +120,10 @@ export default function Friends() {
       onClick={() => setTab(id)}
       data-testid={`friends-tab-${id}`}
       className={`px-4 py-2 font-mono tracking-[0.2em] uppercase text-xs border ${
-        tab === id ? "border-[#E5A93C] text-[#E5A93C] bg-[#E5A93C]/10" : "border-white/10 text-[#99958E] hover:text-[#F7F7F2]"
+        tab === id ? "border-[#FACC15] text-[#FACC15] bg-[#FACC15]/10" : "border-white/10 text-[#99958E] hover:text-[#F7F7F2]"
       }`}
     >
-      {label} <span className="ml-2 text-[#E5A93C]">{count}</span>
+      {label} <span className="ml-2 text-[#FACC15]">{count}</span>
     </button>
   );
 
@@ -131,7 +131,7 @@ export default function Friends() {
     <div>
       <Navbar />
       <main className="max-w-[1000px] mx-auto px-6 md:px-10 py-10">
-        <div className="font-mono text-xs tracking-[0.3em] uppercase text-[#E5A93C] mb-3">Your Crew</div>
+        <div className="font-mono text-xs tracking-[0.3em] uppercase text-[#FACC15] mb-3">Your Crew</div>
         <h1 className="font-head text-4xl sm:text-5xl uppercase mb-8">Friends</h1>
 
         <form onSubmit={doSearch} className="flex gap-2 mb-8">
@@ -142,13 +142,13 @@ export default function Friends() {
               onChange={(e) => setQuery(e.target.value)}
               placeholder="Paste a unique ID e.g. CinemaSync_Name_DDMMYYYY"
               data-testid="friends-search-input"
-              className="w-full bg-[#141211] border border-white/10 focus:border-[#E5A93C] pl-10 pr-4 py-3 font-mono text-xs tracking-widest"
+              className="w-full bg-[#141211] border border-white/10 focus:border-[#FACC15] pl-10 pr-4 py-3 font-mono text-xs tracking-widest"
             />
           </div>
           <button
             disabled={searchLoading}
             data-testid="friends-search-button"
-            className="bg-[#E5A93C] text-[#0A0908] font-mono tracking-[0.2em] uppercase text-xs px-6 py-3 hover:bg-[#F0B955] disabled:opacity-60"
+            className="bg-[#FACC15] text-[#0A0908] font-mono tracking-[0.2em] uppercase text-xs px-6 py-3 hover:bg-[#FDE047] disabled:opacity-60"
           >
             {searchLoading ? "…" : "Search"}
           </button>
@@ -162,7 +162,7 @@ export default function Friends() {
                 <button
                   onClick={() => sendRequest(foundUser.unique_id)}
                   data-testid="friends-send-request-button"
-                  className="flex items-center gap-2 border border-[#E5A93C] text-[#E5A93C] px-3 py-2 text-xs font-mono tracking-widest uppercase hover:bg-[#E5A93C]/10"
+                  className="flex items-center gap-2 border border-[#FACC15] text-[#FACC15] px-3 py-2 text-xs font-mono tracking-widest uppercase hover:bg-[#FACC15]/10"
                 >
                   <UserPlus size={13} /> Add
                 </button>
@@ -189,7 +189,7 @@ export default function Friends() {
                   <button
                     onClick={() => remove(f.id)}
                     data-testid={`friends-remove-${f.id}`}
-                    className="flex items-center gap-2 border border-white/20 text-[#F7F7F2] px-3 py-2 text-xs font-mono tracking-widest uppercase hover:border-[#FF3B00] hover:text-[#FF3B00]"
+                    className="flex items-center gap-2 border border-white/20 text-[#F7F7F2] px-3 py-2 text-xs font-mono tracking-widest uppercase hover:border-[#EF4444] hover:text-[#EF4444]"
                   >
                     <UserMinus size={13} /> Remove
                   </button>
@@ -209,14 +209,14 @@ export default function Friends() {
                     <button
                       onClick={() => accept(f.id)}
                       data-testid={`friends-accept-${f.id}`}
-                      className="flex items-center gap-2 border border-[#E5A93C] text-[#E5A93C] px-3 py-2 text-xs font-mono tracking-widest uppercase hover:bg-[#E5A93C]/10"
+                      className="flex items-center gap-2 border border-[#FACC15] text-[#FACC15] px-3 py-2 text-xs font-mono tracking-widest uppercase hover:bg-[#FACC15]/10"
                     >
                       <Check size={13} /> Accept
                     </button>
                     <button
                       onClick={() => reject(f.id)}
                       data-testid={`friends-reject-${f.id}`}
-                      className="flex items-center gap-2 border border-white/20 text-[#F7F7F2] px-3 py-2 text-xs font-mono tracking-widest uppercase hover:border-[#FF3B00] hover:text-[#FF3B00]"
+                      className="flex items-center gap-2 border border-white/20 text-[#F7F7F2] px-3 py-2 text-xs font-mono tracking-widest uppercase hover:border-[#EF4444] hover:text-[#EF4444]"
                     >
                       <X size={13} /> Reject
                     </button>
@@ -236,7 +236,7 @@ export default function Friends() {
                   <button
                     onClick={() => cancel(f.id)}
                     data-testid={`friends-cancel-${f.id}`}
-                    className="flex items-center gap-2 border border-white/20 text-[#F7F7F2] px-3 py-2 text-xs font-mono tracking-widest uppercase hover:border-[#FF3B00] hover:text-[#FF3B00]"
+                    className="flex items-center gap-2 border border-white/20 text-[#F7F7F2] px-3 py-2 text-xs font-mono tracking-widest uppercase hover:border-[#EF4444] hover:text-[#EF4444]"
                   >
                     <X size={13} /> Cancel
                   </button>

@@ -66,21 +66,21 @@ export default function Lobby() {
       <main className="max-w-[1100px] mx-auto px-6 md:px-10 py-10">
         <div className="flex items-end justify-between flex-wrap gap-4 mb-8">
           <div>
-            <div className="font-mono text-xs tracking-[0.3em] uppercase text-[#E5A93C] mb-3">Lobby</div>
+            <div className="font-mono text-xs tracking-[0.3em] uppercase text-[#FACC15] mb-3">Lobby</div>
             <h1 className="font-head text-4xl sm:text-5xl uppercase" data-testid="lobby-room-name">{room.name}</h1>
           </div>
           <div className="flex flex-wrap gap-2">
             <button
               onClick={copyId}
               data-testid="lobby-copy-room-id"
-              className="inline-flex items-center gap-2 px-3 py-2 bg-[#E5A93C]/10 border border-dashed border-[#E5A93C]/50 text-[#E5A93C] font-mono text-xs tracking-widest hover:bg-[#E5A93C]/20"
+              className="inline-flex items-center gap-2 px-3 py-2 bg-[#FACC15]/10 border border-dashed border-[#FACC15]/50 text-[#FACC15] font-mono text-xs tracking-widest hover:bg-[#FACC15]/20"
             >
               {copied ? <Check size={13} /> : <Copy size={13} />} Room ID: {roomId}
             </button>
             <button
               onClick={leave}
               data-testid="lobby-leave-button"
-              className="border border-white/20 font-mono text-xs tracking-widest uppercase px-4 py-2 hover:border-[#FF3B00] hover:text-[#FF3B00]"
+              className="border border-white/20 font-mono text-xs tracking-widest uppercase px-4 py-2 hover:border-[#EF4444] hover:text-[#EF4444]"
             >
               Leave
             </button>
@@ -90,8 +90,8 @@ export default function Lobby() {
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           <div className="lg:col-span-2 border border-white/10 bg-[#141211] p-8 flex flex-col">
             <div className="flex items-center gap-2 mb-3">
-              <Clapperboard size={16} className="text-[#E5A93C]" />
-              <span className="font-mono text-xs tracking-[0.3em] uppercase text-[#E5A93C]">Platform</span>
+              <Clapperboard size={16} className="text-[#FACC15]" />
+              <span className="font-mono text-xs tracking-[0.3em] uppercase text-[#FACC15]">Platform</span>
             </div>
             <h2 className="font-head text-3xl uppercase mb-6">{PLATFORM_LABEL[room.platform] || "Custom"}</h2>
             <p className="text-[#99958E] mb-6">
@@ -102,7 +102,7 @@ export default function Lobby() {
               <button
                 onClick={() => navigate(`/room/${roomId}`)}
                 data-testid="lobby-enter-room-button"
-                className="bg-[#E5A93C] text-[#0A0908] font-mono tracking-[0.25em] uppercase text-sm px-6 py-4 hover:bg-[#F0B955]"
+                className="bg-[#FACC15] text-[#0A0908] font-mono tracking-[0.25em] uppercase text-sm px-6 py-4 hover:bg-[#FDE047]"
               >
                 {isHost ? "Open the curtain" : "Take your seat"}
               </button>
@@ -112,7 +112,7 @@ export default function Lobby() {
                   target="_blank"
                   rel="noreferrer"
                   data-testid="lobby-open-platform-link"
-                  className="border border-white/20 font-mono tracking-[0.25em] uppercase text-xs px-6 py-4 hover:border-[#E5A93C] hover:text-[#E5A93C]"
+                  className="border border-white/20 font-mono tracking-[0.25em] uppercase text-xs px-6 py-4 hover:border-[#FACC15] hover:text-[#FACC15]"
                 >
                   Open {PLATFORM_LABEL[room.platform]} ↗
                 </a>
@@ -122,8 +122,8 @@ export default function Lobby() {
 
           <aside className="border border-white/10 bg-[#141211] p-6">
             <div className="flex items-center gap-2 mb-4">
-              <Users size={14} className="text-[#E5A93C]" />
-              <span className="font-mono text-xs tracking-[0.3em] uppercase text-[#E5A93C]">Cast · {members.length}</span>
+              <Users size={14} className="text-[#FACC15]" />
+              <span className="font-mono text-xs tracking-[0.3em] uppercase text-[#FACC15]">Cast · {members.length}</span>
             </div>
             <ul className="space-y-3" data-testid="lobby-participants">
               {members.map((m) => (
@@ -136,7 +136,7 @@ export default function Lobby() {
                     )}
                   </div>
                   <div className="flex-1 min-w-0">
-                    <div className="font-body text-sm truncate">{m.name}{m.id === room.host_id && <span className="ml-2 text-[#E5A93C] font-mono text-[10px] tracking-widest uppercase">Host</span>}</div>
+                    <div className="font-body text-sm truncate">{m.name}{m.id === room.host_id && <span className="ml-2 text-[#FACC15] font-mono text-[10px] tracking-widest uppercase">Host</span>}</div>
                     <div className="font-mono text-[10px] text-[#99958E] truncate">{m.unique_id}</div>
                   </div>
                 </li>

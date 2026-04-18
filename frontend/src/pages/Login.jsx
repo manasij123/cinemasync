@@ -35,7 +35,7 @@ export default function Login() {
       <div className="min-h-[calc(100vh-4rem)] flex items-center justify-center px-6 py-12">
         <div className="w-full max-w-md">
           <div className="border border-white/10 bg-[#141211] p-8">
-            <div className="font-mono text-xs tracking-[0.3em] uppercase text-[#E5A93C] mb-2">Act I · Entry</div>
+            <div className="font-mono text-xs tracking-[0.3em] uppercase text-[#FACC15] mb-2">Act I · Entry</div>
             <h1 className="font-head text-4xl uppercase mb-8">Back to the balcony</h1>
             <form onSubmit={submit} className="space-y-4">
               <div>
@@ -46,7 +46,7 @@ export default function Login() {
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   data-testid="login-email-input"
-                  className="w-full bg-[#0A0908] border border-white/10 focus:border-[#E5A93C] px-4 py-3 text-[#F7F7F2] font-body"
+                  className="w-full bg-[#0A0908] border border-white/10 focus:border-[#FACC15] px-4 py-3 text-[#F7F7F2] font-body"
                 />
               </div>
               <div>
@@ -57,22 +57,22 @@ export default function Login() {
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   data-testid="login-password-input"
-                  className="w-full bg-[#0A0908] border border-white/10 focus:border-[#E5A93C] px-4 py-3 text-[#F7F7F2] font-body"
+                  className="w-full bg-[#0A0908] border border-white/10 focus:border-[#FACC15] px-4 py-3 text-[#F7F7F2] font-body"
                 />
               </div>
-              {err && <div data-testid="login-error" className="text-[#FF3B00] font-mono text-xs">{err}</div>}
+              {err && <div data-testid="login-error" className="text-[#EF4444] font-mono text-xs">{err}</div>}
               <button
                 type="submit"
                 disabled={loading}
                 data-testid="login-submit-button"
-                className="w-full bg-[#E5A93C] text-[#0A0908] font-mono tracking-[0.25em] uppercase text-sm px-6 py-4 hover:bg-[#F0B955] disabled:opacity-60 transition-all"
+                className="w-full bg-[#FACC15] text-[#0A0908] font-mono tracking-[0.25em] uppercase text-sm px-6 py-4 hover:bg-[#FDE047] disabled:opacity-60 transition-all"
               >
                 {loading ? "Dimming lights…" : "Enter theatre"}
               </button>
             </form>
             <div className="mt-6 text-center font-mono text-xs tracking-widest text-[#99958E]">
               New here?{" "}
-              <Link to="/register" className="text-[#E5A93C] hover:text-[#F0B955]" data-testid="login-to-register-link">
+              <Link to="/register" className="text-[#FACC15] hover:text-[#FDE047]" data-testid="login-to-register-link">
                 Book a seat
               </Link>
             </div>

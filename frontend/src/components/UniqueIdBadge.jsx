@@ -14,7 +14,7 @@ export default function UniqueIdBadge({ value, testid = "unique-id-badge" }) {
     <button
       onClick={copy}
       data-testid={testid}
-      className="inline-flex items-center gap-2 px-3 py-1.5 bg-[#E5A93C]/10 border border-dashed border-[#E5A93C]/50 text-[#E5A93C] font-mono text-xs tracking-widest rounded-sm hover:bg-[#E5A93C]/20 transition-colors"
+      className="inline-flex items-center gap-2 px-3 py-1.5 bg-[#FACC15]/10 border border-dashed border-[#FACC15]/50 text-[#FACC15] font-mono text-xs tracking-widest rounded-sm hover:bg-[#FACC15]/20 transition-colors"
       title="Click to copy"
     >
       {copied ? <Check size={13} /> : <Copy size={13} />}

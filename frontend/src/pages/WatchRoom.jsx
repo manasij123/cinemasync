@@ -318,19 +318,19 @@ export default function WatchRoom() {
         {/* Header */}
         <div className="flex items-center justify-between flex-wrap gap-3 mb-5">
           <div>
-            <div className="font-mono text-[10px] tracking-[0.3em] uppercase text-[#E5A93C] mb-1 flex items-center gap-2">
-              <span className="w-2 h-2 bg-[#FF3B00] pulse-live" /> Live · {PLATFORM_LABEL[room.platform]}
+            <div className="font-mono text-[10px] tracking-[0.3em] uppercase text-[#FACC15] mb-1 flex items-center gap-2">
+              <span className="w-2 h-2 bg-[#EF4444] pulse-live" /> Live · {PLATFORM_LABEL[room.platform]}
             </div>
             <h1 className="font-head text-2xl sm:text-3xl uppercase leading-none" data-testid="watch-room-name">{room.name}</h1>
           </div>
           <div className="flex flex-wrap gap-2">
             <div className="font-mono text-[10px] tracking-widest uppercase text-[#99958E] px-3 py-2 border border-white/10 bg-[#141211]">
-              Room: <span className="text-[#E5A93C]">{roomId}</span>
+              Room: <span className="text-[#FACC15]">{roomId}</span>
             </div>
             <button
               onClick={leave}
               data-testid="watch-leave-button"
-              className="border border-white/20 font-mono text-xs tracking-widest uppercase px-4 py-2 hover:border-[#FF3B00] hover:text-[#FF3B00]"
+              className="border border-white/20 font-mono text-xs tracking-widest uppercase px-4 py-2 hover:border-[#EF4444] hover:text-[#EF4444]"
             >
               Exit
             </button>
@@ -339,7 +339,7 @@ export default function WatchRoom() {
 
         <div className="grid grid-cols-1 lg:grid-cols-4 gap-4">
           {/* Stage */}
-          <section className="lg:col-span-3 bg-[#0A0908] border border-white/10 relative overflow-hidden h-[62vh] lg:h-[78vh] flex flex-col">
+          <section className="lg:col-span-3 bg-[#0A0908] border border-white/10 relative overflow-hidden h-[55vh] sm:h-[62vh] lg:h-[78vh] flex flex-col">
             <div className="flex-1 relative flex items-center justify-center">
               {/* Video surface: remote or own share */}
               <video
@@ -352,9 +352,9 @@ export default function WatchRoom() {
               />
               {!sharing && !remoteSharerId && (
                 <div className="text-center px-6">
-                  <div className="font-head text-5xl uppercase text-[#E5A93C] mb-3">Intermission</div>
+                  <div className="font-head text-3xl sm:text-5xl uppercase text-[#FACC15] mb-3">Intermission</div>
                   <p className="text-[#99958E] max-w-md mx-auto mb-6">
-                    Open <span className="font-mono text-[#E5A93C]">{PLATFORM_LABEL[room.platform]}</span> in a new tab and hit play — your room syncs the timer.
+                    Open <span className="font-mono text-[#FACC15]">{PLATFORM_LABEL[room.platform]}</span> in a new tab and hit play — your room syncs the timer.
                     {isHost && " Or start screen-share to broadcast your window."}
                   </p>
                   <div className="flex justify-center gap-3 flex-wrap">
@@ -364,7 +364,7 @@ export default function WatchRoom() {
                         target="_blank"
                         rel="noreferrer"
                         data-testid="watch-open-platform-link"
-                        className="inline-flex items-center gap-2 border border-white/20 font-mono text-xs tracking-widest uppercase px-4 py-3 hover:border-[#E5A93C] hover:text-[#E5A93C]"
+                        className="inline-flex items-center gap-2 border border-white/20 font-mono text-xs tracking-widest uppercase px-4 py-3 hover:border-[#FACC15] hover:text-[#FACC15]"
                       >
                         <ExternalLink size={13} /> Open {PLATFORM_LABEL[room.platform]}
                       </a>
@@ -373,7 +373,7 @@ export default function WatchRoom() {
                 </div>
               )}
               {remoteSharerId && !sharing && (
-                <div className="absolute top-3 left-3 px-3 py-1.5 bg-[#0A0908]/80 border border-[#E5A93C]/40 text-[#E5A93C] font-mono text-[10px] tracking-[0.25em] uppercase">
+                <div className="absolute top-3 left-3 px-3 py-1.5 bg-[#0A0908]/80 border border-[#FACC15]/40 text-[#FACC15] font-mono text-[10px] tracking-[0.25em] uppercase">
                   Sharing · {remoteSharerName}
                 </div>
               )}
@@ -386,7 +386,7 @@ export default function WatchRoom() {
                 onClick={() => seek(-10)}
                 disabled={!isHost}
                 data-testid="sync-back-10"
-                className="text-[#F7F7F2] hover:text-[#E5A93C] disabled:opacity-40 disabled:hover:text-[#F7F7F2]"
+                className="text-[#F7F7F2] hover:text-[#FACC15] disabled:opacity-40 disabled:hover:text-[#F7F7F2]"
                 title="-10s"
               >
                 <SkipBack size={20} />
@@ -395,7 +395,7 @@ export default function WatchRoom() {
                 onClick={onPlayPause}
                 disabled={!isHost}
                 data-testid="sync-play-pause"
-                className="w-11 h-11 bg-[#E5A93C] text-[#0A0908] flex items-center justify-center hover:bg-[#F0B955] disabled:opacity-40 disabled:hover:bg-[#E5A93C]"
+                className="w-10 h-10 sm:w-11 sm:h-11 bg-[#FACC15] text-[#0A0908] flex items-center justify-center hover:bg-[#FDE047] disabled:opacity-40 disabled:hover:bg-[#FACC15]"
                 title={playing ? "Pause" : "Play"}
               >
                 {playing ? <Pause size={18} /> : <Play size={18} />}
@@ -404,7 +404,7 @@ export default function WatchRoom() {
                 onClick={() => seek(10)}
                 disabled={!isHost}
                 data-testid="sync-fwd-10"
-                className="text-[#F7F7F2] hover:text-[#E5A93C] disabled:opacity-40 disabled:hover:text-[#F7F7F2]"
+                className="text-[#F7F7F2] hover:text-[#FACC15] disabled:opacity-40 disabled:hover:text-[#F7F7F2]"
                 title="+10s"
               >
                 <SkipForward size={20} />
@@ -419,7 +419,7 @@ export default function WatchRoom() {
                   <button
                     onClick={resetTimer}
                     data-testid="sync-reset"
-                    className="text-[#99958E] hover:text-[#E5A93C]"
+                    className="text-[#99958E] hover:text-[#FACC15]"
                     title="Reset timer"
                   >
                     <RotateCcw size={16} />
@@ -432,7 +432,7 @@ export default function WatchRoom() {
                   <button
                     onClick={startShare}
                     data-testid="screenshare-start-button"
-                    className="text-[#F7F7F2] hover:text-[#E5A93C] flex items-center gap-2 font-mono text-[10px] tracking-widest uppercase"
+                    className="text-[#F7F7F2] hover:text-[#FACC15] flex items-center gap-2 font-mono text-[10px] tracking-widest uppercase"
                   >
                     <Cast size={16} /> Share
                   </button>
@@ -440,7 +440,7 @@ export default function WatchRoom() {
                   <button
                     onClick={stopShare}
                     data-testid="screenshare-stop-button"
-                    className="text-[#FF3B00] hover:text-[#FF3B00] flex items-center gap-2 font-mono text-[10px] tracking-widest uppercase"
+                    className="text-[#EF4444] hover:text-[#EF4444] flex items-center gap-2 font-mono text-[10px] tracking-widest uppercase"
                   >
                     <MonitorOff size={16} /> Stop
                   </button>
@@ -452,12 +452,12 @@ export default function WatchRoom() {
           </section>
 
           {/* Chat & participants */}
-          <aside className="border border-white/10 bg-[#141211] flex flex-col h-[62vh] lg:h-[78vh]">
+          <aside className="border border-white/10 bg-[#141211] flex flex-col h-[55vh] sm:h-[62vh] lg:h-[78vh]">
             {/* Participants strip */}
             <div className="border-b border-white/10 p-4">
               <div className="flex items-center gap-2 mb-3">
-                <Users size={14} className="text-[#E5A93C]" />
-                <span className="font-mono text-[10px] tracking-[0.3em] uppercase text-[#E5A93C]">
+                <Users size={14} className="text-[#FACC15]" />
+                <span className="font-mono text-[10px] tracking-[0.3em] uppercase text-[#FACC15]">
                   In the theatre · {presence.length}
                 </span>
               </div>
@@ -466,7 +466,7 @@ export default function WatchRoom() {
                   const m = memberMap[p.id];
                   return (
                     <div key={p.id} className="flex flex-col items-center gap-1 shrink-0" title={p.name}>
-                      <div className={`w-10 h-10 border ${room.host_id === p.id ? "border-[#E5A93C]" : "border-white/10"} bg-[#0A0908] flex items-center justify-center font-head text-sm`}>
+                      <div className={`w-10 h-10 border ${room.host_id === p.id ? "border-[#FACC15]" : "border-white/10"} bg-[#0A0908] flex items-center justify-center font-head text-sm`}>
                         {m?.profile_image ? (
                           <img src={m.profile_image} alt="" className="w-full h-full object-cover" />
                         ) : (
@@ -487,10 +487,10 @@ export default function WatchRoom() {
               {messages.map((m) => (
                 <div
                   key={m.id}
-                  className={`border-l-2 pl-3 py-1 ${m.sender_id === room.host_id ? "border-[#E5A93C]" : "border-[#5C5A56]"}`}
+                  className={`border-l-2 pl-3 py-1 ${m.sender_id === room.host_id ? "border-[#FACC15]" : "border-[#3B82F6]"}`}
                 >
                   <div className="flex items-baseline gap-2">
-                    <span className={`font-mono text-[10px] tracking-widest uppercase ${m.sender_id === room.host_id ? "text-[#E5A93C]" : "text-[#99958E]"}`}>
+                    <span className={`font-mono text-[10px] tracking-widest uppercase ${m.sender_id === room.host_id ? "text-[#FACC15]" : "text-[#3B82F6]"}`}>
                       {m.sender_name}
                     </span>
                     <span className="font-mono text-[9px] text-[#5C5A56]">
@@ -523,7 +523,7 @@ export default function WatchRoom() {
                     type="button"
                     onClick={() => setShowEmoji((s) => !s)}
                     data-testid="chat-emoji-toggle"
-                    className="text-[#99958E] hover:text-[#E5A93C] p-2"
+                    className="text-[#99958E] hover:text-[#FACC15] p-2"
                   >
                     <Smile size={18} />
                   </button>
@@ -532,12 +532,12 @@ export default function WatchRoom() {
                     onChange={(e) => setMsgText(e.target.value)}
                     placeholder="Send a message…"
                     data-testid="chat-input"
-                    className="flex-1 bg-[#0A0908] border border-white/10 focus:border-[#E5A93C] px-3 py-2 text-sm"
+                    className="flex-1 bg-[#0A0908] border border-white/10 focus:border-[#FACC15] px-3 py-2 text-sm"
                   />
                   <button
                     type="submit"
                     data-testid="chat-send-button"
-                    className="bg-[#E5A93C] text-[#0A0908] px-3 py-2 hover:bg-[#F0B955]"
+                    className="bg-[#FACC15] text-[#0A0908] px-3 py-2 hover:bg-[#FDE047]"
                   >
                     <Send size={16} />
                   </button>
