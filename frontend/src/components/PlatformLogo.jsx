@@ -54,7 +54,10 @@ export default function PlatformLogo({ platform = "custom", size = "md", rounded
           }}
         />
       ) : (
-        <span className="font-head uppercase text-[#7209b7]" style={{ fontSize: px * 0.35 }}>
+        <span
+          className="font-head uppercase text-[#7209b7] leading-none px-1 text-center"
+          style={{ fontSize: Math.max(10, Math.min(px * 0.22, 18)) }}
+        >
           {meta.short}
         </span>
       )}

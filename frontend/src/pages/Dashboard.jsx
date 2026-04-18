@@ -120,7 +120,7 @@ function CreateRoomForm({ onCreated }) {
         placeholder="Password"
         className="w-full bg-[#fdf4ff] border border-[#e7c6ff] focus:border-[#7209b7] px-3 py-2 rounded-lg text-sm"
       />
-      <div className="grid grid-cols-4 sm:grid-cols-7 gap-2">
+      <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-7 gap-3">
         {PLATFORMS.map((p) => {
           const active = platform === p.id;
           return (
@@ -130,25 +130,28 @@ function CreateRoomForm({ onCreated }) {
               onClick={() => setPlatform(p.id)}
               data-testid={`platform-pick-${p.id}`}
               title={p.label}
-              className={`group relative flex flex-col items-center gap-1.5 p-2 rounded-lg border transition-all ${
+              className={`group relative flex flex-col items-center gap-2 p-3 rounded-xl border transition-all ${
                 active
-                  ? "border-[#7209b7] bg-[#7209b7]/5 shadow-[0_6px_18px_rgba(114,9,183,0.25)] -translate-y-0.5"
-                  : "border-[#e7c6ff] hover:border-[#7209b7]/60 hover:-translate-y-0.5"
+                  ? "border-[#7209b7] bg-gradient-to-br from-[#fdf4ff] to-[#f0e5ff] shadow-[0_10px_28px_rgba(114,9,183,0.28)] -translate-y-1"
+                  : "border-[#e7c6ff] hover:border-[#7209b7]/60 hover:bg-[#fdf4ff] hover:-translate-y-0.5 hover:shadow-[0_6px_16px_rgba(114,9,183,0.12)]"
               }`}
             >
               <PlatformLogo
                 platform={p.id}
-                size={44}
-                rounded="md"
+                size={72}
+                rounded="lg"
                 showRing={active}
+                className={active ? "" : "group-hover:scale-105 transition-transform"}
               />
-              <span className={`font-mono text-[9px] tracking-[0.18em] uppercase truncate w-full text-center ${
-                active ? "text-[#7209b7]" : "text-[#6b5b84]"
+              <span className={`font-mono text-[10px] tracking-[0.2em] uppercase truncate w-full text-center ${
+                active ? "text-[#7209b7] font-semibold" : "text-[#6b5b84]"
               }`}>
                 {p.label}
               </span>
               {active && (
-                <span className="absolute -top-1 -right-1 w-3 h-3 rounded-full bg-[#f72585] shadow-[0_0_0_3px_#fff]" />
+                <span className="absolute -top-1.5 -right-1.5 w-4 h-4 rounded-full bg-[#f72585] shadow-[0_0_0_3px_#fff] flex items-center justify-center">
+                  <span className="w-1.5 h-1.5 rounded-full bg-white" />
+                </span>
               )}
             </button>
           );
@@ -362,7 +365,7 @@ export default function Dashboard() {
     <AppShell
       subtitle="House Lights Dim"
       title={`${greet()}, ${user.name}`}
-      actions={<UniqueIdBadge value={user.unique_id} testid="dashboard-unique-id" />}
+      actions={<UniqueIdBadge value={user.unique_id} user={user} testid="dashboard-unique-id" />}
     >
       {/* KPI row */}
       <section className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6" data-testid="dashboard-stats">
@@ -453,24 +456,26 @@ export default function Dashboard() {
         </section>
       )}
 
-      {/* Actions row */}
-      <section className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <div className="glass-card rounded-xl p-5">
+      {/* Actions row — stacked: Host creates room on top, Join room below */}
+      <section className="space-y-4">
+        <div className="glass-card rounded-xl p-5 md:p-6">
           <div className="flex items-center gap-2 mb-3">
             <Plus size={16} className="text-[#f72585]" />
             <span className="font-mono text-xs tracking-[0.3em] uppercase text-[#f72585]">Host</span>
           </div>
-          <h2 className="font-head text-2xl uppercase mb-4">Create room</h2>
+          <h2 className="font-head text-2xl md:text-3xl uppercase mb-5">Create room</h2>
           <CreateRoomForm onCreated={onEnterRoom} />
         </div>
 
-        <div className="glass-card rounded-xl p-5">
+        <div className="glass-card rounded-xl p-5 md:p-6">
           <div className="flex items-center gap-2 mb-3">
             <DoorOpen size={16} className="text-[#7209b7]" />
             <span className="font-mono text-xs tracking-[0.3em] uppercase text-[#7209b7]">Crash a screening</span>
           </div>
-          <h2 className="font-head text-2xl uppercase mb-4">Join room</h2>
-          <JoinRoomForm onJoined={onEnterRoom} />
+          <h2 className="font-head text-2xl md:text-3xl uppercase mb-5">Join room</h2>
+          <div className="max-w-xl">
+            <JoinRoomForm onJoined={onEnterRoom} />
+          </div>
         </div>
       </section>
     </AppShell>
