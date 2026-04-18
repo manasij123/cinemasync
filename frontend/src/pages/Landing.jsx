@@ -3,8 +3,7 @@ import { Link } from "react-router-dom";
 import Navbar from "../components/Navbar";
 import { Film, Users, MessageCircleMore, PlayCircle, Cast, ShieldCheck } from "lucide-react";
 
-const HERO_IMG =
-  "https://images.unsplash.com/photo-1774719810790-a52472f74d9a?crop=entropy&cs=srgb&fm=jpg&ixid=M3w3NTY2NzV8MHwxfHNlYXJjaHwxfHx2aW50YWdlJTIwY2luZW1hJTIwbWFycXVlZXxlbnwwfHx8fDE3NzY0OTA0NjZ8MA&ixlib=rb-4.1.0&q=85";
+const HERO_IMG = "/logo.jpg";
 
 const CONTEXT_IMG =
   "https://images.unsplash.com/photo-1749372517971-9961bea2209a?crop=entropy&cs=srgb&fm=jpg&ixid=M3w4NTYxODd8MHwxfHNlYXJjaHwxfHxmcmllbmRzJTIwd2F0Y2hpbmclMjB0diUyMGRhcmslMjByb29tfGVufDB8fHx8MTc3NjQ5MDQ2Nnww&ixlib=rb-4.1.0&q=85";

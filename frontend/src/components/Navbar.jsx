@@ -31,8 +31,8 @@ export default function Navbar() {
     >
       <div className="max-w-[1400px] mx-auto px-4 sm:px-6 md:px-10 h-16 flex items-center justify-between gap-2">
         <Link to={user ? "/dashboard" : "/"} className="flex items-center gap-2 sm:gap-3 group shrink-0" data-testid="logo-home-link">
-          <div className="w-8 h-8 bg-[#d4a373] text-[#2b2118] flex items-center justify-center">
-            <Film size={18} strokeWidth={2.5} />
+          <div className="w-9 h-9 overflow-hidden border border-[#d4a373]/40 bg-[#faedcd] shrink-0">
+            <img src="/logo.jpg" alt="CinemaSync" className="w-full h-full object-cover" />
           </div>
           <div className="flex flex-col leading-none">
             <span className="font-head text-lg sm:text-xl tracking-wider uppercase">CinemaSync</span>
