@@ -30,7 +30,7 @@ function App() {
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>
         </BrowserRouter>
-        <Toaster theme="dark" position="top-right" richColors closeButton />
+        <Toaster theme="light" position="top-right" richColors closeButton />
       </AuthProvider>
     </div>
   );

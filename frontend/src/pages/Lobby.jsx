@@ -51,7 +51,7 @@ export default function Lobby() {
     return (
       <div>
         <Navbar />
-        <div className="p-10 font-mono text-xs tracking-[0.3em] uppercase text-[#99958E]" data-testid="lobby-loading">
+        <div className="p-10 font-mono text-xs tracking-[0.3em] uppercase text-[#7a6a55]" data-testid="lobby-loading">
           Loading room…
         </div>
       </div>
@@ -66,21 +66,21 @@ export default function Lobby() {
       <main className="max-w-[1100px] mx-auto px-6 md:px-10 py-10">
         <div className="flex items-end justify-between flex-wrap gap-4 mb-8">
           <div>
-            <div className="font-mono text-xs tracking-[0.3em] uppercase text-[#FACC15] mb-3">Lobby</div>
+            <div className="font-mono text-xs tracking-[0.3em] uppercase text-[#d4a373] mb-3">Lobby</div>
             <h1 className="font-head text-4xl sm:text-5xl uppercase" data-testid="lobby-room-name">{room.name}</h1>
           </div>
           <div className="flex flex-wrap gap-2">
             <button
               onClick={copyId}
               data-testid="lobby-copy-room-id"
-              className="inline-flex items-center gap-2 px-3 py-2 bg-[#FACC15]/10 border border-dashed border-[#FACC15]/50 text-[#FACC15] font-mono text-xs tracking-widest hover:bg-[#FACC15]/20"
+              className="inline-flex items-center gap-2 px-3 py-2 bg-[#d4a373]/10 border border-dashed border-[#d4a373]/50 text-[#d4a373] font-mono text-xs tracking-widest hover:bg-[#d4a373]/20"
             >
               {copied ? <Check size={13} /> : <Copy size={13} />} Room ID: {roomId}
             </button>
             <button
               onClick={leave}
               data-testid="lobby-leave-button"
-              className="border border-white/20 font-mono text-xs tracking-widest uppercase px-4 py-2 hover:border-[#EF4444] hover:text-[#EF4444]"
+              className="border border-[#d4a373]/45 font-mono text-xs tracking-widest uppercase px-4 py-2 hover:border-[#a04a2f] hover:text-[#a04a2f]"
             >
               Leave
             </button>
@@ -88,13 +88,13 @@ export default function Lobby() {
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          <div className="lg:col-span-2 border border-white/10 bg-[#141211] p-8 flex flex-col">
+          <div className="lg:col-span-2 border border-[#d4a373]/30 bg-[#faedcd] p-8 flex flex-col">
             <div className="flex items-center gap-2 mb-3">
-              <Clapperboard size={16} className="text-[#FACC15]" />
-              <span className="font-mono text-xs tracking-[0.3em] uppercase text-[#FACC15]">Platform</span>
+              <Clapperboard size={16} className="text-[#d4a373]" />
+              <span className="font-mono text-xs tracking-[0.3em] uppercase text-[#d4a373]">Platform</span>
             </div>
             <h2 className="font-head text-3xl uppercase mb-6">{PLATFORM_LABEL[room.platform] || "Custom"}</h2>
-            <p className="text-[#99958E] mb-6">
+            <p className="text-[#7a6a55] mb-6">
               Each viewer must log into their own {PLATFORM_LABEL[room.platform] || "streaming"} account in a
               separate browser tab, or use host screen-share inside the room.
             </p>
@@ -102,7 +102,7 @@ export default function Lobby() {
               <button
                 onClick={() => navigate(`/room/${roomId}`)}
                 data-testid="lobby-enter-room-button"
-                className="bg-[#FACC15] text-[#0A0908] font-mono tracking-[0.25em] uppercase text-sm px-6 py-4 hover:bg-[#FDE047]"
+                className="bg-[#d4a373] text-[#2b2118] font-mono tracking-[0.25em] uppercase text-sm px-6 py-4 hover:bg-[#c08456]"
               >
                 {isHost ? "Open the curtain" : "Take your seat"}
               </button>
@@ -112,7 +112,7 @@ export default function Lobby() {
                   target="_blank"
                   rel="noreferrer"
                   data-testid="lobby-open-platform-link"
-                  className="border border-white/20 font-mono tracking-[0.25em] uppercase text-xs px-6 py-4 hover:border-[#FACC15] hover:text-[#FACC15]"
+                  className="border border-[#d4a373]/45 font-mono tracking-[0.25em] uppercase text-xs px-6 py-4 hover:border-[#d4a373] hover:text-[#d4a373]"
                 >
                   Open {PLATFORM_LABEL[room.platform]} ↗
                 </a>
@@ -120,15 +120,15 @@ export default function Lobby() {
             </div>
           </div>
 
-          <aside className="border border-white/10 bg-[#141211] p-6">
+          <aside className="border border-[#d4a373]/30 bg-[#faedcd] p-6">
             <div className="flex items-center gap-2 mb-4">
-              <Users size={14} className="text-[#FACC15]" />
-              <span className="font-mono text-xs tracking-[0.3em] uppercase text-[#FACC15]">Cast · {members.length}</span>
+              <Users size={14} className="text-[#d4a373]" />
+              <span className="font-mono text-xs tracking-[0.3em] uppercase text-[#d4a373]">Cast · {members.length}</span>
             </div>
             <ul className="space-y-3" data-testid="lobby-participants">
               {members.map((m) => (
                 <li key={m.id} className="flex items-center gap-3">
-                  <div className="w-9 h-9 bg-[#0A0908] border border-white/10 flex items-center justify-center font-head text-sm">
+                  <div className="w-9 h-9 bg-[#fefae0] border border-[#d4a373]/30 flex items-center justify-center font-head text-sm">
                     {m.profile_image ? (
                       <img src={m.profile_image} alt="" className="w-full h-full object-cover" />
                     ) : (
@@ -136,8 +136,8 @@ export default function Lobby() {
                     )}
                   </div>
                   <div className="flex-1 min-w-0">
-                    <div className="font-body text-sm truncate">{m.name}{m.id === room.host_id && <span className="ml-2 text-[#FACC15] font-mono text-[10px] tracking-widest uppercase">Host</span>}</div>
-                    <div className="font-mono text-[10px] text-[#99958E] truncate">{m.unique_id}</div>
+                    <div className="font-body text-sm truncate">{m.name}{m.id === room.host_id && <span className="ml-2 text-[#d4a373] font-mono text-[10px] tracking-widest uppercase">Host</span>}</div>
+                    <div className="font-mono text-[10px] text-[#7a6a55] truncate">{m.unique_id}</div>
                   </div>
                 </li>
               ))}

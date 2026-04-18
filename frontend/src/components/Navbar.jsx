@@ -11,7 +11,7 @@ const NavLink = ({ to, children, testid, mobileIcon }) => {
       to={to}
       data-testid={testid}
       className={`font-mono text-xs tracking-[0.2em] uppercase px-2 sm:px-3 py-2 transition-colors ${
-        active ? "text-[#FACC15]" : "text-[#99958E] hover:text-[#F7F7F2]"
+        active ? "text-[#d4a373]" : "text-[#7a6a55] hover:text-[#2b2118]"
       }`}
     >
       <span className="hidden md:inline">{children}</span>
@@ -26,17 +26,17 @@ export default function Navbar() {
 
   return (
     <header
-      className="sticky top-0 z-40 border-b border-white/5 bg-[#0A0908]/85 backdrop-blur-xl"
+      className="sticky top-0 z-40 border-b border-[#d4a373]/20 bg-[#fefae0]/85 backdrop-blur-xl"
       data-testid="top-navbar"
     >
       <div className="max-w-[1400px] mx-auto px-4 sm:px-6 md:px-10 h-16 flex items-center justify-between gap-2">
         <Link to={user ? "/dashboard" : "/"} className="flex items-center gap-2 sm:gap-3 group shrink-0" data-testid="logo-home-link">
-          <div className="w-8 h-8 bg-[#FACC15] text-[#0A0908] flex items-center justify-center">
+          <div className="w-8 h-8 bg-[#d4a373] text-[#2b2118] flex items-center justify-center">
             <Film size={18} strokeWidth={2.5} />
           </div>
           <div className="flex flex-col leading-none">
             <span className="font-head text-lg sm:text-xl tracking-wider uppercase">CinemaSync</span>
-            <span className="font-mono text-[8px] sm:text-[9px] tracking-[0.3em] text-[#99958E] uppercase hidden sm:block">
+            <span className="font-mono text-[8px] sm:text-[9px] tracking-[0.3em] text-[#7a6a55] uppercase hidden sm:block">
               Watch · Party · Sync
             </span>
           </div>
@@ -58,7 +58,7 @@ export default function Navbar() {
             <button
               data-testid="logout-button"
               onClick={async () => { await logout(); navigate("/"); }}
-              className="ml-2 sm:ml-3 border border-white/15 text-[#F7F7F2] hover:border-[#EF4444] hover:text-[#EF4444] font-mono tracking-[0.2em] uppercase text-xs px-2 sm:px-4 py-2 transition-colors flex items-center gap-2"
+              className="ml-2 sm:ml-3 border border-[#d4a373]/35 text-[#2b2118] hover:border-[#a04a2f] hover:text-[#a04a2f] font-mono tracking-[0.2em] uppercase text-xs px-2 sm:px-4 py-2 transition-colors flex items-center gap-2"
             >
               <LogOut size={13} /> <span className="hidden sm:inline">Logout</span>
             </button>
@@ -68,14 +68,14 @@ export default function Navbar() {
             <Link
               to="/login"
               data-testid="nav-login-link"
-              className="font-mono tracking-[0.2em] uppercase text-xs text-[#99958E] hover:text-[#F7F7F2] px-4 py-2"
+              className="font-mono tracking-[0.2em] uppercase text-xs text-[#7a6a55] hover:text-[#2b2118] px-4 py-2"
             >
               Login
             </Link>
             <Link
               to="/register"
               data-testid="nav-register-link"
-              className="bg-[#FACC15] text-[#0A0908] font-mono tracking-[0.2em] uppercase text-xs px-4 py-2 hover:bg-[#FDE047] transition-colors"
+              className="bg-[#d4a373] text-[#2b2118] font-mono tracking-[0.2em] uppercase text-xs px-4 py-2 hover:bg-[#c08456] transition-colors"
             >
               Get Started
             </Link>
