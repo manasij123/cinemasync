@@ -1,0 +1,142 @@
+{
+  "theme": "dark",
+  "archetype": "5 (Jewel & Luxury) + Custom Vintage Marquee",
+  "domain_context": "CinemaSync Watch Party - Real-time OTT synchronized viewing",
+  "vibe": "Vintage movie-theater marquee meets modern live streaming overlay",
+  "typography": {
+    "fonts": {
+      "headings": "Anton",
+      "body": "Manrope",
+      "technical": "IBM Plex Mono"
+    },
+    "hierarchy": {
+      "h1": "font-['Anton'] text-5xl sm:text-6xl uppercase tracking-wide leading-none",
+      "h2": "font-['Anton'] text-3xl sm:text-4xl uppercase tracking-normal leading-tight",
+      "h3": "font-['Anton'] text-xl sm:text-2xl tracking-normal",
+      "body": "font-['Manrope'] text-base leading-relaxed",
+      "technical": "font-['IBM_Plex_Mono'] text-sm tracking-widest",
+      "overline": "font-['IBM_Plex_Mono'] text-xs uppercase tracking-[0.2em]"
+    }
+  },
+  "colors": {
+    "background": {
+      "void": "#0A0908",
+      "surface": "#141211",
+      "panel": "#1E1C1A",
+      "glass": "rgba(10, 9, 8, 0.75)"
+    },
+    "primary": {
+      "DEFAULT": "#E5A93C",
+      "hover": "#F0B955",
+      "glow": "rgba(229,169,60,0.25)"
+    },
+    "accent": {
+      "danger": "#FF3B00",
+      "danger_glow": "rgba(255,59,0,0.25)",
+      "live": "#FF3B00"
+    },
+    "text": {
+      "primary": "#F7F7F2",
+      "secondary": "#99958E",
+      "muted": "#5C5A56",
+      "on_primary": "#0A0908"
+    },
+    "border": {
+      "subtle": "rgba(247,247,242,0.08)",
+      "active": "#E5A93C"
+    }
+  },
+  "spacing_and_layout": {
+    "global_padding": "p-6 md:p-12 lg:p-24",
+    "bento_gap": "gap-6 md:gap-8",
+    "border_radius": {
+      "none": "rounded-none",
+      "sm": "rounded-sm",
+      "md": "rounded-md"
+    },
+    "layout_modes": {
+      "dashboard": "Bento Grid (grid-cols-1 md:grid-cols-12 gap-6). Left col-span-8 for Rooms, Right col-span-4 for Friends/Profile.",
+      "watch_room": "Control Room Grid (grid-cols-1 lg:grid-cols-4). Player col-span-3 h-full, Chat col-span-1 h-[80vh] border-l border-white/10."
+    }
+  },
+  "components": {
+    "unique_id_badge": {
+      "description": "Styled like a vintage movie ticket stub",
+      "classes": "inline-flex items-center gap-2 px-3 py-1.5 bg-[#E5A93C]/10 border border-dashed border-[#E5A93C]/50 text-[#E5A93C] font-['IBM_Plex_Mono'] text-sm tracking-widest rounded-sm cursor-copy hover:bg-[#E5A93C]/20 transition-colors"
+    },
+    "room_card": {
+      "description": "Cinematic dark card with marquee hover effect",
+      "classes": "bg-[#141211] border border-white/5 hover:border-[#E5A93C] p-6 rounded-sm group relative overflow-hidden transition-all duration-300 hover:shadow-[0_0_20px_rgba(229,169,60,0.15)] flex flex-col justify-between h-full",
+      "inner_elements": "Use Anton for the room title, IBM Plex Mono for the participant count."
+    },
+    "chat_bubble": {
+      "description": "Subtitles style, avoiding generic iOS bubbles",
+      "classes_host": "bg-transparent border-l-2 border-[#E5A93C] pl-3 py-1 mb-4 flex flex-col gap-1",
+      "classes_guest": "bg-transparent border-l-2 border-[#5C5A56] pl-3 py-1 mb-4 flex flex-col gap-1",
+      "text_classes": "text-[#F7F7F2] font-['Manrope'] text-sm",
+      "meta_classes": "text-[#99958E] font-['IBM_Plex_Mono'] text-xs"
+    },
+    "sync_control_bar": {
+      "description": "Floating glassmorphism control panel over the video player",
+      "classes": "absolute bottom-8 left-1/2 -translate-x-1/2 bg-[#0A0908]/80 backdrop-blur-xl border border-white/10 px-6 py-3 flex gap-6 items-center rounded-sm shadow-2xl",
+      "button_classes": "text-[#F7F7F2] hover:text-[#E5A93C] transition-colors"
+    },
+    "platform_launcher_tile": {
+      "description": "Dark, desaturated squares that light up in brand colors on hover",
+      "classes": "bg-[#141211] aspect-video border border-white/5 hover:border-white/20 flex items-center justify-center grayscale opacity-70 hover:grayscale-0 hover:opacity-100 transition-all duration-500 rounded-sm group relative"
+    },
+    "participant_avatar": {
+      "description": "Sharp squares, no circles. Feels like film frames.",
+      "classes": "w-10 h-10 rounded-none object-cover grayscale-[50%] hover:grayscale-0 border border-white/10 transition-all",
+      "active_classes": "border-2 border-[#E5A93C] grayscale-0 shadow-[0_0_10px_rgba(229,169,60,0.4)]"
+    },
+    "friend_request_pill": {
+      "description": "Minimalist action item",
+      "classes": "flex items-center justify-between p-3 border border-white/10 bg-[#1E1C1A] rounded-sm font-['Manrope'] text-sm"
+    },
+    "buttons": {
+      "primary": "bg-[#E5A93C] text-[#0A0908] font-['IBM_Plex_Mono'] tracking-widest uppercase px-6 py-3 rounded-none hover:bg-[#F0B955] hover:shadow-[0_0_15px_rgba(229,169,60,0.3)] transition-all",
+      "secondary": "bg-transparent text-[#F7F7F2] border border-white/20 font-['IBM_Plex_Mono'] tracking-widest uppercase px-6 py-3 rounded-none hover:border-white/50 transition-all",
+      "danger": "bg-transparent text-[#FF3B00] border border-[#FF3B00]/30 font-['IBM_Plex_Mono'] tracking-widest uppercase px-6 py-3 rounded-none hover:bg-[#FF3B00]/10 hover:border-[#FF3B00] transition-all"
+    }
+  },
+  "media": {
+    "hero_background": {
+      "url": "https://images.unsplash.com/photo-1774719810790-a52472f74d9a?crop=entropy&cs=srgb&fm=jpg&ixid=M3w3NTY2NzV8MHwxfHNlYXJjaHwxfHx2aW50YWdlJTIwY2luZW1hJTIwbWFycXVlZXxlbnwwfHx8fDE3NzY0OTA0NjZ8MA&ixlib=rb-4.1.0&q=85",
+      "description": "Vintage cinema marquee for landing page hero overlay. Overlay with bg-black/60 to keep text readable."
+    },
+    "watch_party_context": {
+      "url": "https://images.unsplash.com/photo-1749372517971-9961bea2209a?crop=entropy&cs=srgb&fm=jpg&ixid=M3w4NTYxODd8MHwxfHNlYXJjaHwxfHxmcmllbmRzJTIwd2F0Y2hpbmclMjB0diUyMGRhcmslMjByb29tfGVufDB8fHx8MTc3NjQ5MDQ2Nnww&ixlib=rb-4.1.0&q=85",
+      "description": "Friends in a dark room watching TV. Use in feature sections."
+    },
+    "avatars": [
+      {
+        "url": "https://images.unsplash.com/photo-1684254285146-1b8b8db00a8b?crop=entropy&cs=srgb&fm=jpg&ixid=M3w4NjA1Mjh8MHwxfHNlYXJjaHw0fHxwb3J0cmFpdCUyMGZhY2UlMjBuZW9uJTIwbGlnaHR8ZW58MHx8fHwxNzc2NDkwNDYyfDA&ixlib=rb-4.1.0&q=85",
+        "description": "User Avatar 1"
+      },
+      {
+        "url": "https://images.unsplash.com/photo-1611269186548-12fd2f937619?crop=entropy&cs=srgb&fm=jpg&ixid=M3w4NjA1Mjh8MHwxfHNlYXJjaHwxfHxwb3J0cmFpdCUyMGZhY2UlMjBuZW9uJTIwbGlnaHR8ZW58MHx8fHwxNzc2NDkwNDYyfDA&ixlib=rb-4.1.0&q=85",
+        "description": "User Avatar 2"
+      },
+      {
+        "url": "https://images.unsplash.com/photo-1684254019709-c5f08cb420f3?crop=entropy&cs=srgb&fm=jpg&ixid=M3w4NjA1Mjh8MHwxfHNlYXJjaHwyfHxwb3J0cmFpdCUyMGZhY2UlMjBuZW9uJTIwbGlnaHR8ZW58MHx8fHwxNzc2NDkwNDYyfDA&ixlib=rb-4.1.0&q=85",
+        "description": "User Avatar 3"
+      }
+    ],
+    "platform_logos": {
+      "netflix": "https://images.unsplash.com/photo-1611162617474-5b21e879e113?crop=entropy&cs=srgb&fm=jpg&ixid=M3w4NjAzMjV8MHwxfHNlYXJjaHwxfHxuZXRmbGl4JTIwbG9nb3xlbnwwfHx8fDE3NzY0OTA0NjZ8MA&ixlib=rb-4.1.0&q=85",
+      "disney_plus": "https://images.unsplash.com/photo-1624259416658-35ccbf144757?crop=entropy&cs=srgb&fm=jpg&ixid=M3w4NjA1ODR8MHwxfHNlYXJjaHwxfHxkaXNuZXklMjBwbHVzJTIwbG9nb3xlbnwwfHx8fDE3NzY0OTA0NjZ8MA&ixlib=rb-4.1.0&q=85"
+    }
+  },
+  "instructions_to_main_agent": [
+    "INSTALLATION: Add @phosphor-icons/react for iconography.",
+    "FONTS: Import 'Anton', 'Manrope', and 'IBM Plex Mono' from Google Fonts in index.html or global css.",
+    "TESTING: Every clickable element (buttons, tabs, room cards, friend actions) MUST have a data-testid attribute formatted as kebab-case, role-based (e.g., data-testid='join-room-submit-button').",
+    "THEME: This is a strictly Dark Mode application. Do not implement a light mode toggle. The Void background (#0A0908) is mandatory.",
+    "UI COMPONENTS: Use HTML/Tailwind over generic Shadcn cards to maintain the 'sharp edge / marquee' aesthetic. Do not use border-radius larger than rounded-md. Most things should be rounded-sm or rounded-none.",
+    "CHAT BUBBLES: Do not use iOS-style chat bubbles. Use the left-border 'subtitle' style defined in components.chat_bubble.",
+    "FORMS & INPUTS: Use Shadcn Input/Form logic but override classes to remove rings. Focus state should be a solid 1px border of #E5A93C, background #141211.",
+    "AVATARS: Avatars must be square with no border radius (or extremely slight rounded-sm), to mimic film frames.",
+    "OTT LOGOS: For platforms like Amazon Prime, Hoichoi, ZEE5, use simple text logos (IBM Plex Mono) or SVG icons rather than large images. Keep them desaturated by default."
+  ]
+}
