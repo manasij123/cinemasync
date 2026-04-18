@@ -19,7 +19,13 @@ export default function Login() {
     try {
       await login(email, password);
       toast.success("Welcome back to your row");
-      navigate("/dashboard");
+      const redirect = localStorage.getItem("cs_post_login_redirect");
+      if (redirect) {
+        localStorage.removeItem("cs_post_login_redirect");
+        navigate(redirect);
+      } else {
+        navigate("/dashboard");
+      }
     } catch (e) {
       const msg = formatApiError(e.response?.data?.detail) || e.message;
       setErr(msg);

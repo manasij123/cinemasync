@@ -167,6 +167,11 @@ class ChatMessageIn(BaseModel):
     text: str
 
 
+class InviteIn(BaseModel):
+    friend_id: str
+    password: str
+
+
 # ------------- Auth Routes -------------
 @api_router.post("/auth/register")
 async def register(body: RegisterIn, response: Response):
@@ -358,6 +363,22 @@ async def join_room(body: JoinRoomIn, user: dict = Depends(get_current_user)):
     return {"room": _room_public(room)}
 
 
+@api_router.get("/rooms/active")
+async def active_rooms(user: dict = Depends(get_current_user)):
+    rooms = []
+    async for r in db.rooms.find({"participants": user["id"]}, {"_id": 0, "password_hash": 0}).sort("created_at", -1).limit(20):
+        rooms.append({
+            "id": r["id"],
+            "name": r["name"],
+            "host_id": r["host_id"],
+            "platform": r.get("platform", "custom"),
+            "participants": r.get("participants", []),
+            "state": r.get("state", {}),
+            "created_at": r.get("created_at"),
+        })
+    return {"rooms": rooms}
+
+
 @api_router.get("/rooms/{room_id}")
 async def get_room(room_id: str, user: dict = Depends(get_current_user)):
     room = await db.rooms.find_one({"id": room_id.upper()}, {"_id": 0})
@@ -385,6 +406,57 @@ async def get_messages(room_id: str, user: dict = Depends(get_current_user)):
     cursor = db.messages.find({"room_id": room_id.upper()}, {"_id": 0}).sort("time", 1).limit(200)
     msgs = await cursor.to_list(200)
     return {"messages": msgs}
+
+
+@api_router.post("/rooms/{room_id}/invite")
+async def invite_friend(room_id: str, body: InviteIn, user: dict = Depends(get_current_user)):
+    room = await db.rooms.find_one({"id": room_id.upper()}, {"_id": 0})
+    if not room:
+        raise HTTPException(status_code=404, detail="Room not found")
+    if user["id"] not in room.get("participants", []):
+        raise HTTPException(status_code=403, detail="Not a participant")
+    if not verify_password(body.password, room["password_hash"]):
+        raise HTTPException(status_code=401, detail="Incorrect room password")
+    if body.friend_id not in user.get("friends", []):
+        raise HTTPException(status_code=400, detail="Not a friend")
+    # Create notification for the friend
+    notif = {
+        "id": str(uuid.uuid4()),
+        "user_id": body.friend_id,
+        "type": "room-invite",
+        "room_id": room["id"],
+        "room_name": room["name"],
+        "password": body.password,
+        "from_user_id": user["id"],
+        "from_name": user["name"],
+        "read": False,
+        "created_at": datetime.now(timezone.utc).isoformat(),
+    }
+    await db.notifications.insert_one(dict(notif))
+    notif.pop("_id", None)
+    return {"ok": True, "notification": notif}
+
+
+@api_router.get("/notifications")
+async def list_notifications(user: dict = Depends(get_current_user)):
+    cursor = db.notifications.find({"user_id": user["id"]}, {"_id": 0}).sort("created_at", -1).limit(50)
+    items = await cursor.to_list(50)
+    return {"notifications": items}
+
+
+@api_router.post("/notifications/{nid}/read")
+async def mark_notification_read(nid: str, user: dict = Depends(get_current_user)):
+    await db.notifications.update_one(
+        {"id": nid, "user_id": user["id"]},
+        {"$set": {"read": True}},
+    )
+    return {"ok": True}
+
+
+@api_router.delete("/notifications/{nid}")
+async def delete_notification(nid: str, user: dict = Depends(get_current_user)):
+    await db.notifications.delete_one({"id": nid, "user_id": user["id"]})
+    return {"ok": True}
 
 
 # ------------- WebSocket (sync + chat + webrtc signaling) -------------
@@ -550,6 +622,7 @@ async def startup():
     await db.users.create_index("unique_id")
     await db.rooms.create_index("id", unique=True)
     await db.messages.create_index([("room_id", 1), ("time", 1)])
+    await db.notifications.create_index([("user_id", 1), ("created_at", -1)])
     # Seed admin
     existing = await db.users.find_one({"email": ADMIN_EMAIL})
     if not existing:

@@ -113,6 +113,26 @@ export default function WatchRoom() {
         }
       } else if (msg.type === "presence") {
         setPresence(msg.participants || []);
+        // Host-only: toast when someone leaves, offer auto-pause
+        if (msg.left && room && room.host_id === user.id && msg.left.id !== user.id) {
+          toast(`${msg.left.name} left the room`, {
+            description: playing ? "Tap to pause playback" : "Room continues",
+            action: playing
+              ? {
+                  label: "Pause",
+                  onClick: () => {
+                    setPlaying(false);
+                    wsRef.current?.send(JSON.stringify({
+                      type: "sync", action: "pause", playing: false, position,
+                    }));
+                  },
+                }
+              : undefined,
+          });
+        }
+        if (msg.joined && room && msg.joined.id !== user.id) {
+          toast.success(`${msg.joined.name} joined`);
+        }
       } else if (msg.type === "sync") {
         setPlaying(!!msg.state.playing);
         setPosition(Number(msg.state.position || 0));

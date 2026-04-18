@@ -11,6 +11,7 @@ import Profile from "./pages/Profile";
 import Friends from "./pages/Friends";
 import Lobby from "./pages/Lobby";
 import WatchRoom from "./pages/WatchRoom";
+import Invite from "./pages/Invite";
 import { Toaster } from "sonner";
 
 function App() {
@@ -27,6 +28,7 @@ function App() {
             <Route path="/friends" element={<ProtectedRoute><Friends /></ProtectedRoute>} />
             <Route path="/lobby/:roomId" element={<ProtectedRoute><Lobby /></ProtectedRoute>} />
             <Route path="/room/:roomId" element={<ProtectedRoute><WatchRoom /></ProtectedRoute>} />
+            <Route path="/invite/:roomId" element={<Invite />} />
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>
         </BrowserRouter>

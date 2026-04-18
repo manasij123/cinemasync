@@ -4,12 +4,166 @@ import Navbar from "../components/Navbar";
 import { api } from "../lib/api";
 import { useAuth } from "../context/AuthContext";
 import { toast } from "sonner";
-import { Clapperboard, Copy, Check, Users } from "lucide-react";
+import { Clapperboard, Copy, Check, Users, Send, Link2, UserPlus } from "lucide-react";
 
 const PLATFORM_LABEL = {
   netflix: "Netflix", prime: "Prime Video", hotstar: "Hotstar",
   hoichoi: "Hoichoi", addatimes: "Adda Times", zee5: "ZEE5", custom: "Custom",
 };
+
+const PLATFORM_URL = {
+  netflix: "https://www.netflix.com/",
+  prime: "https://www.primevideo.com/",
+  hotstar: "https://www.hotstar.com/",
+  hoichoi: "https://www.hoichoi.tv/",
+  addatimes: "https://www.addatimes.com/",
+  zee5: "https://www.zee5.com/",
+};
+
+function InvitePanel({ roomId, isHost }) {
+  const { formatApiError } = useAuth();
+  const [friends, setFriends] = useState([]);
+  const [pickFriend, setPickFriend] = useState("");
+  const [password, setPassword] = useState("");
+  const [sending, setSending] = useState(false);
+  const [copied, setCopied] = useState("");
+  const inviteUrl = `${window.location.origin}/invite/${roomId}${password ? `?p=${encodeURIComponent(password)}` : ""}`;
+
+  useEffect(() => {
+    (async () => {
+      try {
+        const { data } = await api.get("/friends");
+        setFriends(data.friends || []);
+      } catch {}
+    })();
+  }, []);
+
+  const copy = async (value, key) => {
+    try {
+      await navigator.clipboard.writeText(value);
+      setCopied(key);
+      setTimeout(() => setCopied(""), 1500);
+    } catch {}
+  };
+
+  const sendInvite = async () => {
+    if (!pickFriend) return toast.error("Pick a friend first");
+    if (!password) return toast.error("Enter the room password to confirm");
+    setSending(true);
+    try {
+      await api.post(`/rooms/${roomId}/invite`, { friend_id: pickFriend, password });
+      toast.success("Invite sent");
+      setPickFriend("");
+    } catch (e) {
+      toast.error(formatApiError(e.response?.data?.detail) || e.message);
+    } finally {
+      setSending(false);
+    }
+  };
+
+  return (
+    <div className="border border-[#d4a373]/30 bg-[#faedcd] p-6" data-testid="invite-panel">
+      <div className="flex items-center gap-2 mb-3">
+        <UserPlus size={16} className="text-[#d4a373]" />
+        <span className="font-mono text-xs tracking-[0.3em] uppercase text-[#d4a373]">Invite friends</span>
+      </div>
+      <h3 className="font-head text-2xl uppercase mb-4">Call the crew</h3>
+
+      <div className="space-y-3">
+        <div>
+          <label className="font-mono text-[10px] tracking-[0.3em] uppercase text-[#7a6a55] block mb-2">Room password (confirm)</label>
+          <input
+            type="text"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            placeholder="retype your room password"
+            data-testid="invite-password-input"
+            className="w-full bg-[#fefae0] border border-[#d4a373]/30 focus:border-[#d4a373] px-3 py-2 font-body text-sm text-[#2b2118]"
+          />
+        </div>
+
+        {friends.length > 0 ? (
+          <div>
+            <label className="font-mono text-[10px] tracking-[0.3em] uppercase text-[#7a6a55] block mb-2">Pick a friend</label>
+            <div className="max-h-40 overflow-y-auto space-y-1">
+              {friends.map((f) => (
+                <button
+                  key={f.id}
+                  type="button"
+                  onClick={() => setPickFriend(f.id)}
+                  data-testid={`invite-friend-${f.id}`}
+                  className={`w-full flex items-center gap-2 px-2 py-2 border text-left text-sm ${
+                    pickFriend === f.id
+                      ? "border-[#d4a373] bg-[#d4a373]/10"
+                      : "border-[#d4a373]/20 hover:border-[#d4a373]/50"
+                  }`}
+                >
+                  <div className="w-7 h-7 bg-[#e9edc9] border border-[#d4a373]/30 flex items-center justify-center font-head text-xs">
+                    {f.name?.[0]?.toUpperCase()}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="text-[#2b2118] truncate">{f.name}</div>
+                    <div className="font-mono text-[10px] text-[#7a6a55] truncate">{f.unique_id}</div>
+                  </div>
+                  {pickFriend === f.id && <Check size={14} className="text-[#d4a373]" />}
+                </button>
+              ))}
+            </div>
+            <button
+              onClick={sendInvite}
+              disabled={sending || !pickFriend || !password}
+              data-testid="invite-send-button"
+              className="mt-3 w-full bg-[#d4a373] text-[#2b2118] font-mono tracking-[0.2em] uppercase text-xs px-4 py-3 hover:bg-[#c08456] disabled:opacity-50 flex items-center justify-center gap-2"
+            >
+              <Send size={13} /> {sending ? "Sending…" : "Send invite"}
+            </button>
+          </div>
+        ) : (
+          <div className="text-xs text-[#7a6a55] font-mono tracking-widest uppercase">
+            Add friends first to invite them directly.
+          </div>
+        )}
+
+        <div className="pt-3 border-t border-[#d4a373]/20">
+          <label className="font-mono text-[10px] tracking-[0.3em] uppercase text-[#7a6a55] block mb-2">Or share outside</label>
+          <div className="flex gap-2 items-stretch">
+            <div className="flex-1 font-mono text-xs px-3 py-2 bg-[#fefae0] border border-[#d4a373]/30 truncate text-[#2b2118]" data-testid="invite-link-display">
+              {inviteUrl}
+            </div>
+            <button
+              onClick={() => copy(inviteUrl, "link")}
+              disabled={!password}
+              data-testid="invite-copy-link-button"
+              className="border border-[#d4a373]/40 px-3 py-2 font-mono text-xs tracking-widest uppercase hover:border-[#d4a373] hover:bg-[#d4a373]/10 disabled:opacity-50 flex items-center gap-2"
+            >
+              {copied === "link" ? <Check size={13} /> : <Link2 size={13} />}
+              Link
+            </button>
+          </div>
+          <div className="flex gap-2 mt-2">
+            <button
+              onClick={() => copy(roomId, "id")}
+              data-testid="invite-copy-id-button"
+              className="flex-1 border border-[#d4a373]/40 px-3 py-2 font-mono text-xs tracking-widest uppercase hover:border-[#d4a373] hover:bg-[#d4a373]/10 flex items-center justify-center gap-2"
+            >
+              {copied === "id" ? <Check size={13} /> : <Copy size={13} />}
+              Copy room ID
+            </button>
+            <button
+              onClick={() => copy(password, "pwd")}
+              disabled={!password}
+              data-testid="invite-copy-password-button"
+              className="flex-1 border border-[#d4a373]/40 px-3 py-2 font-mono text-xs tracking-widest uppercase hover:border-[#d4a373] hover:bg-[#d4a373]/10 disabled:opacity-50 flex items-center justify-center gap-2"
+            >
+              {copied === "pwd" ? <Check size={13} /> : <Copy size={13} />}
+              Copy password
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
 
 export default function Lobby() {
   const { roomId } = useParams();
@@ -63,7 +217,7 @@ export default function Lobby() {
   return (
     <div>
       <Navbar />
-      <main className="max-w-[1100px] mx-auto px-6 md:px-10 py-10">
+      <main className="max-w-[1200px] mx-auto px-6 md:px-10 py-10">
         <div className="flex items-end justify-between flex-wrap gap-4 mb-8">
           <div>
             <div className="font-mono text-xs tracking-[0.3em] uppercase text-[#d4a373] mb-3">Lobby</div>
@@ -80,7 +234,7 @@ export default function Lobby() {
             <button
               onClick={leave}
               data-testid="lobby-leave-button"
-              className="border border-[#d4a373]/45 font-mono text-xs tracking-widest uppercase px-4 py-2 hover:border-[#a04a2f] hover:text-[#a04a2f]"
+              className="border border-[#d4a373]/40 font-mono text-xs tracking-widest uppercase px-4 py-2 hover:border-[#a04a2f] hover:text-[#a04a2f]"
             >
               Leave
             </button>
@@ -88,36 +242,40 @@ export default function Lobby() {
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          <div className="lg:col-span-2 border border-[#d4a373]/30 bg-[#faedcd] p-8 flex flex-col">
-            <div className="flex items-center gap-2 mb-3">
-              <Clapperboard size={16} className="text-[#d4a373]" />
-              <span className="font-mono text-xs tracking-[0.3em] uppercase text-[#d4a373]">Platform</span>
-            </div>
-            <h2 className="font-head text-3xl uppercase mb-6">{PLATFORM_LABEL[room.platform] || "Custom"}</h2>
-            <p className="text-[#7a6a55] mb-6">
-              Each viewer must log into their own {PLATFORM_LABEL[room.platform] || "streaming"} account in a
-              separate browser tab, or use host screen-share inside the room.
-            </p>
-            <div className="mt-auto flex flex-wrap gap-3">
-              <button
-                onClick={() => navigate(`/room/${roomId}`)}
-                data-testid="lobby-enter-room-button"
-                className="bg-[#d4a373] text-[#2b2118] font-mono tracking-[0.25em] uppercase text-sm px-6 py-4 hover:bg-[#c08456]"
-              >
-                {isHost ? "Open the curtain" : "Take your seat"}
-              </button>
-              {room.platform !== "custom" && (
-                <a
-                  href={getPlatformUrl(room.platform)}
-                  target="_blank"
-                  rel="noreferrer"
-                  data-testid="lobby-open-platform-link"
-                  className="border border-[#d4a373]/45 font-mono tracking-[0.25em] uppercase text-xs px-6 py-4 hover:border-[#d4a373] hover:text-[#d4a373]"
+          <div className="lg:col-span-2 space-y-6">
+            <div className="border border-[#d4a373]/30 bg-[#faedcd] p-8 flex flex-col">
+              <div className="flex items-center gap-2 mb-3">
+                <Clapperboard size={16} className="text-[#d4a373]" />
+                <span className="font-mono text-xs tracking-[0.3em] uppercase text-[#d4a373]">Platform</span>
+              </div>
+              <h2 className="font-head text-3xl uppercase mb-6">{PLATFORM_LABEL[room.platform] || "Custom"}</h2>
+              <p className="text-[#7a6a55] mb-6">
+                Each viewer must log into their own {PLATFORM_LABEL[room.platform] || "streaming"} account in a
+                separate browser tab, or use host screen-share inside the room.
+              </p>
+              <div className="mt-auto flex flex-wrap gap-3">
+                <button
+                  onClick={() => navigate(`/room/${roomId}`)}
+                  data-testid="lobby-enter-room-button"
+                  className="bg-[#d4a373] text-[#2b2118] font-mono tracking-[0.25em] uppercase text-sm px-6 py-4 hover:bg-[#c08456]"
                 >
-                  Open {PLATFORM_LABEL[room.platform]} ↗
-                </a>
-              )}
+                  {isHost ? "Open the curtain" : "Take your seat"}
+                </button>
+                {room.platform !== "custom" && (
+                  <a
+                    href={PLATFORM_URL[room.platform]}
+                    target="_blank"
+                    rel="noreferrer"
+                    data-testid="lobby-open-platform-link"
+                    className="border border-[#d4a373]/40 font-mono tracking-[0.25em] uppercase text-xs px-6 py-4 hover:border-[#d4a373] hover:text-[#d4a373]"
+                  >
+                    Open {PLATFORM_LABEL[room.platform]} ↗
+                  </a>
+                )}
+              </div>
             </div>
+
+            <InvitePanel roomId={roomId} isHost={isHost} />
           </div>
 
           <aside className="border border-[#d4a373]/30 bg-[#faedcd] p-6">
@@ -147,16 +305,4 @@ export default function Lobby() {
       </main>
     </div>
   );
-}
-
-function getPlatformUrl(p) {
-  const map = {
-    netflix: "https://www.netflix.com/",
-    prime: "https://www.primevideo.com/",
-    hotstar: "https://www.hotstar.com/",
-    hoichoi: "https://www.hoichoi.tv/",
-    addatimes: "https://www.addatimes.com/",
-    zee5: "https://www.zee5.com/",
-  };
-  return map[p] || "#";
 }
