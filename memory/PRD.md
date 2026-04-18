@@ -25,25 +25,30 @@ Build a real-time watch-party web app (like Discord + Teleparty) that syncs OTT 
 
 ## Implemented (2026-02 / today)
 - [x] Auth: register / login / logout / me (JWT + cookie + bearer fallback)
-- [x] Profile: avatar upload (base64, <800KB), name edit, unique_id regeneration
+- [x] Profile: avatar upload, name edit, unique_id regeneration
 - [x] Friends: search by unique_id, request/accept/reject/cancel/remove, list
 - [x] Rooms: create, join (password hashed), get, messages, leave
 - [x] WebSocket hub: presence, sync (host only), chat (persisted), WebRTC signaling, platform-change
-- [x] Frontend: Landing (hero marquee), Login, Register, Dashboard, Profile, Friends (tabs), Lobby, Watch Room (sync bar + chat + emoji + screenshare button)
+- [x] Frontend: Landing, Login, Register, Dashboard, Profile, Friends, Lobby, Watch Room
 - [x] Admin seeding + MongoDB indexes on startup
-- [x] Data-testids everywhere for e2e
+- [x] Native fullscreen + WebRTC screen-share (host → peers, STUN)
+- [x] Infographic dashboard, Pastel Purple-Neon theme, Allerta Stencil font
+- [x] Admin panel at /admin for manasijmandal1999@gmail.com
+- [x] OTT popup launching (bypass iframe X-Frame-Options)
+- [x] **[2026-04-18] Real OTT logos** — Netflix, Prime Video, JioHotstar, Hoichoi, Addatimes, ZEE5 integrated via shared `PlatformLogo` component across Dashboard picker, LiveRoomCard thumbnails, Lobby hero tile, WatchRoom header & Intermission.
+- [x] **[2026-04-18] 10MB Profile Pictures via Emergent Object Storage** — replaced base64/Mongo storage. New endpoints: `POST /api/profile/picture` (multipart, 10MB cap, JPG/PNG/WEBP/GIF), `GET /api/files/{path}` (authenticated serve). Upload progress UI in Profile page. 14/14 tests pass.
 
-## Verified (2026-02)
-- Backend: 17/17 pytest pass (auth, profile, friends, rooms, ws endpoint)
-- Frontend: all UI flows pass (register → dashboard → create room → lobby → watch room → chat → profile → friends)
+## Verified (2026-04-18)
+- Backend: 14/14 tests pass (upload happy path + 400 invalid type + 413 oversize + 401 unauth + regression auth/rooms/friends/admin)
+- Frontend: all 6 platform logo tiles render with naturalWidth>0; Profile upload end-to-end works.
 
 ## Prioritized Backlog
-- **P0**: Provide user-supplied logo/branding assets; swap placeholder typography wordmark.
-- **P1**: Multi-host control (co-hosts), persistent room history on dashboard ("Recent rooms"), room invites via friend DM.
-- **P1**: Password reset flow (forgot-password), email verification.
-- **P2**: Voice chat (WebRTC audio-only room), AI movie recommendation, watch history, reactions overlay on player.
-- **P2**: Browser extension so host's Netflix video element can drive `sync` events automatically (instead of manual timer).
-- **P2**: Rate limiting on chat/sync broadcasts, brute-force lockout on login.
+- **P1**: TURN server for WebRTC NAT traversal (currently STUN-only)
+- **P1**: Password reset flow (forgot-password), email verification
+- **P2**: Voice/Video chat in watch rooms
+- **P2**: Multi-host control (co-hosts), persistent room history, AI movie recommendations
+- **P2**: Browser extension to drive `sync` events from host's <video> element
+- **P2**: Rate limiting on chat/sync, brute-force lockout on login
 
 ## Known Limitations
 - Playback sync uses a server-side virtual timer; host manually controls it. Real OTT `<video>` element hookup requires a browser extension (future).
