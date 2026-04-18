@@ -18,13 +18,13 @@ function SideBody({ onNavigate }) {
   return (
     <div className="flex flex-col h-full">
       {/* Logo */}
-      <Link to="/dashboard" onClick={onNavigate} data-testid="sidebar-logo" className="flex items-center gap-3 px-5 py-5 border-b border-[#d4a373]/30">
-        <div className="w-10 h-10 overflow-hidden border border-[#d4a373]/40 bg-[#fefae0] shrink-0">
+      <Link to="/dashboard" onClick={onNavigate} data-testid="sidebar-logo" className="flex items-center gap-3 px-5 py-5 border-b border-[#7209b7]/30">
+        <div className="w-10 h-10 overflow-hidden border border-[#7209b7]/40 bg-[#fdf4ff] shrink-0">
           <img src="/logo.jpg" alt="CinemaSync" className="w-full h-full object-cover" />
         </div>
         <div className="flex flex-col leading-tight">
           <span className="font-head text-xl tracking-wider uppercase">CinemaSync</span>
-          <span className="font-mono text-[9px] tracking-[0.3em] text-[#7a6a55] uppercase">Watch · Party · Sync</span>
+          <span className="font-mono text-[9px] tracking-[0.3em] text-[#6b5b84] uppercase">Watch · Party · Sync</span>
         </div>
       </Link>
 
@@ -41,8 +41,8 @@ function SideBody({ onNavigate }) {
               data-testid={item.testid}
               className={`flex items-center gap-3 px-4 py-3 font-mono text-xs tracking-[0.2em] uppercase transition-all ${
                 active
-                  ? "bg-[#d4a373] text-[#2b2118]"
-                  : "text-[#7a6a55] hover:bg-[#d4a373]/10 hover:text-[#2b2118]"
+                  ? "bg-[#7209b7] text-[#1a0b2e]"
+                  : "text-[#6b5b84] hover:bg-[#7209b7]/10 hover:text-[#1a0b2e]"
               }`}
             >
               <Icon size={16} />
@@ -53,9 +53,9 @@ function SideBody({ onNavigate }) {
       </nav>
 
       {/* User card */}
-      <div className="border-t border-[#d4a373]/30 p-4">
+      <div className="border-t border-[#7209b7]/30 p-4">
         <div className="flex items-center gap-3 mb-3">
-          <div className="w-10 h-10 bg-[#d4a373]/20 border border-[#d4a373]/30 flex items-center justify-center font-head overflow-hidden shrink-0">
+          <div className="w-10 h-10 bg-[#7209b7]/20 border border-[#7209b7]/30 flex items-center justify-center font-head overflow-hidden shrink-0">
             {user?.profile_image ? (
               <img src={user.profile_image} alt="" className="w-full h-full object-cover" />
             ) : (
@@ -63,14 +63,14 @@ function SideBody({ onNavigate }) {
             )}
           </div>
           <div className="min-w-0 flex-1">
-            <div className="font-body text-sm truncate text-[#2b2118]">{user?.name}</div>
-            <div className="font-mono text-[9px] text-[#7a6a55] truncate">{user?.email}</div>
+            <div className="font-body text-sm truncate text-[#1a0b2e]">{user?.name}</div>
+            <div className="font-mono text-[9px] text-[#6b5b84] truncate">{user?.email}</div>
           </div>
         </div>
         <button
           onClick={async () => { await logout(); navigate("/"); if (onNavigate) onNavigate(); }}
           data-testid="sidebar-logout"
-          className="w-full flex items-center justify-center gap-2 border border-[#d4a373]/45 text-[#2b2118] font-mono tracking-[0.2em] uppercase text-[10px] px-3 py-2 hover:border-[#a04a2f] hover:text-[#a04a2f]"
+          className="w-full flex items-center justify-center gap-2 border border-[#7209b7]/45 text-[#1a0b2e] font-mono tracking-[0.2em] uppercase text-[10px] px-3 py-2 hover:border-[#f72585] hover:text-[#f72585]"
         >
           <LogOut size={12} /> Logout
         </button>
@@ -83,9 +83,9 @@ export default function AppShell({ children, title, subtitle, actions }) {
   const [open, setOpen] = useState(false);
   const { user } = useAuth();
   return (
-    <div className="min-h-screen bg-[#fefae0] flex">
+    <div className="min-h-screen bg-[#fdf4ff] flex">
       {/* Desktop sidebar */}
-      <aside className="hidden md:flex w-64 shrink-0 border-r border-[#d4a373]/30 bg-[#faedcd] flex-col sticky top-0 h-screen">
+      <aside className="hidden md:flex w-64 shrink-0 border-r border-[#7209b7]/30 bg-white flex-col sticky top-0 h-screen">
         <SideBody />
       </aside>
 
@@ -93,7 +93,7 @@ export default function AppShell({ children, title, subtitle, actions }) {
       {open && (
         <div className="fixed inset-0 z-50 md:hidden">
           <div className="absolute inset-0 bg-black/40" onClick={() => setOpen(false)} />
-          <aside className="absolute inset-y-0 left-0 w-72 bg-[#faedcd] border-r border-[#d4a373]/30 shadow-2xl">
+          <aside className="absolute inset-y-0 left-0 w-72 bg-white border-r border-[#7209b7]/30 shadow-2xl">
             <SideBody onNavigate={() => setOpen(false)} />
           </aside>
         </div>
@@ -102,18 +102,18 @@ export default function AppShell({ children, title, subtitle, actions }) {
       {/* Main column */}
       <div className="flex-1 flex flex-col min-w-0">
         {/* Header */}
-        <header className="sticky top-0 z-30 border-b border-[#d4a373]/25 bg-[#fefae0]/85 backdrop-blur-md">
+        <header className="sticky top-0 z-30 border-b border-[#7209b7]/25 bg-[#ffffff]/85 backdrop-blur-md">
           <div className="flex items-center gap-4 h-16 px-4 md:px-8">
             <button
               onClick={() => setOpen(true)}
               data-testid="sidebar-open-button"
-              className="md:hidden p-2 border border-[#d4a373]/40 text-[#2b2118]"
+              className="md:hidden p-2 border border-[#7209b7]/40 text-[#1a0b2e]"
             >
               <Menu size={18} />
             </button>
             <div className="min-w-0 flex-1">
               {subtitle && (
-                <div className="font-mono text-[10px] tracking-[0.3em] uppercase text-[#d4a373] truncate">{subtitle}</div>
+                <div className="font-mono text-[10px] tracking-[0.3em] uppercase text-[#7209b7] truncate">{subtitle}</div>
               )}
               {title && (
                 <h1 className="font-head text-xl md:text-2xl uppercase truncate">{title}</h1>

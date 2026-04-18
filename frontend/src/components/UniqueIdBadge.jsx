@@ -15,7 +15,7 @@ export default function UniqueIdBadge({ value, testid = "unique-id-badge", multi
       onClick={copy}
       data-testid={testid}
       className={
-        "inline-flex items-start gap-2 px-3 py-1.5 bg-[#d4a373]/10 border border-dashed border-[#d4a373]/50 text-[#d4a373] font-mono text-xs tracking-widest rounded-sm hover:bg-[#d4a373]/20 transition-colors text-left " +
+        "inline-flex items-start gap-2 px-3 py-1.5 bg-[#7209b7]/10 border border-dashed border-[#7209b7]/50 text-[#7209b7] font-mono text-xs tracking-widest rounded-sm hover:bg-[#7209b7]/20 transition-colors text-left " +
         (multiline
           ? "max-w-full whitespace-normal break-all leading-relaxed"
           : "")

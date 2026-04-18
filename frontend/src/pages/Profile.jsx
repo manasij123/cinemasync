@@ -41,35 +41,35 @@ export default function Profile() {
     <AppShell subtitle="Your Ticket Stub" title="Profile">
       <div className="max-w-[1000px]">
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          <div className="md:col-span-1 border border-[#d4a373]/30 bg-[#faedcd] p-6 flex flex-col items-center text-center">
-            <div className="w-32 h-32 bg-[#fefae0] border border-[#d4a373]/30 overflow-hidden mb-4 flex items-center justify-center">
+          <div className="md:col-span-1 border border-[#7209b7]/30 bg-white p-6 flex flex-col items-center text-center">
+            <div className="w-32 h-32 bg-[#fdf4ff] border border-[#7209b7]/30 overflow-hidden mb-4 flex items-center justify-center">
               {img ? (
                 <img src={img} alt="avatar" className="w-full h-full object-cover" data-testid="profile-avatar-image" />
               ) : (
-                <span className="font-head text-6xl text-[#d4a373]">{user.name?.[0]?.toUpperCase()}</span>
+                <span className="font-head text-6xl text-[#7209b7]">{user.name?.[0]?.toUpperCase()}</span>
               )}
             </div>
-            <label className="font-mono text-[10px] tracking-[0.3em] uppercase text-[#d4a373] cursor-pointer hover:text-[#c08456]">
+            <label className="font-mono text-[10px] tracking-[0.3em] uppercase text-[#7209b7] cursor-pointer hover:text-[#4a0580]">
               Upload frame
               <input type="file" accept="image/*" className="hidden" onChange={onFile} data-testid="profile-upload-input" />
             </label>
             <div className="mt-6 w-full">
               <UniqueIdBadge value={user.unique_id} testid="profile-unique-id" multiline />
             </div>
-            <div className="font-mono text-[10px] tracking-[0.3em] uppercase text-[#7a6a55] mt-3">{user.email}</div>
+            <div className="font-mono text-[10px] tracking-[0.3em] uppercase text-[#6b5b84] mt-3">{user.email}</div>
           </div>
 
-          <form onSubmit={save} className="md:col-span-2 border border-[#d4a373]/30 bg-[#faedcd] p-6 space-y-4">
+          <form onSubmit={save} className="md:col-span-2 border border-[#7209b7]/30 bg-white p-6 space-y-4">
             <div>
-              <label className="font-mono text-[10px] tracking-[0.3em] uppercase text-[#7a6a55] block mb-2">Display name</label>
+              <label className="font-mono text-[10px] tracking-[0.3em] uppercase text-[#6b5b84] block mb-2">Display name</label>
               <input
                 required
                 value={name}
                 onChange={(e) => setName(e.target.value)}
                 data-testid="profile-name-input"
-                className="w-full bg-[#fefae0] border border-[#d4a373]/30 focus:border-[#d4a373] px-4 py-3 font-body"
+                className="w-full bg-[#fdf4ff] border border-[#7209b7]/30 focus:border-[#7209b7] px-4 py-3 font-body"
               />
-              <p className="font-mono text-[10px] tracking-widest uppercase text-[#a89578] mt-2">
+              <p className="font-mono text-[10px] tracking-widest uppercase text-[#a597c4] mt-2">
                 Changing your name will regenerate your unique ID.
               </p>
             </div>
@@ -77,7 +77,7 @@ export default function Profile() {
               disabled={loading}
               type="submit"
               data-testid="profile-save-button"
-              className="bg-[#d4a373] text-[#2b2118] font-mono tracking-[0.25em] uppercase text-sm px-6 py-4 hover:bg-[#c08456] disabled:opacity-60"
+              className="bg-[#7209b7] text-[#1a0b2e] font-mono tracking-[0.25em] uppercase text-sm px-6 py-4 hover:bg-[#4a0580] disabled:opacity-60"
             >
               {loading ? "Developing film…" : "Save changes"}
             </button>
