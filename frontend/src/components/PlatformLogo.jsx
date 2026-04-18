@@ -1,15 +1,16 @@
 import React from "react";
 
-// Brand metadata: logo asset + the tile background that best showcases it
-// (SVGs with transparent backgrounds get a branded dark/light fill;
-//  raster logos that ship their own background are placed on neutral black.)
+// Brand metadata: logo asset + the tile background that best showcases it.
+// We keep each logo visually "as-is" on a background that matches how the
+// brand officially presents the mark (mostly white/neutral, plus dark for
+// Hoichoi whose transparent PNG is white-on-dark).
 export const PLATFORMS = {
-  netflix:   { label: "Netflix",     short: "Netflix",  logo: "/ott-logos/netflix.svg",    bg: "#000000", fg: "#ffffff", pad: "22%" },
-  prime:     { label: "Prime Video", short: "Prime",    logo: "/ott-logos/prime.svg",      bg: "#00050D", fg: "#00A8E1", pad: "18%" },
-  hotstar:   { label: "JioHotstar",  short: "Hotstar",  logo: "/ott-logos/jiohotstar.png", bg: "#0b0b17", fg: "#ffffff", pad: "12%" },
-  hoichoi:   { label: "Hoichoi",     short: "Hoichoi",  logo: "/ott-logos/hoichoi.png",    bg: "#1a0b2e", fg: "#ffffff", pad: "14%" },
-  addatimes: { label: "Addatimes",   short: "Adda",     logo: "/ott-logos/addatimes.jpg",  bg: "#000000", fg: "#ffe600", pad: "0%"  },
-  zee5:      { label: "ZEE5",        short: "ZEE5",     logo: "/ott-logos/zee5.svg",       bg: "#ffffff", fg: "#7209b7", pad: "20%" },
+  netflix:   { label: "Netflix",     short: "Netflix",  logo: "/ott-logos/netflix.svg",    bg: "#ffffff", fg: "#E50914", pad: "18%" },
+  prime:     { label: "Prime Video", short: "Prime",    logo: "/ott-logos/prime.svg",      bg: "#ffffff", fg: "#00A8E1", pad: "16%" },
+  hotstar:   { label: "JioHotstar",  short: "Hotstar",  logo: "/ott-logos/jiohotstar.png", bg: "#ffffff", fg: "#1a6aff", pad: "8%"  },
+  hoichoi:   { label: "Hoichoi",     short: "Hoichoi",  logo: "/ott-logos/hoichoi.png",    bg: "#1a0b2e", fg: "#ffffff", pad: "12%" },
+  addatimes: { label: "Addatimes",   short: "Adda",     logo: "/ott-logos/addatimes.jpg",  bg: "#ffffff", fg: "#e11d48", pad: "4%"  },
+  zee5:      { label: "ZEE5",        short: "ZEE5",     logo: "/ott-logos/zee5.svg",       bg: "#ffffff", fg: "#7209b7", pad: "18%" },
   custom:    { label: "Custom",      short: "Custom",   logo: null,                        bg: "#fdf4ff", fg: "#7209b7", pad: "0%"  },
 };
 
