@@ -6,7 +6,8 @@ import { useAuth } from "../context/AuthContext";
 import { toast } from "sonner";
 import {
   Play, Pause, RotateCcw, RotateCw, Send, Cast, CastOff, Film, Smile,
-  SkipBack, SkipForward, Users, MonitorOff, ExternalLink,
+  SkipBack, SkipForward, Users, MonitorOff, ExternalLink, Maximize2, Minimize2,
+  MessageSquare, MessageSquareOff,
 } from "lucide-react";
 
 const PLATFORM_LABEL = {
@@ -57,6 +58,10 @@ export default function WatchRoom() {
   const [remoteSharerId, setRemoteSharerId] = useState(null);
   const [remoteSharerName, setRemoteSharerName] = useState("");
   const [videoMuted, setVideoMuted] = useState(true);
+
+  // Fullscreen / chat collapse
+  const [fullscreen, setFullscreen] = useState(false);
+  const [chatOpenInFs, setChatOpenInFs] = useState(true);
   const localStreamRef = useRef(null);
   const videoRef = useRef(null);
   const peersRef = useRef({}); // user_id -> RTCPeerConnection
@@ -177,6 +182,19 @@ export default function WatchRoom() {
   useEffect(() => {
     chatEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
+
+  // Escape to exit fullscreen
+  useEffect(() => {
+    if (!fullscreen) return;
+    const onKey = (e) => { if (e.key === "Escape") setFullscreen(false); };
+    window.addEventListener("keydown", onKey);
+    // lock body scroll while fullscreen
+    document.body.style.overflow = "hidden";
+    return () => {
+      window.removeEventListener("keydown", onKey);
+      document.body.style.overflow = "";
+    };
+  }, [fullscreen]);
 
   // --- host controls ---
   const sendSync = (action, nextPlaying, nextPos) => {
@@ -389,9 +407,19 @@ export default function WatchRoom() {
           </div>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-4 gap-4">
+        <div className={
+          fullscreen
+            ? "fixed inset-0 z-50 bg-[#0A0908] grid grid-cols-1 lg:grid-cols-4 gap-0"
+            : "grid grid-cols-1 lg:grid-cols-4 gap-4"
+        }>
           {/* Stage */}
-          <section className="lg:col-span-3 bg-[#fefae0] border border-[#d4a373]/30 relative overflow-hidden h-[55vh] sm:h-[62vh] lg:h-[78vh] flex flex-col">
+          <section className={
+            (fullscreen
+              ? (chatOpenInFs ? "lg:col-span-3" : "lg:col-span-4")
+              : "lg:col-span-3"
+            ) + " bg-[#fefae0] border border-[#d4a373]/30 relative overflow-hidden flex flex-col " +
+            (fullscreen ? "h-screen" : "h-[55vh] sm:h-[62vh] lg:h-[78vh]")
+          }>
             <div className="flex-1 relative flex items-center justify-center">
               {/* Video surface: remote or own share */}
               <video
@@ -418,6 +446,26 @@ export default function WatchRoom() {
                   title="Toggle audio"
                 >
                   {videoMuted ? "🔇 Tap to unmute" : "🔊 Unmuted"}
+                </button>
+              )}
+              {/* Fullscreen toggle — available to everyone */}
+              <button
+                onClick={() => setFullscreen((v) => !v)}
+                data-testid="watch-fullscreen-button"
+                className="absolute top-3 left-3 bg-[#fefae0]/95 border border-[#d4a373] text-[#2b2118] p-2 font-mono hover:bg-[#d4a373]/20 z-10"
+                title={fullscreen ? "Exit fullscreen (Esc)" : "Enter fullscreen"}
+              >
+                {fullscreen ? <Minimize2 size={16} /> : <Maximize2 size={16} />}
+              </button>
+              {/* Chat toggle (only while fullscreen) */}
+              {fullscreen && (
+                <button
+                  onClick={() => setChatOpenInFs((v) => !v)}
+                  data-testid="watch-chat-toggle-button"
+                  className="absolute top-3 left-14 bg-[#fefae0]/95 border border-[#d4a373] text-[#2b2118] p-2 font-mono hover:bg-[#d4a373]/20 z-10"
+                  title={chatOpenInFs ? "Hide chat" : "Show chat"}
+                >
+                  {chatOpenInFs ? <MessageSquareOff size={16} /> : <MessageSquare size={16} />}
                 </button>
               )}
               {!sharing && !remoteSharerId && (
@@ -522,7 +570,14 @@ export default function WatchRoom() {
           </section>
 
           {/* Chat & participants */}
-          <aside className="border border-[#d4a373]/30 bg-[#faedcd] flex flex-col h-[55vh] sm:h-[62vh] lg:h-[78vh]">
+          <aside className={
+            (fullscreen
+              ? (chatOpenInFs ? "flex" : "hidden")
+              : "flex"
+            ) +
+            " border border-[#d4a373]/30 bg-[#faedcd] flex-col " +
+            (fullscreen ? "h-screen" : "h-[55vh] sm:h-[62vh] lg:h-[78vh]")
+          }>
             {/* Participants strip */}
             <div className="border-b border-[#d4a373]/30 p-4">
               <div className="flex items-center gap-2 mb-3">
