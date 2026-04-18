@@ -76,11 +76,18 @@ export default function Login() {
                 {loading ? "Dimming lights…" : "Enter theatre"}
               </button>
             </form>
-            <div className="mt-6 text-center font-mono text-xs tracking-widest text-[#6b5b84]">
-              New here?{" "}
-              <Link to="/register" className="text-[#7209b7] hover:text-[#4a0580]" data-testid="login-to-register-link">
-                Book a seat
-              </Link>
+            <div className="mt-6 text-center font-mono text-xs tracking-widest text-[#6b5b84] space-y-2">
+              <div>
+                <Link to="/forgot-password" className="text-[#7209b7] hover:text-[#4a0580]" data-testid="login-to-forgot-link">
+                  Forgot password?
+                </Link>
+              </div>
+              <div>
+                New here?{" "}
+                <Link to="/register" className="text-[#7209b7] hover:text-[#4a0580]" data-testid="login-to-register-link">
+                  Book a seat
+                </Link>
+              </div>
             </div>
           </div>
         </div>

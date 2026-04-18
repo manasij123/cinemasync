@@ -20,6 +20,7 @@ from motor.motor_asyncio import AsyncIOMotorClient
 from pydantic import BaseModel, Field, EmailStr
 
 from storage import init_storage, put_object, get_object, APP_NAME as STORAGE_APP_NAME
+from email_service import send_password_reset as send_pw_reset_email, send_verify_email
 
 
 # ------------- Config -------------
@@ -73,6 +74,7 @@ def public_user(user: dict) -> dict:
         "requests_in": user.get("requests_in", []),
         "requests_out": user.get("requests_out", []),
         "is_admin": bool(user.get("is_admin", False)),
+        "email_verified": bool(user.get("email_verified", False)),
         "created_at": user.get("created_at"),
     }
 
@@ -183,6 +185,23 @@ class InviteIn(BaseModel):
     password: str
 
 
+class ForgotPasswordIn(BaseModel):
+    email: EmailStr
+
+
+class ResetPasswordIn(BaseModel):
+    token: str
+    new_password: str = Field(min_length=6)
+
+
+class VerifyEmailIn(BaseModel):
+    token: str
+
+
+class CohostIn(BaseModel):
+    user_id: str
+
+
 # ------------- Auth Routes -------------
 @api_router.post("/auth/register")
 async def register(body: RegisterIn, response: Response):
@@ -201,17 +220,30 @@ async def register(body: RegisterIn, response: Response):
         "friends": [],
         "requests_in": [],
         "requests_out": [],
+        "email_verified": False,
         "created_at": datetime.now(timezone.utc).isoformat(),
     }
     await db.users.insert_one(doc)
     token = create_access_token(user_id, email)
     set_auth_cookie(response, token)
+    # Fire-and-forget verification email (ignore failures on registration)
+    try:
+        vtok = await _issue_email_token(user_id, "verify", VERIFY_TOKEN_TTL_HR * 3600)
+        await send_verify_email(email, body.name.strip(), vtok)
+    except Exception as e:
+        logger.warning(f"Signup verify email failed: {e}")
     return {"user": public_user(doc), "token": token}
 
 
 @api_router.post("/auth/login")
-async def login(body: LoginIn, response: Response):
+async def login(body: LoginIn, response: Response, request: Request):
     email = body.email.lower().strip()
+    ip = request.client.host if request.client else "unknown"
+    # Brute-force guard: 8 attempts / 10 minutes per email, 30 per IP
+    if not rate_limit("login", email, limit=8, window_seconds=600):
+        raise HTTPException(status_code=429, detail="Too many login attempts — try again in 10 minutes")
+    if not rate_limit("login-ip", ip, limit=30, window_seconds=600):
+        raise HTTPException(status_code=429, detail="Too many login attempts from this IP")
     user = await db.users.find_one({"email": email}, {"_id": 0})
     if not user or not verify_password(body.password, user["password_hash"]):
         raise HTTPException(status_code=401, detail="Invalid credentials")
@@ -224,6 +256,106 @@ async def login(body: LoginIn, response: Response):
 async def logout(response: Response):
     response.delete_cookie("access_token", path="/")
     return {"ok": True}
+
+
+# ------------- Rate limiter (in-memory sliding window) -------------
+_RATE_BUCKETS: Dict[str, List[float]] = {}
+
+
+def rate_limit(scope: str, key: str, limit: int, window_seconds: float) -> bool:
+    """Returns True if request is allowed, False if rate-limited."""
+    import time
+    now = time.time()
+    bucket_key = f"{scope}:{key}"
+    stamps = _RATE_BUCKETS.get(bucket_key, [])
+    cutoff = now - window_seconds
+    stamps = [t for t in stamps if t > cutoff]
+    if len(stamps) >= limit:
+        _RATE_BUCKETS[bucket_key] = stamps
+        return False
+    stamps.append(now)
+    _RATE_BUCKETS[bucket_key] = stamps
+    return True
+
+
+# ------------- Password reset + email verification -------------
+RESET_TOKEN_TTL_MIN = 30
+VERIFY_TOKEN_TTL_HR = 48
+
+
+async def _issue_email_token(user_id: str, kind: str, ttl_seconds: int) -> str:
+    token = uuid.uuid4().hex + uuid.uuid4().hex  # 64 chars
+    await db.email_tokens.insert_one({
+        "token": token,
+        "user_id": user_id,
+        "kind": kind,  # "reset" | "verify"
+        "expires_at": (datetime.now(timezone.utc) + timedelta(seconds=ttl_seconds)).isoformat(),
+        "used": False,
+        "created_at": datetime.now(timezone.utc).isoformat(),
+    })
+    return token
+
+
+@api_router.post("/auth/forgot-password")
+async def forgot_password(body: ForgotPasswordIn, request: Request):
+    # Rate limit to 3/hour per email + 10/hour per IP
+    ip = request.client.host if request.client else "unknown"
+    if not rate_limit("forgot", body.email.lower(), limit=3, window_seconds=3600):
+        raise HTTPException(status_code=429, detail="Too many reset requests — try again later")
+    if not rate_limit("forgot-ip", ip, limit=10, window_seconds=3600):
+        raise HTTPException(status_code=429, detail="Too many requests from this IP")
+
+    email = body.email.lower().strip()
+    user = await db.users.find_one({"email": email}, {"_id": 0})
+    # Always return a generic response to avoid user-enumeration
+    if user:
+        token = await _issue_email_token(user["id"], "reset", RESET_TOKEN_TTL_MIN * 60)
+        try:
+            await send_pw_reset_email(user["email"], user.get("name") or "there", token)
+        except Exception as e:
+            logger.error(f"Reset email failed: {e}")
+    return {"ok": True, "message": "If the email exists, a reset link has been sent."}
+
+
+@api_router.post("/auth/reset-password")
+async def reset_password(body: ResetPasswordIn):
+    rec = await db.email_tokens.find_one({"token": body.token, "kind": "reset", "used": False}, {"_id": 0})
+    if not rec:
+        raise HTTPException(status_code=400, detail="Invalid or expired reset token")
+    if datetime.fromisoformat(rec["expires_at"]) < datetime.now(timezone.utc):
+        raise HTTPException(status_code=400, detail="Reset token has expired")
+    new_hash = hash_password(body.new_password)
+    await db.users.update_one({"id": rec["user_id"]}, {"$set": {"password_hash": new_hash}})
+    await db.email_tokens.update_one({"token": body.token}, {"$set": {"used": True, "used_at": datetime.now(timezone.utc).isoformat()}})
+    return {"ok": True, "message": "Password updated. You can now log in."}
+
+
+@api_router.post("/auth/send-verify-email")
+async def request_verify_email(user: dict = Depends(get_current_user)):
+    if user.get("email_verified"):
+        return {"ok": True, "already_verified": True}
+    if not rate_limit("verify", user["id"], limit=5, window_seconds=3600):
+        raise HTTPException(status_code=429, detail="Too many verification attempts — wait a bit")
+    token = await _issue_email_token(user["id"], "verify", VERIFY_TOKEN_TTL_HR * 3600)
+    try:
+        await send_verify_email(user["email"], user.get("name") or "there", token)
+    except Exception as e:
+        logger.error(f"Verify email failed: {e}")
+        raise HTTPException(status_code=503, detail="Email delivery failed")
+    return {"ok": True}
+
+
+@api_router.post("/auth/verify-email")
+async def confirm_email(body: VerifyEmailIn):
+    rec = await db.email_tokens.find_one({"token": body.token, "kind": "verify", "used": False}, {"_id": 0})
+    if not rec:
+        raise HTTPException(status_code=400, detail="Invalid or expired verification token")
+    if datetime.fromisoformat(rec["expires_at"]) < datetime.now(timezone.utc):
+        raise HTTPException(status_code=400, detail="Verification token has expired")
+    await db.users.update_one({"id": rec["user_id"]}, {"$set": {"email_verified": True}})
+    await db.email_tokens.update_one({"token": body.token}, {"$set": {"used": True, "used_at": datetime.now(timezone.utc).isoformat()}})
+    fresh = await db.users.find_one({"id": rec["user_id"]}, {"_id": 0})
+    return {"ok": True, "user": public_user(fresh)}
 
 
 @api_router.get("/auth/me")
@@ -415,12 +547,14 @@ async def create_room(body: CreateRoomIn, user: dict = Depends(get_current_user)
         "name": body.name.strip(),
         "password_hash": hash_password(body.password),
         "host_id": user["id"],
+        "co_hosts": [],
         "platform": body.platform,
         "participants": [user["id"]],
         "state": {"playing": False, "position": 0.0, "updated_at": datetime.now(timezone.utc).isoformat()},
         "created_at": datetime.now(timezone.utc).isoformat(),
     }
     await db.rooms.insert_one(doc)
+    await _record_history(user["id"], room_id, body.name.strip(), body.platform, role="host")
     return {"room": _room_public(doc)}
 
 
@@ -429,11 +563,36 @@ def _room_public(room: dict) -> dict:
         "id": room["id"],
         "name": room["name"],
         "host_id": room["host_id"],
+        "co_hosts": room.get("co_hosts", []),
         "platform": room.get("platform", "custom"),
         "participants": room.get("participants", []),
         "state": room.get("state", {"playing": False, "position": 0.0}),
         "created_at": room.get("created_at"),
     }
+
+
+async def _record_history(user_id: str, room_id: str, room_name: str, platform: str, role: str = "guest"):
+    """Upsert room-history record; bumps last_joined_at."""
+    now = datetime.now(timezone.utc).isoformat()
+    await db.room_history.update_one(
+        {"user_id": user_id, "room_id": room_id},
+        {
+            "$setOnInsert": {
+                "id": str(uuid.uuid4()),
+                "user_id": user_id,
+                "room_id": room_id,
+                "first_joined_at": now,
+                "role": role,
+            },
+            "$set": {
+                "room_name": room_name,
+                "platform": platform,
+                "last_joined_at": now,
+            },
+            "$inc": {"visit_count": 1},
+        },
+        upsert=True,
+    )
 
 
 @api_router.post("/rooms/join")
@@ -445,7 +604,57 @@ async def join_room(body: JoinRoomIn, user: dict = Depends(get_current_user)):
         raise HTTPException(status_code=401, detail="Incorrect room password")
     await db.rooms.update_one({"id": room["id"]}, {"$addToSet": {"participants": user["id"]}})
     room = await db.rooms.find_one({"id": room["id"]}, {"_id": 0})
+    role = "host" if room["host_id"] == user["id"] else (
+        "co-host" if user["id"] in room.get("co_hosts", []) else "guest"
+    )
+    await _record_history(user["id"], room["id"], room["name"], room.get("platform", "custom"), role=role)
     return {"room": _room_public(room)}
+
+
+@api_router.get("/rooms/history")
+async def room_history(user: dict = Depends(get_current_user), limit: int = 20):
+    limit = max(1, min(limit, 100))
+    cursor = db.room_history.find({"user_id": user["id"]}, {"_id": 0}).sort("last_joined_at", -1).limit(limit)
+    rows = await cursor.to_list(limit)
+    # Join with current room status (active or ended)
+    room_ids = [r["room_id"] for r in rows]
+    active_ids = set()
+    if room_ids:
+        async for r in db.rooms.find({"id": {"$in": room_ids}}, {"_id": 0, "id": 1}):
+            active_ids.add(r["id"])
+    for r in rows:
+        r["is_active"] = r["room_id"] in active_ids
+    return {"history": rows}
+
+
+@api_router.post("/rooms/{room_id}/promote")
+async def promote_cohost(room_id: str, body: CohostIn, user: dict = Depends(get_current_user)):
+    room_id = room_id.upper()
+    room = await db.rooms.find_one({"id": room_id}, {"_id": 0})
+    if not room:
+        raise HTTPException(status_code=404, detail="Room not found")
+    if room["host_id"] != user["id"]:
+        raise HTTPException(status_code=403, detail="Only host can promote co-hosts")
+    if body.user_id not in room.get("participants", []):
+        raise HTTPException(status_code=400, detail="User is not a participant")
+    if body.user_id == room["host_id"]:
+        raise HTTPException(status_code=400, detail="Host is already host")
+    await db.rooms.update_one({"id": room_id}, {"$addToSet": {"co_hosts": body.user_id}})
+    fresh = await db.rooms.find_one({"id": room_id}, {"_id": 0})
+    return {"ok": True, "room": _room_public(fresh)}
+
+
+@api_router.post("/rooms/{room_id}/demote")
+async def demote_cohost(room_id: str, body: CohostIn, user: dict = Depends(get_current_user)):
+    room_id = room_id.upper()
+    room = await db.rooms.find_one({"id": room_id}, {"_id": 0})
+    if not room:
+        raise HTTPException(status_code=404, detail="Room not found")
+    if room["host_id"] != user["id"]:
+        raise HTTPException(status_code=403, detail="Only host can demote co-hosts")
+    await db.rooms.update_one({"id": room_id}, {"$pull": {"co_hosts": body.user_id}})
+    fresh = await db.rooms.find_one({"id": room_id}, {"_id": 0})
+    return {"ok": True, "room": _room_public(fresh)}
 
 
 @api_router.get("/rooms/active")
@@ -723,9 +932,15 @@ async def websocket_room(websocket: WebSocket, room_id: str):
             msg = await websocket.receive_json()
             mtype = msg.get("type")
             if mtype == "sync":
-                # Only host can broadcast sync
+                # Host or co-hosts can broadcast sync
                 fresh_room = await db.rooms.find_one({"id": room_id}, {"_id": 0})
-                if fresh_room and fresh_room["host_id"] == user["id"]:
+                can_sync = fresh_room and (
+                    fresh_room["host_id"] == user["id"]
+                    or user["id"] in fresh_room.get("co_hosts", [])
+                )
+                if can_sync:
+                    if not rate_limit("ws-sync", user["id"], limit=8, window_seconds=1.0):
+                        continue
                     new_state = {
                         "playing": bool(msg.get("playing", False)),
                         "position": float(msg.get("position", 0)),
@@ -737,6 +952,9 @@ async def websocket_room(websocket: WebSocket, room_id: str):
             elif mtype == "chat":
                 text = (msg.get("text") or "").strip()
                 if not text:
+                    continue
+                if not rate_limit("ws-chat", user["id"], limit=10, window_seconds=5.0):
+                    await websocket.send_json({"type": "rate-limited", "scope": "chat", "retry_after": 5})
                     continue
                 entry = {
                     "id": str(uuid.uuid4()),
@@ -938,6 +1156,10 @@ async def startup():
     await db.notifications.create_index([("user_id", 1), ("created_at", -1)])
     await db.files.create_index("storage_path", unique=True)
     await db.files.create_index([("owner_id", 1), ("created_at", -1)])
+    await db.email_tokens.create_index("token", unique=True)
+    await db.email_tokens.create_index([("user_id", 1), ("kind", 1)])
+    await db.room_history.create_index([("user_id", 1), ("room_id", 1)], unique=True)
+    await db.room_history.create_index([("user_id", 1), ("last_joined_at", -1)])
     # Initialise object storage (avatar uploads)
     try:
         init_storage()
@@ -961,7 +1183,7 @@ async def startup():
         })
     else:
         # Ensure existing admin is flagged
-        await db.users.update_one({"email": ADMIN_EMAIL}, {"$set": {"is_admin": True}})
+        await db.users.update_one({"email": ADMIN_EMAIL}, {"$set": {"is_admin": True, "email_verified": True}})
 
 
 @app.on_event("shutdown")

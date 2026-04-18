@@ -74,6 +74,8 @@ export default function WatchRoom() {
   const chatEndRef = useRef(null);
 
   const isHost = room && room.host_id === user.id;
+  const isCoHost = room && (room.co_hosts || []).includes(user.id);
+  const canControl = isHost || isCoHost;
 
   // --- load initial room ---
   const loadRoom = useCallback(async () => {
@@ -248,7 +250,7 @@ export default function WatchRoom() {
   };
 
   const onPlayPause = () => {
-    if (!isHost) return toast.error("Only the host can control playback");
+    if (!canControl) return toast.error("Only the host or a co-host can control playback");
     const next = !playing;
     setPlaying(next);
     setLastSyncAt(Date.now());
@@ -256,7 +258,7 @@ export default function WatchRoom() {
   };
 
   const seek = (delta) => {
-    if (!isHost) return toast.error("Only the host can seek");
+    if (!canControl) return toast.error("Only the host or a co-host can seek");
     const next = Math.max(0, position + delta);
     setPosition(next);
     setLastSyncAt(Date.now());
@@ -264,7 +266,7 @@ export default function WatchRoom() {
   };
 
   const resetTimer = () => {
-    if (!isHost) return;
+    if (!canControl) return;
     setPosition(0);
     sendSync("seek", playing, 0);
   };
@@ -571,7 +573,7 @@ export default function WatchRoom() {
                  data-testid="sync-control-bar">
               <button
                 onClick={() => seek(-10)}
-                disabled={!isHost}
+                disabled={!canControl}
                 data-testid="sync-back-10"
                 className="text-[#1a0b2e] hover:text-[#7209b7] disabled:opacity-40 disabled:hover:text-[#1a0b2e]"
                 title="-10s"
@@ -580,7 +582,7 @@ export default function WatchRoom() {
               </button>
               <button
                 onClick={onPlayPause}
-                disabled={!isHost}
+                disabled={!canControl}
                 data-testid="sync-play-pause"
                 className="w-10 h-10 sm:w-11 sm:h-11 bg-[#7209b7] text-[#1a0b2e] flex items-center justify-center hover:bg-[#4a0580] disabled:opacity-40 disabled:hover:bg-[#7209b7]"
                 title={playing ? "Pause" : "Play"}
@@ -589,7 +591,7 @@ export default function WatchRoom() {
               </button>
               <button
                 onClick={() => seek(10)}
-                disabled={!isHost}
+                disabled={!canControl}
                 data-testid="sync-fwd-10"
                 className="text-[#1a0b2e] hover:text-[#7209b7] disabled:opacity-40 disabled:hover:text-[#1a0b2e]"
                 title="+10s"

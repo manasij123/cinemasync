@@ -4,6 +4,7 @@ import { useAuth } from "../context/AuthContext";
 import UniqueIdBadge from "../components/UniqueIdBadge";
 import { api } from "../lib/api";
 import { toast } from "sonner";
+import { Mail, MailCheck } from "lucide-react";
 
 const MAX_BYTES = 10 * 1024 * 1024; // 10 MB
 
@@ -61,6 +62,15 @@ export default function Profile() {
     }
   };
 
+  const sendVerify = async () => {
+    try {
+      await api.post("/auth/send-verify-email");
+      toast.success("Verification email sent — check your inbox");
+    } catch (err) {
+      toast.error(formatApiError(err.response?.data?.detail) || err.message);
+    }
+  };
+
   return (
     <AppShell subtitle="Your Ticket Stub" title="Profile">
       <div className="max-w-[1000px]">
@@ -96,6 +106,23 @@ export default function Profile() {
               <UniqueIdBadge value={user.unique_id} testid="profile-unique-id" multiline />
             </div>
             <div className="font-mono text-[10px] tracking-[0.3em] uppercase text-[#6b5b84] mt-3">{user.email}</div>
+            {user.email_verified ? (
+              <div
+                data-testid="profile-email-verified"
+                className="mt-2 inline-flex items-center gap-1 text-[10px] font-mono tracking-[0.25em] uppercase text-emerald-700 bg-emerald-100/70 border border-emerald-300/60 px-2 py-1 rounded-full"
+              >
+                <MailCheck size={11} /> Verified
+              </div>
+            ) : (
+              <button
+                type="button"
+                onClick={sendVerify}
+                data-testid="profile-send-verify-button"
+                className="mt-2 inline-flex items-center gap-1 text-[10px] font-mono tracking-[0.25em] uppercase text-[#f72585] bg-[#f72585]/10 border border-[#f72585]/30 px-2 py-1 rounded-full hover:bg-[#f72585]/20"
+              >
+                <Mail size={11} /> Verify email
+              </button>
+            )}
           </div>
 
           <form onSubmit={save} className="md:col-span-2 border border-[#7209b7]/30 bg-white p-6 space-y-4">

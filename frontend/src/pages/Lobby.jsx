@@ -322,6 +322,17 @@ export default function Lobby() {
     navigate("/dashboard");
   };
 
+  const toggleCohost = async (targetId, promote) => {
+    try {
+      const path = promote ? "promote" : "demote";
+      const { data } = await api.post(`/rooms/${roomId}/${path}`, { user_id: targetId });
+      setRoom(data.room);
+      toast.success(promote ? "Promoted to co-host" : "Demoted");
+    } catch (e) {
+      toast.error(formatApiError(e.response?.data?.detail) || e.message);
+    }
+  };
+
   if (!room) {
     return (
       <div>
@@ -422,21 +433,51 @@ export default function Lobby() {
               <span className="font-mono text-xs tracking-[0.3em] uppercase text-[#7209b7]">Cast · {members.length}</span>
             </div>
             <ul className="space-y-3" data-testid="lobby-participants">
-              {members.map((m) => (
-                <li key={m.id} className="flex items-center gap-3">
-                  <div className="w-9 h-9 bg-[#fdf4ff] border border-[#7209b7]/30 flex items-center justify-center font-head text-sm">
-                    {m.profile_image ? (
-                      <img src={m.profile_image} alt="" className="w-full h-full object-cover" />
-                    ) : (
-                      m.name?.[0]?.toUpperCase()
+              {members.map((m) => {
+                const mIsHost = m.id === room.host_id;
+                const mIsCoHost = (room.co_hosts || []).includes(m.id);
+                const meIsHost = room.host_id === user.id;
+                return (
+                  <li key={m.id} className="flex items-center gap-3">
+                    <div className="w-9 h-9 bg-[#fdf4ff] border border-[#7209b7]/30 flex items-center justify-center font-head text-sm overflow-hidden shrink-0 rounded-sm">
+                      {m.profile_image ? (
+                        <img src={m.profile_image} alt="" className="w-full h-full object-cover" />
+                      ) : (
+                        m.name?.[0]?.toUpperCase()
+                      )}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="font-body text-sm truncate flex items-center gap-1.5">
+                        <span className="truncate">{m.name}</span>
+                        {mIsHost && <span className="text-[#7209b7] font-mono text-[10px] tracking-widest uppercase shrink-0">Host</span>}
+                        {mIsCoHost && !mIsHost && <span className="text-[#f72585] font-mono text-[10px] tracking-widest uppercase shrink-0">Co-host</span>}
+                      </div>
+                      <div className="font-mono text-[10px] text-[#6b5b84] truncate">{m.unique_id}</div>
+                    </div>
+                    {meIsHost && !mIsHost && (
+                      mIsCoHost ? (
+                        <button
+                          onClick={() => toggleCohost(m.id, false)}
+                          data-testid={`cohost-demote-${m.id}`}
+                          className="text-[9px] font-mono tracking-widest uppercase border border-[#f72585]/40 text-[#f72585] px-2 py-1 rounded-sm hover:bg-[#f72585]/10"
+                          title="Remove co-host"
+                        >
+                          Demote
+                        </button>
+                      ) : (
+                        <button
+                          onClick={() => toggleCohost(m.id, true)}
+                          data-testid={`cohost-promote-${m.id}`}
+                          className="text-[9px] font-mono tracking-widest uppercase border border-[#7209b7]/40 text-[#7209b7] px-2 py-1 rounded-sm hover:bg-[#7209b7]/10"
+                          title="Promote to co-host"
+                        >
+                          + Co-host
+                        </button>
+                      )
                     )}
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <div className="font-body text-sm truncate">{m.name}{m.id === room.host_id && <span className="ml-2 text-[#7209b7] font-mono text-[10px] tracking-widest uppercase">Host</span>}</div>
-                    <div className="font-mono text-[10px] text-[#6b5b84] truncate">{m.unique_id}</div>
-                  </div>
-                </li>
-              ))}
+                  </li>
+                );
+              })}
             </ul>
           </aside>
         </div>

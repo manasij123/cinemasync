@@ -275,11 +275,47 @@ function InviteRow({ n, onAccept, onDismiss }) {
   );
 }
 
+function HistoryCard({ row, onClick }) {
+  const when = row.last_joined_at ? new Date(row.last_joined_at) : null;
+  const whenLabel = when
+    ? `${Math.max(0, Math.round((Date.now() - when.getTime()) / 60000))}m ago`
+    : "";
+  return (
+    <button
+      onClick={onClick}
+      data-testid={`history-card-${row.room_id}`}
+      className="w-full text-left glass-card rounded-xl p-4 transition-all hover:-translate-y-0.5 group"
+    >
+      <div className="flex items-start gap-3 mb-2">
+        <PlatformLogo platform={row.platform} size={40} rounded="md" />
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center gap-2">
+            {row.is_active ? (
+              <span className="font-mono text-[10px] tracking-[0.3em] uppercase text-[#f72585] flex items-center gap-1">
+                <span className="w-2 h-2 rounded-full bg-[#f72585] pulse-live" /> Live
+              </span>
+            ) : (
+              <span className="font-mono text-[10px] tracking-[0.3em] uppercase text-[#6b5b84]">Ended</span>
+            )}
+            <span className="ml-auto font-mono text-[9px] tracking-widest uppercase text-[#6b5b84]">{whenLabel}</span>
+          </div>
+          <div className="font-head text-base uppercase text-[#1a0b2e] truncate">{row.room_name}</div>
+        </div>
+      </div>
+      <div className="font-mono text-[10px] tracking-widest uppercase text-[#6b5b84] flex justify-between">
+        <span className="truncate">{PLATFORM_LABEL[row.platform] || "Custom"} · {row.room_id}</span>
+        <span>{row.visit_count}× visited</span>
+      </div>
+    </button>
+  );
+}
+
 export default function Dashboard() {
   const { user, formatApiError } = useAuth();
   const [friends, setFriends] = useState([]);
   const [activeRooms, setActiveRooms] = useState([]);
   const [notifs, setNotifs] = useState([]);
+  const [history, setHistory] = useState([]);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -291,9 +327,14 @@ export default function Dashboard() {
         setNotifs((data.notifications || []).filter((n) => n.type === "room-invite" && !n.read));
       } catch {}
     };
+    const loadHistory = async () => {
+      try { const { data } = await api.get("/rooms/history?limit=20"); setHistory(data.history || []); } catch {}
+    };
     loadAll();
+    loadHistory();
     const t = setInterval(loadAll, 5000);
-    return () => clearInterval(t);
+    const h = setInterval(loadHistory, 30000);
+    return () => { clearInterval(t); clearInterval(h); };
   }, []);
 
   // Derived metrics
@@ -451,6 +492,28 @@ export default function Dashboard() {
           <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
             {activeRooms.map((r) => (
               <LiveRoomCard key={r.id} room={r} currentUserId={user.id} onClick={() => navigate(`/room/${r.id}`)} />
+            ))}
+          </div>
+        </section>
+      )}
+
+      {/* Room history */}
+      {history.length > 0 && (
+        <section className="mb-6" data-testid="dashboard-history-section">
+          <div className="flex items-center gap-3 mb-3">
+            <Film size={16} className="text-[#7209b7]" />
+            <span className="font-mono text-xs tracking-[0.3em] uppercase text-[#7209b7]">Recent rooms · {history.length}</span>
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-3" data-testid="dashboard-history-list">
+            {history.slice(0, 9).map((h) => (
+              <HistoryCard
+                key={`${h.room_id}-${h.last_joined_at}`}
+                row={h}
+                onClick={() => {
+                  if (h.is_active) navigate(`/room/${h.room_id}`);
+                  else toast.info("This room has ended. Ask the host to create a new one.");
+                }}
+              />
             ))}
           </div>
         </section>
