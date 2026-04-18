@@ -1,89 +1,585 @@
-from fastapi import FastAPI, APIRouter
 from dotenv import load_dotenv
-from starlette.middleware.cors import CORSMiddleware
-from motor.motor_asyncio import AsyncIOMotorClient
-import os
-import logging
 from pathlib import Path
-from pydantic import BaseModel, Field, ConfigDict
-from typing import List
-import uuid
-from datetime import datetime, timezone
-
 
 ROOT_DIR = Path(__file__).parent
 load_dotenv(ROOT_DIR / '.env')
 
-# MongoDB connection
-mongo_url = os.environ['MONGO_URL']
-client = AsyncIOMotorClient(mongo_url)
-db = client[os.environ['DB_NAME']]
+import os
+import logging
+import uuid
+import bcrypt
+import jwt
+import re
+from datetime import datetime, timezone, timedelta
+from typing import List, Optional, Dict, Set
 
-# Create the main app without a prefix
-app = FastAPI()
+from fastapi import FastAPI, APIRouter, HTTPException, Request, Response, Depends, WebSocket, WebSocketDisconnect, status
+from starlette.middleware.cors import CORSMiddleware
+from motor.motor_asyncio import AsyncIOMotorClient
+from pydantic import BaseModel, Field, EmailStr
 
-# Create a router with the /api prefix
+
+# ------------- Config -------------
+MONGO_URL = os.environ["MONGO_URL"]
+DB_NAME = os.environ["DB_NAME"]
+JWT_SECRET = os.environ.get("JWT_SECRET", "dev-secret-change-me")
+JWT_ALGORITHM = "HS256"
+ADMIN_EMAIL = os.environ.get("ADMIN_EMAIL", "admin@cinemasync.app")
+ADMIN_PASSWORD = os.environ.get("ADMIN_PASSWORD", "admin123")
+
+client = AsyncIOMotorClient(MONGO_URL)
+db = client[DB_NAME]
+
+app = FastAPI(title="CinemaSync API")
 api_router = APIRouter(prefix="/api")
 
+logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+logger = logging.getLogger(__name__)
 
-# Define Models
-class StatusCheck(BaseModel):
-    model_config = ConfigDict(extra="ignore")  # Ignore MongoDB's _id field
-    
-    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
-    client_name: str
-    timestamp: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
 
-class StatusCheckCreate(BaseModel):
-    client_name: str
+# ------------- Helpers -------------
+def hash_password(password: str) -> str:
+    return bcrypt.hashpw(password.encode("utf-8"), bcrypt.gensalt()).decode("utf-8")
 
-# Add your routes to the router instead of directly to app
+
+def verify_password(plain: str, hashed: str) -> bool:
+    try:
+        return bcrypt.checkpw(plain.encode("utf-8"), hashed.encode("utf-8"))
+    except Exception:
+        return False
+
+
+def create_access_token(user_id: str, email: str) -> str:
+    payload = {
+        "sub": user_id,
+        "email": email,
+        "exp": datetime.now(timezone.utc) + timedelta(days=7),
+        "type": "access",
+    }
+    return jwt.encode(payload, JWT_SECRET, algorithm=JWT_ALGORITHM)
+
+
+def public_user(user: dict) -> dict:
+    return {
+        "id": user["id"],
+        "email": user.get("email"),
+        "name": user.get("name"),
+        "unique_id": user.get("unique_id"),
+        "profile_image": user.get("profile_image"),
+        "friends": user.get("friends", []),
+        "requests_in": user.get("requests_in", []),
+        "requests_out": user.get("requests_out", []),
+        "created_at": user.get("created_at"),
+    }
+
+
+def generate_unique_id(name: str) -> str:
+    safe = re.sub(r"[^A-Za-z0-9]", "", name) or "User"
+    today = datetime.now(timezone.utc).strftime("%d%m%Y")
+    return f"CinemaSync_{safe}_{today}"
+
+
+async def get_current_user(request: Request) -> dict:
+    token = request.cookies.get("access_token")
+    if not token:
+        auth_header = request.headers.get("Authorization", "")
+        if auth_header.startswith("Bearer "):
+            token = auth_header[7:]
+    if not token:
+        raise HTTPException(status_code=401, detail="Not authenticated")
+    try:
+        payload = jwt.decode(token, JWT_SECRET, algorithms=[JWT_ALGORITHM])
+        if payload.get("type") != "access":
+            raise HTTPException(status_code=401, detail="Invalid token type")
+        user = await db.users.find_one({"id": payload["sub"]}, {"_id": 0})
+        if not user:
+            raise HTTPException(status_code=401, detail="User not found")
+        return user
+    except jwt.ExpiredSignatureError:
+        raise HTTPException(status_code=401, detail="Token expired")
+    except jwt.InvalidTokenError:
+        raise HTTPException(status_code=401, detail="Invalid token")
+
+
+async def get_user_from_token_str(token: str) -> Optional[dict]:
+    if not token:
+        return None
+    try:
+        payload = jwt.decode(token, JWT_SECRET, algorithms=[JWT_ALGORITHM])
+        if payload.get("type") != "access":
+            return None
+        user = await db.users.find_one({"id": payload["sub"]}, {"_id": 0})
+        return user
+    except Exception:
+        return None
+
+
+def set_auth_cookie(response: Response, token: str):
+    response.set_cookie(
+        key="access_token",
+        value=token,
+        httponly=True,
+        secure=True,
+        samesite="none",
+        max_age=60 * 60 * 24 * 7,
+        path="/",
+    )
+
+
+# ------------- Models -------------
+class RegisterIn(BaseModel):
+    email: EmailStr
+    password: str = Field(min_length=6)
+    name: str = Field(min_length=1, max_length=40)
+
+
+class LoginIn(BaseModel):
+    email: EmailStr
+    password: str
+
+
+class UpdateProfileIn(BaseModel):
+    name: Optional[str] = None
+    profile_image: Optional[str] = None
+
+
+class FriendRequestIn(BaseModel):
+    unique_id: str
+
+
+class FriendActionIn(BaseModel):
+    user_id: str
+
+
+class CreateRoomIn(BaseModel):
+    name: str = Field(min_length=1, max_length=60)
+    password: str = Field(min_length=1, max_length=40)
+    platform: str = Field(default="custom")
+
+
+class JoinRoomIn(BaseModel):
+    room_id: str
+    password: str
+
+
+class ChatMessageIn(BaseModel):
+    room_id: str
+    text: str
+
+
+# ------------- Auth Routes -------------
+@api_router.post("/auth/register")
+async def register(body: RegisterIn, response: Response):
+    email = body.email.lower().strip()
+    existing = await db.users.find_one({"email": email})
+    if existing:
+        raise HTTPException(status_code=400, detail="Email already registered")
+    user_id = str(uuid.uuid4())
+    doc = {
+        "id": user_id,
+        "email": email,
+        "name": body.name.strip(),
+        "password_hash": hash_password(body.password),
+        "unique_id": generate_unique_id(body.name),
+        "profile_image": None,
+        "friends": [],
+        "requests_in": [],
+        "requests_out": [],
+        "created_at": datetime.now(timezone.utc).isoformat(),
+    }
+    await db.users.insert_one(doc)
+    token = create_access_token(user_id, email)
+    set_auth_cookie(response, token)
+    return {"user": public_user(doc), "token": token}
+
+
+@api_router.post("/auth/login")
+async def login(body: LoginIn, response: Response):
+    email = body.email.lower().strip()
+    user = await db.users.find_one({"email": email}, {"_id": 0})
+    if not user or not verify_password(body.password, user["password_hash"]):
+        raise HTTPException(status_code=401, detail="Invalid credentials")
+    token = create_access_token(user["id"], email)
+    set_auth_cookie(response, token)
+    return {"user": public_user(user), "token": token}
+
+
+@api_router.post("/auth/logout")
+async def logout(response: Response):
+    response.delete_cookie("access_token", path="/")
+    return {"ok": True}
+
+
+@api_router.get("/auth/me")
+async def me(user: dict = Depends(get_current_user)):
+    return {"user": public_user(user)}
+
+
+# ------------- Profile -------------
+@api_router.patch("/profile")
+async def update_profile(body: UpdateProfileIn, user: dict = Depends(get_current_user)):
+    update = {}
+    if body.name is not None and body.name.strip():
+        update["name"] = body.name.strip()
+        update["unique_id"] = generate_unique_id(body.name)
+    if body.profile_image is not None:
+        update["profile_image"] = body.profile_image
+    if update:
+        await db.users.update_one({"id": user["id"]}, {"$set": update})
+    fresh = await db.users.find_one({"id": user["id"]}, {"_id": 0})
+    return {"user": public_user(fresh)}
+
+
+# ------------- Friends -------------
+@api_router.get("/friends/search")
+async def search_by_unique_id(unique_id: str, user: dict = Depends(get_current_user)):
+    other = await db.users.find_one({"unique_id": unique_id}, {"_id": 0, "password_hash": 0})
+    if not other or other["id"] == user["id"]:
+        return {"user": None}
+    return {"user": public_user(other)}
+
+
+@api_router.post("/friends/request")
+async def send_friend_request(body: FriendRequestIn, user: dict = Depends(get_current_user)):
+    target = await db.users.find_one({"unique_id": body.unique_id}, {"_id": 0})
+    if not target:
+        raise HTTPException(status_code=404, detail="User not found")
+    if target["id"] == user["id"]:
+        raise HTTPException(status_code=400, detail="Cannot friend yourself")
+    if target["id"] in user.get("friends", []):
+        raise HTTPException(status_code=400, detail="Already friends")
+    if target["id"] in user.get("requests_out", []):
+        raise HTTPException(status_code=400, detail="Request already sent")
+    await db.users.update_one({"id": user["id"]}, {"$addToSet": {"requests_out": target["id"]}})
+    await db.users.update_one({"id": target["id"]}, {"$addToSet": {"requests_in": user["id"]}})
+    return {"ok": True}
+
+
+@api_router.post("/friends/accept")
+async def accept_friend(body: FriendActionIn, user: dict = Depends(get_current_user)):
+    other_id = body.user_id
+    if other_id not in user.get("requests_in", []):
+        raise HTTPException(status_code=400, detail="No such request")
+    await db.users.update_one({"id": user["id"]}, {
+        "$pull": {"requests_in": other_id},
+        "$addToSet": {"friends": other_id},
+    })
+    await db.users.update_one({"id": other_id}, {
+        "$pull": {"requests_out": user["id"]},
+        "$addToSet": {"friends": user["id"]},
+    })
+    return {"ok": True}
+
+
+@api_router.post("/friends/reject")
+async def reject_friend(body: FriendActionIn, user: dict = Depends(get_current_user)):
+    other_id = body.user_id
+    await db.users.update_one({"id": user["id"]}, {"$pull": {"requests_in": other_id}})
+    await db.users.update_one({"id": other_id}, {"$pull": {"requests_out": user["id"]}})
+    return {"ok": True}
+
+
+@api_router.post("/friends/cancel")
+async def cancel_friend_request(body: FriendActionIn, user: dict = Depends(get_current_user)):
+    other_id = body.user_id
+    await db.users.update_one({"id": user["id"]}, {"$pull": {"requests_out": other_id}})
+    await db.users.update_one({"id": other_id}, {"$pull": {"requests_in": user["id"]}})
+    return {"ok": True}
+
+
+@api_router.post("/friends/remove")
+async def remove_friend(body: FriendActionIn, user: dict = Depends(get_current_user)):
+    other_id = body.user_id
+    await db.users.update_one({"id": user["id"]}, {"$pull": {"friends": other_id}})
+    await db.users.update_one({"id": other_id}, {"$pull": {"friends": user["id"]}})
+    return {"ok": True}
+
+
+@api_router.get("/friends")
+async def list_friends(user: dict = Depends(get_current_user)):
+    friend_ids = user.get("friends", [])
+    in_ids = user.get("requests_in", [])
+    out_ids = user.get("requests_out", [])
+    all_ids = list(set(friend_ids + in_ids + out_ids))
+    users_map = {}
+    if all_ids:
+        async for u in db.users.find({"id": {"$in": all_ids}}, {"_id": 0, "password_hash": 0}):
+            users_map[u["id"]] = public_user(u)
+    return {
+        "friends": [users_map[i] for i in friend_ids if i in users_map],
+        "requests_in": [users_map[i] for i in in_ids if i in users_map],
+        "requests_out": [users_map[i] for i in out_ids if i in users_map],
+    }
+
+
+# ------------- Rooms -------------
+def generate_room_id() -> str:
+    return uuid.uuid4().hex[:8].upper()
+
+
+@api_router.post("/rooms")
+async def create_room(body: CreateRoomIn, user: dict = Depends(get_current_user)):
+    room_id = generate_room_id()
+    doc = {
+        "id": room_id,
+        "name": body.name.strip(),
+        "password_hash": hash_password(body.password),
+        "host_id": user["id"],
+        "platform": body.platform,
+        "participants": [user["id"]],
+        "state": {"playing": False, "position": 0.0, "updated_at": datetime.now(timezone.utc).isoformat()},
+        "created_at": datetime.now(timezone.utc).isoformat(),
+    }
+    await db.rooms.insert_one(doc)
+    return {"room": _room_public(doc)}
+
+
+def _room_public(room: dict) -> dict:
+    return {
+        "id": room["id"],
+        "name": room["name"],
+        "host_id": room["host_id"],
+        "platform": room.get("platform", "custom"),
+        "participants": room.get("participants", []),
+        "state": room.get("state", {"playing": False, "position": 0.0}),
+        "created_at": room.get("created_at"),
+    }
+
+
+@api_router.post("/rooms/join")
+async def join_room(body: JoinRoomIn, user: dict = Depends(get_current_user)):
+    room = await db.rooms.find_one({"id": body.room_id.upper()}, {"_id": 0})
+    if not room:
+        raise HTTPException(status_code=404, detail="Room not found")
+    if not verify_password(body.password, room["password_hash"]):
+        raise HTTPException(status_code=401, detail="Incorrect room password")
+    await db.rooms.update_one({"id": room["id"]}, {"$addToSet": {"participants": user["id"]}})
+    room = await db.rooms.find_one({"id": room["id"]}, {"_id": 0})
+    return {"room": _room_public(room)}
+
+
+@api_router.get("/rooms/{room_id}")
+async def get_room(room_id: str, user: dict = Depends(get_current_user)):
+    room = await db.rooms.find_one({"id": room_id.upper()}, {"_id": 0})
+    if not room:
+        raise HTTPException(status_code=404, detail="Room not found")
+    if user["id"] not in room.get("participants", []):
+        raise HTTPException(status_code=403, detail="Not a participant")
+    # Resolve participants
+    p_ids = room.get("participants", [])
+    members = []
+    if p_ids:
+        async for u in db.users.find({"id": {"$in": p_ids}}, {"_id": 0, "password_hash": 0}):
+            members.append(public_user(u))
+    return {"room": _room_public(room), "members": members}
+
+
+@api_router.post("/rooms/{room_id}/leave")
+async def leave_room(room_id: str, user: dict = Depends(get_current_user)):
+    await db.rooms.update_one({"id": room_id.upper()}, {"$pull": {"participants": user["id"]}})
+    return {"ok": True}
+
+
+@api_router.get("/rooms/{room_id}/messages")
+async def get_messages(room_id: str, user: dict = Depends(get_current_user)):
+    cursor = db.messages.find({"room_id": room_id.upper()}, {"_id": 0}).sort("time", 1).limit(200)
+    msgs = await cursor.to_list(200)
+    return {"messages": msgs}
+
+
+# ------------- WebSocket (sync + chat + webrtc signaling) -------------
+class RoomHub:
+    def __init__(self):
+        self.rooms: Dict[str, Set[WebSocket]] = {}
+        self.socket_user: Dict[WebSocket, dict] = {}
+
+    async def connect(self, room_id: str, ws: WebSocket, user: dict):
+        await ws.accept()
+        self.rooms.setdefault(room_id, set()).add(ws)
+        self.socket_user[ws] = {"user": user, "room": room_id}
+
+    def disconnect(self, ws: WebSocket):
+        meta = self.socket_user.pop(ws, None)
+        if meta:
+            room = self.rooms.get(meta["room"])
+            if room and ws in room:
+                room.discard(ws)
+            return meta
+        return None
+
+    async def broadcast(self, room_id: str, payload: dict, exclude: Optional[WebSocket] = None):
+        for sock in list(self.rooms.get(room_id, [])):
+            if sock is exclude:
+                continue
+            try:
+                await sock.send_json(payload)
+            except Exception:
+                pass
+
+    def participants(self, room_id: str) -> List[dict]:
+        return [
+            {"id": self.socket_user[s]["user"]["id"], "name": self.socket_user[s]["user"]["name"]}
+            for s in self.rooms.get(room_id, set())
+            if s in self.socket_user
+        ]
+
+
+hub = RoomHub()
+
+
+@app.websocket("/api/ws/room/{room_id}")
+async def websocket_room(websocket: WebSocket, room_id: str):
+    room_id = room_id.upper()
+    token = websocket.query_params.get("token")
+    user = await get_user_from_token_str(token) if token else None
+    if not user:
+        # Also allow cookie
+        cookie_token = websocket.cookies.get("access_token")
+        user = await get_user_from_token_str(cookie_token) if cookie_token else None
+    if not user:
+        await websocket.close(code=1008)
+        return
+    room = await db.rooms.find_one({"id": room_id}, {"_id": 0})
+    if not room or user["id"] not in room.get("participants", []):
+        await websocket.close(code=1008)
+        return
+
+    await hub.connect(room_id, websocket, user)
+
+    # Send initial state & presence
+    await websocket.send_json({
+        "type": "hello",
+        "state": room.get("state", {}),
+        "host_id": room["host_id"],
+        "participants": hub.participants(room_id),
+        "you": {"id": user["id"], "name": user["name"]},
+    })
+    await hub.broadcast(room_id, {
+        "type": "presence",
+        "participants": hub.participants(room_id),
+        "joined": {"id": user["id"], "name": user["name"]},
+    }, exclude=websocket)
+
+    try:
+        while True:
+            msg = await websocket.receive_json()
+            mtype = msg.get("type")
+            if mtype == "sync":
+                # Only host can broadcast sync
+                fresh_room = await db.rooms.find_one({"id": room_id}, {"_id": 0})
+                if fresh_room and fresh_room["host_id"] == user["id"]:
+                    new_state = {
+                        "playing": bool(msg.get("playing", False)),
+                        "position": float(msg.get("position", 0)),
+                        "updated_at": datetime.now(timezone.utc).isoformat(),
+                        "action": msg.get("action", "sync"),
+                    }
+                    await db.rooms.update_one({"id": room_id}, {"$set": {"state": new_state}})
+                    await hub.broadcast(room_id, {"type": "sync", "state": new_state})
+            elif mtype == "chat":
+                text = (msg.get("text") or "").strip()
+                if not text:
+                    continue
+                entry = {
+                    "id": str(uuid.uuid4()),
+                    "room_id": room_id,
+                    "sender_id": user["id"],
+                    "sender_name": user["name"],
+                    "text": text[:500],
+                    "time": datetime.now(timezone.utc).isoformat(),
+                }
+                await db.messages.insert_one(dict(entry))
+                entry.pop("_id", None)
+                await hub.broadcast(room_id, {"type": "chat", "message": entry})
+            elif mtype == "webrtc-signal":
+                # Relay signaling between peers: to (user_id), payload
+                target_id = msg.get("to")
+                payload = {
+                    "type": "webrtc-signal",
+                    "from": user["id"],
+                    "from_name": user["name"],
+                    "signal": msg.get("signal"),
+                    "kind": msg.get("kind"),  # 'offer' | 'answer' | 'ice'
+                }
+                for sock, meta in hub.socket_user.items():
+                    if meta["room"] == room_id and meta["user"]["id"] == target_id:
+                        try:
+                            await sock.send_json(payload)
+                        except Exception:
+                            pass
+            elif mtype == "screenshare-start":
+                await hub.broadcast(room_id, {
+                    "type": "screenshare-start",
+                    "from": user["id"],
+                    "from_name": user["name"],
+                }, exclude=websocket)
+            elif mtype == "screenshare-stop":
+                await hub.broadcast(room_id, {
+                    "type": "screenshare-stop",
+                    "from": user["id"],
+                }, exclude=websocket)
+            elif mtype == "platform-change":
+                platform = msg.get("platform", "custom")
+                fresh_room = await db.rooms.find_one({"id": room_id}, {"_id": 0})
+                if fresh_room and fresh_room["host_id"] == user["id"]:
+                    await db.rooms.update_one({"id": room_id}, {"$set": {"platform": platform}})
+                    await hub.broadcast(room_id, {"type": "platform-change", "platform": platform})
+    except WebSocketDisconnect:
+        pass
+    except Exception as e:
+        logger.exception("ws error: %s", e)
+    finally:
+        meta = hub.disconnect(websocket)
+        await hub.broadcast(room_id, {
+            "type": "presence",
+            "participants": hub.participants(room_id),
+            "left": {"id": user["id"], "name": user["name"]},
+        })
+
+
+# ------------- Health -------------
 @api_router.get("/")
 async def root():
-    return {"message": "Hello World"}
+    return {"message": "CinemaSync API is live"}
 
-@api_router.post("/status", response_model=StatusCheck)
-async def create_status_check(input: StatusCheckCreate):
-    status_dict = input.model_dump()
-    status_obj = StatusCheck(**status_dict)
-    
-    # Convert to dict and serialize datetime to ISO string for MongoDB
-    doc = status_obj.model_dump()
-    doc['timestamp'] = doc['timestamp'].isoformat()
-    
-    _ = await db.status_checks.insert_one(doc)
-    return status_obj
 
-@api_router.get("/status", response_model=List[StatusCheck])
-async def get_status_checks():
-    # Exclude MongoDB's _id field from the query results
-    status_checks = await db.status_checks.find({}, {"_id": 0}).to_list(1000)
-    
-    # Convert ISO string timestamps back to datetime objects
-    for check in status_checks:
-        if isinstance(check['timestamp'], str):
-            check['timestamp'] = datetime.fromisoformat(check['timestamp'])
-    
-    return status_checks
+# ------------- Startup -------------
+@app.on_event("startup")
+async def startup():
+    await db.users.create_index("email", unique=True)
+    await db.users.create_index("unique_id")
+    await db.rooms.create_index("id", unique=True)
+    await db.messages.create_index([("room_id", 1), ("time", 1)])
+    # Seed admin
+    existing = await db.users.find_one({"email": ADMIN_EMAIL})
+    if not existing:
+        await db.users.insert_one({
+            "id": str(uuid.uuid4()),
+            "email": ADMIN_EMAIL,
+            "name": "Admin",
+            "password_hash": hash_password(ADMIN_PASSWORD),
+            "unique_id": generate_unique_id("Admin"),
+            "profile_image": None,
+            "friends": [],
+            "requests_in": [],
+            "requests_out": [],
+            "created_at": datetime.now(timezone.utc).isoformat(),
+        })
 
-# Include the router in the main app
+
+@app.on_event("shutdown")
+async def shutdown():
+    client.close()
+
+
+# Mount
 app.include_router(api_router)
 
 app.add_middleware(
     CORSMiddleware,
     allow_credentials=True,
-    allow_origins=os.environ.get('CORS_ORIGINS', '*').split(','),
+    allow_origins=["*"],
+    allow_origin_regex=".*",
     allow_methods=["*"],
     allow_headers=["*"],
 )
-
-# Configure logging
-logging.basicConfig(
-    level=logging.INFO,
-    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
-)
-logger = logging.getLogger(__name__)
-
-@app.on_event("shutdown")
-async def shutdown_db_client():
-    client.close()
