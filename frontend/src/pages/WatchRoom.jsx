@@ -9,10 +9,11 @@ import {
   SkipBack, SkipForward, Users, MonitorOff, ExternalLink, Maximize2, Minimize2,
   MessageSquare, MessageSquareOff,
 } from "lucide-react";
+import PlatformLogo from "../components/PlatformLogo";
 
 const PLATFORM_LABEL = {
-  netflix: "Netflix", prime: "Prime Video", hotstar: "Hotstar",
-  hoichoi: "Hoichoi", addatimes: "Adda Times", zee5: "ZEE5", custom: "Custom",
+  netflix: "Netflix", prime: "Prime Video", hotstar: "JioHotstar",
+  hoichoi: "Hoichoi", addatimes: "Addatimes", zee5: "ZEE5", custom: "Custom",
 };
 
 const PLATFORM_URL = {
@@ -425,11 +426,14 @@ export default function WatchRoom() {
       <main className="max-w-[1600px] mx-auto px-4 md:px-6 py-6">
         {/* Header */}
         <div className="flex items-center justify-between flex-wrap gap-3 mb-5">
-          <div>
-            <div className="font-mono text-[10px] tracking-[0.3em] uppercase text-[#7209b7] mb-1 flex items-center gap-2">
-              <span className="w-2 h-2 bg-[#f72585] pulse-live" /> Live · {PLATFORM_LABEL[room.platform]}
+          <div className="flex items-center gap-3">
+            <PlatformLogo platform={room.platform} size={52} rounded="md" showRing />
+            <div>
+              <div className="font-mono text-[10px] tracking-[0.3em] uppercase text-[#7209b7] mb-1 flex items-center gap-2">
+                <span className="w-2 h-2 bg-[#f72585] pulse-live" /> Live · {PLATFORM_LABEL[room.platform]}
+              </div>
+              <h1 className="font-head text-2xl sm:text-3xl uppercase leading-none" data-testid="watch-room-name">{room.name}</h1>
             </div>
-            <h1 className="font-head text-2xl sm:text-3xl uppercase leading-none" data-testid="watch-room-name">{room.name}</h1>
           </div>
           <div className="flex flex-wrap gap-2">
             <div className="font-mono text-[10px] tracking-widest uppercase text-[#6b5b84] px-3 py-2 border border-[#7209b7]/30 bg-white">
@@ -515,6 +519,11 @@ export default function WatchRoom() {
               )}
               {!sharing && !remoteSharerId && !fullscreen && (
                 <div className="text-center px-6">
+                  {room.platform !== "custom" && (
+                    <div className="flex justify-center mb-4">
+                      <PlatformLogo platform={room.platform} size={110} rounded="xl" showRing />
+                    </div>
+                  )}
                   <div className="font-head text-3xl sm:text-5xl uppercase text-[#7209b7] mb-3">Intermission</div>
                   <p className="text-[#6b5b84] max-w-md mx-auto mb-6">
                     Open <span className="font-mono text-[#7209b7]">{PLATFORM_LABEL[room.platform]}</span> in a new tab and hit play — your room syncs the timer.

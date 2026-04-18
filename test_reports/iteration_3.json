@@ -1,0 +1,39 @@
+{
+  "summary": "Iteration 3 testing of CinemaSync: (P0) real OTT platform logos + (P1) Emergent Object Storage profile-picture upload. All 14 backend tests pass (100%) including upload happy path for PNG/JPG, validation of non-image (text/plain, svg) returning 400, oversize (>10MB) returning 413, auth-required 401 on unauthenticated upload and file fetch, PATCH /api/profile name-only regeneration of unique_id, and regressions for auth/rooms/friends/notifications/admin-stats. Frontend: all 6 platform tiles on Dashboard CreateRoomForm render real logo <img> with naturalWidth>0 (netflix.svg 1000px, prime.svg 300px, jiohotstar.png 3027px, hoichoi.png 1280px, addatimes.jpg 4121px, zee5.svg 182px). Profile upload end-to-end works: file selected via [data-testid=profile-upload-input], backend returns /api/files/... URL, and avatar <img> loads with naturalWidth>0 showing the uploaded bytes. Lobby.jsx and WatchRoom.jsx confirmed (code-level) using the same PlatformLogo component with size=96/52/110 as required.",
+  "backend_issues": {"critical": [], "minor": []},
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_profile_upload.py",
+    "/app/test_reports/pytest/pytest_results_iter3.xml"
+  ],
+  "action_items": [],
+  "critical_code_review_comments": [
+    "server.py is now 882 lines — consider splitting into routers (auth/profile/rooms/admin) for maintainability.",
+    "CORSMiddleware still uses allow_origins=['*'] together with allow_credentials=True and allow_origin_regex='.*'. This works in browsers only because the regex matches every origin and the middleware echoes it back, but wildcard + credentials is a long-standing footgun — prefer an explicit list of allowed origins.",
+    "storage.py blocks the event loop: requests.put/get run synchronously inside async FastAPI handlers; large 10MB uploads will hold a worker thread. Consider httpx.AsyncClient or run_in_threadpool to avoid starving the event loop on concurrent uploads.",
+    "No rate-limit / brute-force lockout on /auth/login (playbook instruction mentioned 5-fail lockout). Not implemented — only observation, not in this iteration's scope.",
+    "profile_image URL is stored as '/api/files/...' (relative). Works for same-origin frontend but will break if frontend is ever served from a different host. Consider storing the path only and building the URL client-side from REACT_APP_BACKEND_URL.",
+    "Old base64 profile_image values already in DB are not migrated; <img src='data:image/...'> still renders but 'naturalWidth > 0' refresh test only applies to new uploads. Main agent can decide if a one-time migration is desired.",
+    "/api/files/{path:path} currently requires any authenticated user (not just the owner). That matches the 'avatars readable to logged-in users' comment in code, but if avatars need to be private to owner only, add ownership check.",
+    "Upload reads the whole file into memory with await file.read() before size check — a malicious 500MB upload would still be buffered before the 10MB check rejects it. Consider a streaming size guard (Content-Length header pre-check + chunked read with early abort)."
+  ],
+  "updated_files": [
+    "/app/backend/tests/test_profile_upload.py"
+  ],
+  "success_rate": {
+    "backend": "100% (14/14 tests passed)",
+    "frontend": "100% (all 6 platform logos load, profile upload end-to-end verified)"
+  },
+  "test_credentials": {
+    "admin": {"email": "manasijmandal1999@gmail.com", "password": "Manasij@081199"}
+  },
+  "seed_data_creation": "Tests register fresh TEST_* users per case; no manual seeds required.",
+  "retest_needed": false,
+  "should_main_agent_self_test": false,
+  "context_for_next_testing_agent": "Iteration 3 validated two new features: (1) POST /api/profile/picture uploads to Emergent Object Storage (see /app/backend/storage.py) and returns {user,url,size} where url is /api/files/{path}. Allowed MIME: image/jpeg, image/png, image/webp, image/gif. 10MB cap (413 on oversize). Rejects text/plain and image/svg+xml with 400. (2) GET /api/files/{path:path} streams object bytes to authenticated users; 401 unauthenticated, 404 if record missing. Files metadata persisted in db.files with unique storage_path index. Frontend PlatformLogo component maps 'netflix|prime|hotstar|hoichoi|addatimes|zee5' to /ott-logos/*.(svg|png|jpg); 'custom' uses a fallback (no img — expected). Profile.jsx uses multipart POST with onUploadProgress.",
+  "rca of the issue": "n/a — no bugs found in this iteration."
+}

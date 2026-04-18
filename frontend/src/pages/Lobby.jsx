@@ -5,10 +5,11 @@ import { api } from "../lib/api";
 import { useAuth } from "../context/AuthContext";
 import { toast } from "sonner";
 import { Clapperboard, Copy, Check, Users, Send, Link2, UserPlus } from "lucide-react";
+import PlatformLogo from "../components/PlatformLogo";
 
 const PLATFORM_LABEL = {
-  netflix: "Netflix", prime: "Prime Video", hotstar: "Hotstar",
-  hoichoi: "Hoichoi", addatimes: "Adda Times", zee5: "ZEE5", custom: "Custom",
+  netflix: "Netflix", prime: "Prime Video", hotstar: "JioHotstar",
+  hoichoi: "Hoichoi", addatimes: "Addatimes", zee5: "ZEE5", custom: "Custom",
 };
 
 const PLATFORM_URL = {
@@ -248,7 +249,13 @@ export default function Lobby() {
                 <Clapperboard size={16} className="text-[#7209b7]" />
                 <span className="font-mono text-xs tracking-[0.3em] uppercase text-[#7209b7]">Platform</span>
               </div>
-              <h2 className="font-head text-3xl uppercase mb-6">{PLATFORM_LABEL[room.platform] || "Custom"}</h2>
+              <div className="flex items-center gap-5 mb-6">
+                <PlatformLogo platform={room.platform} size={96} rounded="lg" showRing />
+                <div className="min-w-0">
+                  <h2 className="font-head text-3xl uppercase leading-none">{PLATFORM_LABEL[room.platform] || "Custom"}</h2>
+                  <div className="font-mono text-[10px] tracking-[0.3em] uppercase text-[#6b5b84] mt-2">Streaming partner</div>
+                </div>
+              </div>
               <p className="text-[#6b5b84] mb-6">
                 Each viewer must log into their own {PLATFORM_LABEL[room.platform] || "streaming"} account in a
                 separate browser tab, or use host screen-share inside the room.

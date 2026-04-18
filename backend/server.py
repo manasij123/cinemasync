@@ -13,10 +13,13 @@ import re
 from datetime import datetime, timezone, timedelta
 from typing import List, Optional, Dict, Set
 
-from fastapi import FastAPI, APIRouter, HTTPException, Request, Response, Depends, WebSocket, WebSocketDisconnect, status
+from fastapi import FastAPI, APIRouter, HTTPException, Request, Response, Depends, WebSocket, WebSocketDisconnect, status, UploadFile, File, Query, Header
+from fastapi.responses import Response as FastAPIResponse
 from starlette.middleware.cors import CORSMiddleware
 from motor.motor_asyncio import AsyncIOMotorClient
 from pydantic import BaseModel, Field, EmailStr
+
+from storage import init_storage, put_object, get_object, APP_NAME as STORAGE_APP_NAME
 
 
 # ------------- Config -------------
@@ -241,6 +244,80 @@ async def update_profile(body: UpdateProfileIn, user: dict = Depends(get_current
         await db.users.update_one({"id": user["id"]}, {"$set": update})
     fresh = await db.users.find_one({"id": user["id"]}, {"_id": 0})
     return {"user": public_user(fresh)}
+
+
+# --- Profile picture upload (Emergent Object Storage, up to 10MB) ---
+MAX_UPLOAD_BYTES = 10 * 1024 * 1024  # 10 MB
+ALLOWED_IMAGE_TYPES = {
+    "image/jpeg": "jpg",
+    "image/jpg": "jpg",
+    "image/png": "png",
+    "image/webp": "webp",
+    "image/gif": "gif",
+}
+
+
+@api_router.post("/profile/picture")
+async def upload_profile_picture(
+    file: UploadFile = File(...),
+    user: dict = Depends(get_current_user),
+):
+    if file.content_type not in ALLOWED_IMAGE_TYPES:
+        raise HTTPException(status_code=400, detail="Only JPG, PNG, WEBP or GIF images are allowed")
+    data = await file.read()
+    if len(data) == 0:
+        raise HTTPException(status_code=400, detail="Empty file")
+    if len(data) > MAX_UPLOAD_BYTES:
+        raise HTTPException(status_code=413, detail="Image exceeds 10 MB limit")
+
+    ext = ALLOWED_IMAGE_TYPES[file.content_type]
+    path = f"{STORAGE_APP_NAME}/avatars/{user['id']}/{uuid.uuid4()}.{ext}"
+    try:
+        result = put_object(path, data, file.content_type)
+    except Exception as e:
+        logger.error(f"Profile image upload failed for {user['id']}: {e}")
+        raise HTTPException(status_code=503, detail="Image storage temporarily unavailable")
+
+    file_id = str(uuid.uuid4())
+    record = {
+        "id": file_id,
+        "owner_id": user["id"],
+        "storage_path": result["path"],
+        "original_filename": file.filename,
+        "content_type": file.content_type,
+        "size": result.get("size", len(data)),
+        "kind": "avatar",
+        "is_deleted": False,
+        "created_at": datetime.now(timezone.utc).isoformat(),
+    }
+    await db.files.insert_one(record)
+
+    # Public URL served by our backend (avatars readable to logged-in users)
+    public_url = f"/api/files/{result['path']}"
+    await db.users.update_one({"id": user["id"]}, {"$set": {"profile_image": public_url}})
+
+    fresh = await db.users.find_one({"id": user["id"]}, {"_id": 0})
+    return {"user": public_user(fresh), "url": public_url, "size": record["size"]}
+
+
+@api_router.get("/files/{path:path}")
+async def serve_file(
+    path: str,
+    user: dict = Depends(get_current_user),
+):
+    record = await db.files.find_one({"storage_path": path, "is_deleted": False}, {"_id": 0})
+    if not record:
+        raise HTTPException(status_code=404, detail="File not found")
+    try:
+        data, content_type = get_object(path)
+    except Exception as e:
+        logger.error(f"File fetch failed for {path}: {e}")
+        raise HTTPException(status_code=503, detail="Storage temporarily unavailable")
+    return FastAPIResponse(
+        content=data,
+        media_type=record.get("content_type") or content_type,
+        headers={"Cache-Control": "private, max-age=300"},
+    )
 
 
 # ------------- Friends -------------
@@ -758,6 +835,13 @@ async def startup():
     await db.rooms.create_index("id", unique=True)
     await db.messages.create_index([("room_id", 1), ("time", 1)])
     await db.notifications.create_index([("user_id", 1), ("created_at", -1)])
+    await db.files.create_index("storage_path", unique=True)
+    await db.files.create_index([("owner_id", 1), ("created_at", -1)])
+    # Initialise object storage (avatar uploads)
+    try:
+        init_storage()
+    except Exception as e:
+        logger.error(f"Storage startup init failed: {e}")
     # Seed admin
     existing = await db.users.find_one({"email": ADMIN_EMAIL})
     if not existing:

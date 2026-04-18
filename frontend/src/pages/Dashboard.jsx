@@ -10,17 +10,17 @@ import {
   TrendingUp, TrendingDown, Clock, MessageSquare, Film,
 } from "lucide-react";
 import { Sparkline, LineChart, Doughnut, BarChart } from "../components/Charts";
+import PlatformLogo, { PLATFORM_LIST, platformLabel } from "../components/PlatformLogo";
 
-const PLATFORMS = [
-  { id: "netflix", label: "Netflix", color: "#f72585" },
-  { id: "prime", label: "Prime", color: "#4361ee" },
-  { id: "hotstar", label: "Hotstar", color: "#4cc9f0" },
-  { id: "hoichoi", label: "Hoichoi", color: "#7209b7" },
-  { id: "addatimes", label: "Adda", color: "#c8b6ff" },
-  { id: "zee5", label: "ZEE5", color: "#3a0ca3" },
-  { id: "custom", label: "Custom", color: "#b8c0ff" },
-];
-const PLATFORM_LABEL = Object.fromEntries(PLATFORMS.map((p) => [p.id, p.label]));
+// Chart colour accents per platform (purely for charts/doughnut)
+const PLATFORM_CHART_COLOR = {
+  netflix: "#E50914", prime: "#00A8E1", hotstar: "#1A6AFF",
+  hoichoi: "#f72585", addatimes: "#ffcc00", zee5: "#9333ea", custom: "#b8c0ff",
+};
+const PLATFORMS = PLATFORM_LIST.map((p) => ({
+  id: p.id, label: p.short, color: PLATFORM_CHART_COLOR[p.id] || "#7209b7",
+}));
+const PLATFORM_LABEL = Object.fromEntries(PLATFORMS.map((p) => [p.id, platformLabel(p.id)]));
 const PLATFORM_COLOR = Object.fromEntries(PLATFORMS.map((p) => [p.id, p.color]));
 
 function greet() {
@@ -120,22 +120,39 @@ function CreateRoomForm({ onCreated }) {
         placeholder="Password"
         className="w-full bg-[#fdf4ff] border border-[#e7c6ff] focus:border-[#7209b7] px-3 py-2 rounded-lg text-sm"
       />
-      <div className="grid grid-cols-3 gap-1.5">
-        {PLATFORMS.map((p) => (
-          <button
-            type="button"
-            key={p.id}
-            onClick={() => setPlatform(p.id)}
-            data-testid={`platform-pick-${p.id}`}
-            className={`px-2 py-1.5 text-[10px] font-mono uppercase tracking-widest rounded-md border transition-all ${
-              platform === p.id
-                ? "border-[#7209b7] text-white bg-[#7209b7]"
-                : "border-[#e7c6ff] text-[#6b5b84] hover:border-[#7209b7]/60"
-            }`}
-          >
-            {p.label}
-          </button>
-        ))}
+      <div className="grid grid-cols-4 sm:grid-cols-7 gap-2">
+        {PLATFORMS.map((p) => {
+          const active = platform === p.id;
+          return (
+            <button
+              type="button"
+              key={p.id}
+              onClick={() => setPlatform(p.id)}
+              data-testid={`platform-pick-${p.id}`}
+              title={p.label}
+              className={`group relative flex flex-col items-center gap-1.5 p-2 rounded-lg border transition-all ${
+                active
+                  ? "border-[#7209b7] bg-[#7209b7]/5 shadow-[0_6px_18px_rgba(114,9,183,0.25)] -translate-y-0.5"
+                  : "border-[#e7c6ff] hover:border-[#7209b7]/60 hover:-translate-y-0.5"
+              }`}
+            >
+              <PlatformLogo
+                platform={p.id}
+                size={44}
+                rounded="md"
+                showRing={active}
+              />
+              <span className={`font-mono text-[9px] tracking-[0.18em] uppercase truncate w-full text-center ${
+                active ? "text-[#7209b7]" : "text-[#6b5b84]"
+              }`}>
+                {p.label}
+              </span>
+              {active && (
+                <span className="absolute -top-1 -right-1 w-3 h-3 rounded-full bg-[#f72585] shadow-[0_0_0_3px_#fff]" />
+              )}
+            </button>
+          );
+        })}
       </div>
       <button
         disabled={loading}
@@ -205,14 +222,19 @@ function LiveRoomCard({ room, currentUserId, onClick }) {
       data-testid={`live-room-${room.id}`}
       className="w-full text-left glass-card rounded-xl p-4 transition-all hover:-translate-y-0.5 group"
     >
-      <div className="flex items-center gap-2 mb-2">
-        <span className="w-2 h-2 rounded-full bg-[#f72585] pulse-live" />
-        <span className="font-mono text-[10px] tracking-[0.3em] uppercase text-[#f72585]">Live</span>
-        {isHost && (
-          <span className="font-mono text-[10px] tracking-[0.3em] uppercase text-[#7209b7] ml-auto">You host</span>
-        )}
+      <div className="flex items-start gap-3 mb-3">
+        <PlatformLogo platform={room.platform} size={44} rounded="md" showRing />
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center gap-2 mb-1">
+            <span className="w-2 h-2 rounded-full bg-[#f72585] pulse-live" />
+            <span className="font-mono text-[10px] tracking-[0.3em] uppercase text-[#f72585]">Live</span>
+            {isHost && (
+              <span className="font-mono text-[10px] tracking-[0.3em] uppercase text-[#7209b7] ml-auto">You host</span>
+            )}
+          </div>
+          <div className="font-head text-lg uppercase text-[#1a0b2e] truncate">{room.name}</div>
+        </div>
       </div>
-      <div className="font-head text-lg uppercase text-[#1a0b2e] mb-1 truncate">{room.name}</div>
       <div className="font-mono text-[10px] tracking-widest uppercase text-[#6b5b84] flex justify-between items-center">
         <span className="flex items-center gap-2">
           <span className="w-2 h-2 rounded-full" style={{ background: color }} />
