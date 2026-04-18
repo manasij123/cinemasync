@@ -37,6 +37,9 @@ Build a real-time watch-party web app (like Discord + Teleparty) that syncs OTT 
 - [x] OTT popup launching (bypass iframe X-Frame-Options)
 - [x] **[2026-04-18] Real OTT logos** — Netflix, Prime Video, JioHotstar, Hoichoi, Addatimes, ZEE5 integrated via shared `PlatformLogo` component across Dashboard picker, LiveRoomCard thumbnails, Lobby hero tile, WatchRoom header & Intermission.
 - [x] **[2026-04-18] 10MB Profile Pictures via Emergent Object Storage** — replaced base64/Mongo storage. New endpoints: `POST /api/profile/picture` (multipart, 10MB cap, JPG/PNG/WEBP/GIF), `GET /api/files/{path}` (authenticated serve). Upload progress UI in Profile page. 14/14 tests pass.
+- [x] **[2026-04-18] Dashboard stacked layout + refined platform picker** — Create Room card on top, Join Room below full-width; 7-column platform tiles with 72px logos, brand-accurate white backgrounds so every logo is clearly visible.
+- [x] **[2026-04-18] Responsive unique-ID badge** — collapses to circular avatar (profile picture or smart initials) below `md` breakpoint so the long `CinemaSync_Name_DDMMYYYY` pill never overlaps the greeting.
+- [x] **[2026-04-18] AI Share-Party Poster (Gemini Nano Banana)** — `POST /api/rooms/{room_id}/poster` generates a 1024x1024 JPG via `gemini-3.1-flash-image-preview`, stores in Object Storage, returns authenticated URL. Lobby `PosterCard` component: Generate / Share (Web Share API with file fallback) / Download / Regenerate. Verified end-to-end (Gemini analysis confirms all fields render: title, room name, host, platform, room code).
 
 ## Verified (2026-04-18)
 - Backend: 14/14 tests pass (upload happy path + 400 invalid type + 413 oversize + 401 unauth + regression auth/rooms/friends/admin)

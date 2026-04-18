@@ -4,7 +4,7 @@ import Navbar from "../components/Navbar";
 import { api } from "../lib/api";
 import { useAuth } from "../context/AuthContext";
 import { toast } from "sonner";
-import { Clapperboard, Copy, Check, Users, Send, Link2, UserPlus } from "lucide-react";
+import { Clapperboard, Copy, Check, Users, Send, Link2, UserPlus, Sparkles, Download, Share2 } from "lucide-react";
 import PlatformLogo from "../components/PlatformLogo";
 
 const PLATFORM_LABEL = {
@@ -20,6 +20,126 @@ const PLATFORM_URL = {
   addatimes: "https://www.addatimes.com/",
   zee5: "https://www.zee5.com/",
 };
+
+function PosterCard({ roomId, room }) {
+  const { formatApiError } = useAuth();
+  const [loading, setLoading] = useState(false);
+  const [poster, setPoster] = useState(null); // { url, download_name }
+  const [blobUrl, setBlobUrl] = useState("");
+
+  const fetchAsBlob = async (url) => {
+    const res = await api.get(url.replace(/^\/api/, ""), { responseType: "blob" });
+    return new Blob([res.data], { type: res.headers["content-type"] || "image/png" });
+  };
+
+  const generate = async () => {
+    setLoading(true);
+    try {
+      const { data } = await api.post(`/rooms/${roomId}/poster`);
+      setPoster(data);
+      const blob = await fetchAsBlob(data.url);
+      if (blobUrl) URL.revokeObjectURL(blobUrl);
+      setBlobUrl(URL.createObjectURL(blob));
+      toast.success("Poster ready");
+    } catch (e) {
+      toast.error(formatApiError(e.response?.data?.detail) || e.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const download = async () => {
+    if (!blobUrl || !poster) return;
+    const a = document.createElement("a");
+    a.href = blobUrl;
+    a.download = poster.download_name || `cinemasync-${roomId}.png`;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+  };
+
+  const share = async () => {
+    if (!poster || !blobUrl) return;
+    try {
+      const blob = await fetchAsBlob(poster.url);
+      const file = new File([blob], poster.download_name || `cinemasync-${roomId}.png`, { type: blob.type });
+      const shareData = {
+        title: `Join my CinemaSync party · ${room?.name || roomId}`,
+        text: `Come watch with me! Room ID: ${roomId}`,
+      };
+      if (navigator.canShare && navigator.canShare({ ...shareData, files: [file] })) {
+        await navigator.share({ ...shareData, files: [file] });
+      } else if (navigator.share) {
+        await navigator.share(shareData);
+      } else {
+        await navigator.clipboard.writeText(`${shareData.title}\n${shareData.text}\n${window.location.origin}/invite/${roomId}`);
+        toast.success("Invite copied to clipboard");
+      }
+    } catch (e) {
+      if (e?.name !== "AbortError") toast.error(e.message || "Share failed");
+    }
+  };
+
+  return (
+    <div className="border border-[#7209b7]/30 bg-white p-6" data-testid="poster-card">
+      <div className="flex items-center gap-2 mb-3">
+        <Sparkles size={16} className="text-[#f72585]" />
+        <span className="font-mono text-xs tracking-[0.3em] uppercase text-[#f72585]">Share Party</span>
+      </div>
+      <h3 className="font-head text-2xl uppercase mb-2">Make a poster</h3>
+      <p className="text-[#6b5b84] text-sm mb-4">
+        Generate a one-of-a-kind poster for this room and share it on WhatsApp or Instagram Stories.
+      </p>
+
+      {blobUrl ? (
+        <div className="space-y-3">
+          <div className="relative aspect-square max-w-[360px] mx-auto overflow-hidden rounded-md border border-[#7209b7]/30 bg-[#fdf4ff]">
+            <img
+              src={blobUrl}
+              alt="Watch-party poster"
+              data-testid="poster-preview"
+              className="w-full h-full object-cover"
+            />
+          </div>
+          <div className="flex flex-wrap gap-2">
+            <button
+              onClick={share}
+              data-testid="poster-share-button"
+              className="flex-1 min-w-[140px] bg-gradient-to-r from-[#f72585] to-[#7209b7] text-white font-mono tracking-[0.2em] uppercase text-xs px-4 py-3 rounded-md hover:shadow-[0_8px_20px_rgba(247,37,133,0.35)] flex items-center justify-center gap-2"
+            >
+              <Share2 size={13} /> Share
+            </button>
+            <button
+              onClick={download}
+              data-testid="poster-download-button"
+              className="flex-1 min-w-[140px] border-2 border-[#7209b7] text-[#7209b7] font-mono tracking-[0.2em] uppercase text-xs px-4 py-3 rounded-md hover:bg-[#7209b7] hover:text-white flex items-center justify-center gap-2"
+            >
+              <Download size={13} /> Download
+            </button>
+            <button
+              onClick={generate}
+              disabled={loading}
+              data-testid="poster-regenerate-button"
+              className="flex-1 min-w-[140px] border border-[#7209b7]/40 text-[#6b5b84] font-mono tracking-[0.2em] uppercase text-xs px-4 py-3 rounded-md hover:border-[#7209b7] hover:text-[#7209b7] disabled:opacity-60 flex items-center justify-center gap-2"
+            >
+              <Sparkles size={13} /> {loading ? "…" : "Regenerate"}
+            </button>
+          </div>
+        </div>
+      ) : (
+        <button
+          onClick={generate}
+          disabled={loading}
+          data-testid="poster-generate-button"
+          className="w-full bg-gradient-to-r from-[#f72585] to-[#7209b7] text-white font-mono tracking-[0.25em] uppercase text-xs px-4 py-4 rounded-md hover:shadow-[0_10px_26px_rgba(247,37,133,0.35)] disabled:opacity-70 flex items-center justify-center gap-2"
+        >
+          <Sparkles size={14} />
+          {loading ? "Rolling the poster…" : "Generate AI poster"}
+        </button>
+      )}
+    </div>
+  );
+}
 
 function InvitePanel({ roomId, isHost }) {
   const { formatApiError } = useAuth();
@@ -290,6 +410,8 @@ export default function Lobby() {
                 )}
               </div>
             </div>
+
+            <PosterCard roomId={roomId} room={room} />
 
             <InvitePanel roomId={roomId} isHost={isHost} />
           </div>

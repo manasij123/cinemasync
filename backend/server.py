@@ -522,6 +522,107 @@ async def invite_friend(room_id: str, body: InviteIn, user: dict = Depends(get_c
     return {"ok": True, "notification": notif}
 
 
+# --- Share Party Poster (Gemini Nano Banana image generation) ---
+PLATFORM_VIBES = {
+    "netflix":   "bold cinematic crimson and ink-black poster, filmic grain",
+    "prime":     "deep navy night-sky with Prime Video blue highlights",
+    "hotstar":   "hot pink-to-indigo neon gradient with playful sparkles",
+    "hoichoi":   "royal purple Bengali theatre curtain with gold filigree",
+    "addatimes": "warm red and cream retro Kolkata coffee-house bokeh",
+    "zee5":      "pink-violet gradient bokeh, shiny holographic accents",
+    "custom":    "pastel purple and neon pink vaporwave theatre",
+}
+
+
+@api_router.post("/rooms/{room_id}/poster")
+async def generate_room_poster(
+    room_id: str,
+    user: dict = Depends(get_current_user),
+):
+    from emergentintegrations.llm.chat import LlmChat, UserMessage  # lazy import
+
+    room = await db.rooms.find_one({"id": room_id.upper()}, {"_id": 0})
+    if not room:
+        raise HTTPException(status_code=404, detail="Room not found")
+    if user["id"] not in room.get("participants", []):
+        raise HTTPException(status_code=403, detail="Not a participant")
+
+    host = await db.users.find_one({"id": room["host_id"]}, {"_id": 0})
+    host_name = host["name"] if host else "Host"
+    platform = room.get("platform", "custom")
+    vibe = PLATFORM_VIBES.get(platform, PLATFORM_VIBES["custom"])
+    platform_label = {
+        "netflix": "Netflix", "prime": "Prime Video", "hotstar": "JioHotstar",
+        "hoichoi": "Hoichoi", "addatimes": "Addatimes", "zee5": "ZEE5", "custom": "Custom stream",
+    }.get(platform, "Custom stream")
+
+    prompt = (
+        "Design a beautiful square vertical watch-party invitation poster, 1024x1024. "
+        f"Aesthetic: {vibe}. Art-deco movie-theatre marquee with bold stencil typography, "
+        "subtle film-reel + popcorn motifs, faint halftone grain. "
+        f"Title at top in huge uppercase stencil letters: 'CINEMASYNC'. "
+        f"Below title, a prominent headline with the room name: '{room['name']}'. "
+        f"A sub-line reads: 'Hosted by {host_name} · Streaming on {platform_label}'. "
+        f"Bottom banner shows the room code in large monospace: '{room['id']}'. "
+        "Include a soft glow, layered gradient, and theatre curtain edges. "
+        "No stock-photo faces, no real celebrity likeness, high-contrast readable text."
+    )
+
+    api_key = os.environ.get("EMERGENT_LLM_KEY")
+    if not api_key:
+        raise HTTPException(status_code=503, detail="Image generation key not configured")
+
+    try:
+        chat = LlmChat(
+            api_key=api_key,
+            session_id=f"poster-{room_id}-{uuid.uuid4()}",
+            system_message="You are a graphic designer creating luxurious event posters.",
+        ).with_model("gemini", "gemini-3.1-flash-image-preview").with_params(modalities=["image", "text"])
+
+        _text, images = await chat.send_message_multimodal_response(UserMessage(text=prompt))
+    except Exception as e:
+        logger.error(f"Poster gen failed: {e}")
+        raise HTTPException(status_code=503, detail="Poster generation temporarily unavailable")
+
+    if not images:
+        raise HTTPException(status_code=502, detail="No image returned from generator")
+
+    import base64 as _b64
+    img = images[0]
+    data = _b64.b64decode(img["data"])
+    mime = img.get("mime_type", "image/png")
+    ext = "png" if "png" in mime else ("jpg" if "jpeg" in mime else "png")
+
+    storage_path = f"{STORAGE_APP_NAME}/posters/{room['id']}/{uuid.uuid4()}.{ext}"
+    try:
+        result = put_object(storage_path, data, mime)
+    except Exception as e:
+        logger.error(f"Poster storage failed: {e}")
+        raise HTTPException(status_code=503, detail="Poster storage failed")
+
+    file_id = str(uuid.uuid4())
+    record = {
+        "id": file_id,
+        "owner_id": user["id"],
+        "room_id": room["id"],
+        "storage_path": result["path"],
+        "original_filename": f"cinemasync-{room['id']}.{ext}",
+        "content_type": mime,
+        "size": result.get("size", len(data)),
+        "kind": "poster",
+        "is_deleted": False,
+        "created_at": datetime.now(timezone.utc).isoformat(),
+    }
+    await db.files.insert_one(record)
+
+    return {
+        "url": f"/api/files/{result['path']}",
+        "download_name": record["original_filename"],
+        "size": record["size"],
+        "room_id": room["id"],
+    }
+
+
 @api_router.get("/notifications")
 async def list_notifications(user: dict = Depends(get_current_user)):
     cursor = db.notifications.find({"user_id": user["id"]}, {"_id": 0}).sort("created_at", -1).limit(50)
