@@ -56,6 +56,7 @@ export default function WatchRoom() {
   const [sharing, setSharing] = useState(false);
   const [remoteSharerId, setRemoteSharerId] = useState(null);
   const [remoteSharerName, setRemoteSharerName] = useState("");
+  const [videoMuted, setVideoMuted] = useState(true);
   const localStreamRef = useRef(null);
   const videoRef = useRef(null);
   const peersRef = useRef({}); // user_id -> RTCPeerConnection
@@ -132,6 +133,10 @@ export default function WatchRoom() {
         }
         if (msg.joined && room && msg.joined.id !== user.id) {
           toast.success(`${msg.joined.name} joined`);
+          // If host is currently sharing, proactively offer the stream to new joiner
+          if (room.host_id === user.id && localStreamRef.current) {
+            createOfferTo(msg.joined.id, localStreamRef.current).catch(() => {});
+          }
         }
       } else if (msg.type === "sync") {
         setPlaying(!!msg.state.playing);
@@ -149,6 +154,7 @@ export default function WatchRoom() {
       } else if (msg.type === "screenshare-stop") {
         setRemoteSharerId(null);
         setRemoteSharerName("");
+        setVideoMuted(true);
         if (videoRef.current) videoRef.current.srcObject = null;
       } else if (msg.type === "webrtc-signal") {
         await handleSignal(msg);
@@ -227,10 +233,14 @@ export default function WatchRoom() {
     try {
       const stream = await navigator.mediaDevices.getDisplayMedia({ video: true, audio: true });
       localStreamRef.current = stream;
-      if (videoRef.current) videoRef.current.srcObject = stream;
+      if (videoRef.current) {
+        videoRef.current.srcObject = stream;
+        videoRef.current.muted = true; // avoid echo for host
+        try { await videoRef.current.play(); } catch {}
+      }
       setSharing(true);
       wsRef.current?.send(JSON.stringify({ type: "screenshare-start" }));
-      // Create peer to each viewer
+      // Create peer to each viewer (use latest presence)
       const viewers = presence.filter((p) => p.id !== user.id);
       for (const v of viewers) {
         await createOfferTo(v.id, stream);
@@ -268,7 +278,19 @@ export default function WatchRoom() {
       }
     };
     pc.ontrack = (ev) => {
-      if (videoRef.current) videoRef.current.srcObject = ev.streams[0];
+      if (videoRef.current) {
+        // Mute initially to satisfy browser autoplay policy — user can tap to unmute
+        videoRef.current.muted = true;
+        videoRef.current.srcObject = ev.streams[0];
+        const play = videoRef.current.play();
+        if (play && typeof play.catch === "function") play.catch(() => {});
+      }
+    };
+    pc.onconnectionstatechange = () => {
+      if (pc.connectionState === "failed" || pc.connectionState === "closed") {
+        try { pc.close(); } catch {}
+        delete peersRef.current[peerId];
+      }
     };
     peersRef.current[peerId] = pc;
     return pc;
@@ -306,7 +328,7 @@ export default function WatchRoom() {
     } else if (kind === "answer") {
       await pc.setRemoteDescription(new RTCSessionDescription(signal));
     } else if (kind === "ice") {
-      try { await pc.addIceCandidate(signal); } catch {}
+      try { await pc.addIceCandidate(new RTCIceCandidate(signal)); } catch {}
     }
   };
 
@@ -366,10 +388,28 @@ export default function WatchRoom() {
                 ref={videoRef}
                 autoPlay
                 playsInline
-                muted={isHost} /* host mutes own share preview */
-                className={`w-full h-full object-contain ${sharing || remoteSharerId ? "block" : "hidden"}`}
+                muted
+                className={`w-full h-full object-contain bg-[#0A0908] ${sharing || remoteSharerId ? "block" : "hidden"}`}
                 data-testid="watch-video-surface"
               />
+              {remoteSharerId && !sharing && (
+                <button
+                  onClick={() => {
+                    if (videoRef.current) {
+                      const next = !videoRef.current.muted;
+                      videoRef.current.muted = next ? false : true;
+                      setVideoMuted(videoRef.current.muted);
+                      const p = videoRef.current.play();
+                      if (p && typeof p.catch === "function") p.catch(() => {});
+                    }
+                  }}
+                  data-testid="watch-unmute-button"
+                  className="absolute top-3 right-3 bg-[#fefae0]/95 border border-[#d4a373] text-[#2b2118] px-3 py-1.5 font-mono text-[10px] tracking-[0.25em] uppercase hover:bg-[#d4a373]/20 z-10"
+                  title="Toggle audio"
+                >
+                  {videoMuted ? "🔇 Tap to unmute" : "🔊 Unmuted"}
+                </button>
+              )}
               {!sharing && !remoteSharerId && (
                 <div className="text-center px-6">
                   <div className="font-head text-3xl sm:text-5xl uppercase text-[#d4a373] mb-3">Intermission</div>
