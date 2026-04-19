@@ -13,6 +13,7 @@ import { Sparkline, LineChart, Doughnut, BarChart } from "../components/Charts";
 import PlatformLogo, { PLATFORM_LIST, platformLabel } from "../components/PlatformLogo";
 import QRCodeCard from "../components/QRCodeCard";
 import OnboardingChecklist from "../components/OnboardingChecklist";
+import ConfirmDialog from "../components/ConfirmDialog";
 
 // Chart colour accents per platform (purely for charts/doughnut)
 const PLATFORM_CHART_COLOR = {
@@ -592,6 +593,7 @@ export default function Dashboard() {
   const [selectedHistory, setSelectedHistory] = useState(() => new Set());
   const [manageMode, setManageMode] = useState(false);
   const [bulkDeleting, setBulkDeleting] = useState(false);
+  const [bulkConfirmOpen, setBulkConfirmOpen] = useState(false);
   const [openFolder, setOpenFolder] = useState(null); // null | "live" | "recent"
   const navigate = useNavigate();
 
@@ -699,14 +701,15 @@ export default function Dashboard() {
   const clearHistorySelection = () => setSelectedHistory(new Set());
   const exitManageMode = () => { setManageMode(false); clearHistorySelection(); };
   const closeOpenFolder = () => { setOpenFolder(null); setManageMode(false); clearHistorySelection(); };
-  const bulkKillSelected = async () => {
+  const bulkKillSelected = () => {
+    if (!selectedHistory.size) return;
+    setBulkConfirmOpen(true);
+  };
+
+  const confirmBulkKill = async () => {
     const ids = Array.from(selectedHistory);
     if (!ids.length) return;
-    const hostCount = history.filter((h) => ids.includes(h.room_id) && h.role === "host").length;
-    const msg = hostCount > 0
-      ? `${ids.length} room${ids.length > 1 ? "s" : ""} selected. ${hostCount} of these you hosted will be permanently killed for EVERYONE. Continue?`
-      : `Remove ${ids.length} room${ids.length > 1 ? "s" : ""} from your Recent list?`;
-    if (!window.confirm(msg)) return;
+    setBulkConfirmOpen(false);
     setBulkDeleting(true);
     try {
       const { data } = await api.post("/rooms/history/bulk-delete", { room_ids: ids });
@@ -716,7 +719,6 @@ export default function Dashboard() {
           : `${data.deleted} removed from Recent`
       );
       clearHistorySelection();
-      // Auto-exit manage mode once action is done
       setManageMode(false);
       refreshHistory();
     } catch (e) {
@@ -988,6 +990,32 @@ export default function Dashboard() {
           }}
         />
       )}
+
+      <ConfirmDialog
+        open={bulkConfirmOpen}
+        onOpenChange={setBulkConfirmOpen}
+        title={(() => {
+          const ids = Array.from(selectedHistory);
+          const hostCount = history.filter((h) => ids.includes(h.room_id) && h.role === "host").length;
+          return hostCount > 0
+            ? "Kill rooms for everyone?"
+            : "Remove from Recent?";
+        })()}
+        description={(() => {
+          const ids = Array.from(selectedHistory);
+          const hostCount = history.filter((h) => ids.includes(h.room_id) && h.role === "host").length;
+          if (hostCount > 0) {
+            return `${ids.length} room${ids.length > 1 ? "s" : ""} selected. ${hostCount} of these you hosted will be permanently killed for EVERYONE — guests get kicked, chat history is purged.`;
+          }
+          return `${ids.length} room${ids.length > 1 ? "s" : ""} will be removed from your Recent list. Hosts and other guests are not affected.`;
+        })()}
+        confirmLabel="Delete"
+        cancelLabel="Cancel"
+        tone="danger"
+        onConfirm={confirmBulkKill}
+        loading={bulkDeleting}
+        testid="bulk-kill-confirm"
+      />
     </AppShell>
   );
 }

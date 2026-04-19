@@ -8,8 +8,6 @@ import os
 import logging
 import asyncio
 import uuid
-import bcrypt
-import jwt
 import re
 from datetime import datetime, timezone, timedelta
 from typing import List, Optional, Dict, Set
@@ -22,6 +20,10 @@ from pydantic import BaseModel, Field, EmailStr
 
 from storage import init_storage, put_object, get_object, APP_NAME as STORAGE_APP_NAME
 from email_service import send_password_reset as send_pw_reset_email, send_verify_email
+from auth_utils import (
+    hash_password, verify_password, create_access_token, set_auth_cookie,
+    public_user, generate_unique_id, make_auth_deps,
+)
 
 
 # ------------- Config -------------
@@ -41,176 +43,21 @@ api_router = APIRouter(prefix="/api")
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
 
+# Bind auth dependencies to our db handle
+get_current_user, require_admin, get_user_from_token_str = make_auth_deps(db)
+
 
 # ------------- Helpers -------------
-def hash_password(password: str) -> str:
-    return bcrypt.hashpw(password.encode("utf-8"), bcrypt.gensalt()).decode("utf-8")
-
-
-def verify_password(plain: str, hashed: str) -> bool:
-    try:
-        return bcrypt.checkpw(plain.encode("utf-8"), hashed.encode("utf-8"))
-    except Exception:
-        return False
-
-
-def create_access_token(user_id: str, email: str) -> str:
-    payload = {
-        "sub": user_id,
-        "email": email,
-        "exp": datetime.now(timezone.utc) + timedelta(days=7),
-        "type": "access",
-    }
-    return jwt.encode(payload, JWT_SECRET, algorithm=JWT_ALGORITHM)
-
-
-def public_user(user: dict) -> dict:
-    return {
-        "id": user["id"],
-        "email": user.get("email"),
-        "name": user.get("name"),
-        "unique_id": user.get("unique_id"),
-        "profile_image": user.get("profile_image"),
-        "friends": user.get("friends", []),
-        "requests_in": user.get("requests_in", []),
-        "requests_out": user.get("requests_out", []),
-        "is_admin": bool(user.get("is_admin", False)),
-        "email_verified": bool(user.get("email_verified", False)),
-        "created_at": user.get("created_at"),
-    }
-
-
-def generate_unique_id(name: str) -> str:
-    safe = re.sub(r"[^A-Za-z0-9]", "", name) or "User"
-    today = datetime.now(timezone.utc).strftime("%d%m%Y")
-    return f"CinemaSync_{safe}_{today}"
-
-
-async def get_current_user(request: Request) -> dict:
-    token = request.cookies.get("access_token")
-    if not token:
-        auth_header = request.headers.get("Authorization", "")
-        if auth_header.startswith("Bearer "):
-            token = auth_header[7:]
-    if not token:
-        raise HTTPException(status_code=401, detail="Not authenticated")
-    try:
-        payload = jwt.decode(token, JWT_SECRET, algorithms=[JWT_ALGORITHM])
-        if payload.get("type") != "access":
-            raise HTTPException(status_code=401, detail="Invalid token type")
-        user = await db.users.find_one({"id": payload["sub"]}, {"_id": 0})
-        if not user:
-            raise HTTPException(status_code=401, detail="User not found")
-        return user
-    except jwt.ExpiredSignatureError:
-        raise HTTPException(status_code=401, detail="Token expired")
-    except jwt.InvalidTokenError:
-        raise HTTPException(status_code=401, detail="Invalid token")
-
-
-async def require_admin(request: Request) -> dict:
-    user = await get_current_user(request)
-    if not user.get("is_admin"):
-        raise HTTPException(status_code=403, detail="Admin privileges required")
-    return user
-
-
-async def get_user_from_token_str(token: str) -> Optional[dict]:
-    if not token:
-        return None
-    try:
-        payload = jwt.decode(token, JWT_SECRET, algorithms=[JWT_ALGORITHM])
-        if payload.get("type") != "access":
-            return None
-        user = await db.users.find_one({"id": payload["sub"]}, {"_id": 0})
-        return user
-    except Exception:
-        return None
-
-
-def set_auth_cookie(response: Response, token: str):
-    response.set_cookie(
-        key="access_token",
-        value=token,
-        httponly=True,
-        secure=True,
-        samesite="none",
-        max_age=60 * 60 * 24 * 7,
-        path="/",
-    )
+# (password / JWT / auth dependencies moved to auth_utils.py)
 
 
 # ------------- Models -------------
-class RegisterIn(BaseModel):
-    email: EmailStr
-    password: str = Field(min_length=6)
-    name: str = Field(min_length=1, max_length=40)
-
-
-class LoginIn(BaseModel):
-    email: EmailStr
-    password: str
-
-
-class UpdateProfileIn(BaseModel):
-    name: Optional[str] = None
-    profile_image: Optional[str] = None
-
-
-class FriendRequestIn(BaseModel):
-    unique_id: str
-
-
-class FriendActionIn(BaseModel):
-    user_id: str
-
-
-class CreateRoomIn(BaseModel):
-    name: str = Field(min_length=1, max_length=60)
-    password: str = Field(min_length=1, max_length=40)
-    platform: str = Field(default="custom")
-    custom_title: Optional[str] = Field(default=None, max_length=80)
-
-
-class JoinRoomIn(BaseModel):
-    room_id: str
-    password: str
-
-
-class ChatMessageIn(BaseModel):
-    room_id: str
-    text: str
-
-
-class InviteIn(BaseModel):
-    friend_id: str
-    password: str
-
-
-class BroadcastInviteIn(BaseModel):
-    password: str
-
-
-class ForgotPasswordIn(BaseModel):
-    email: EmailStr
-
-
-class ResetPasswordIn(BaseModel):
-    token: str
-    new_password: str = Field(min_length=6)
-
-
-class VerifyEmailIn(BaseModel):
-    token: str
-
-
-class CohostIn(BaseModel):
-    user_id: str
-
-
-class DeleteAccountIn(BaseModel):
-    password: str
-    confirm: str  # must be exactly "DELETE MY ACCOUNT"
+from models import (
+    RegisterIn, LoginIn, UpdateProfileIn, FriendRequestIn, FriendActionIn,
+    CreateRoomIn, JoinRoomIn, ChatMessageIn, InviteIn, BroadcastInviteIn,
+    ForgotPasswordIn, ResetPasswordIn, VerifyEmailIn, CohostIn, DeleteAccountIn,
+    BulkHistoryDeleteIn,
+)
 
 
 # ------------- Auth Routes -------------
@@ -700,6 +547,8 @@ def _room_public(room: dict) -> dict:
         "host_id": room["host_id"],
         "co_hosts": room.get("co_hosts", []),
         "platform": room.get("platform", "custom"),
+        "custom_url": room.get("custom_url"),
+        "custom_embed": room.get("custom_embed"),
         "participants": room.get("participants", []),
         "state": room.get("state", {"playing": False, "position": 0.0}),
         "created_at": room.get("created_at"),
@@ -760,10 +609,6 @@ async def room_history(user: dict = Depends(get_current_user), limit: int = 20):
     for r in rows:
         r["is_active"] = r["room_id"] in active_ids
     return {"history": rows}
-
-
-class BulkHistoryDeleteIn(BaseModel):
-    room_ids: List[str] = Field(default_factory=list)
 
 
 async def _notify_admins_room_killed(actor: dict, room_id: str, room_name: str):
@@ -1354,6 +1199,34 @@ async def websocket_room(websocket: WebSocket, room_id: str):
                 if fresh_room and fresh_room["host_id"] == user["id"]:
                     await db.rooms.update_one({"id": room_id}, {"$set": {"platform": platform}})
                     await hub.broadcast(room_id, {"type": "platform-change", "platform": platform})
+            elif mtype == "custom-url":
+                # Host-only: change or clear the Custom-platform in-stage iframe URL.
+                # Persist so late joiners get it on the /rooms/{id} GET response.
+                raw = (msg.get("url") or "").strip()
+                embed = (msg.get("embed") or "").strip()
+                fresh_room = await db.rooms.find_one({"id": room_id}, {"_id": 0})
+                can_change = fresh_room and (
+                    fresh_room["host_id"] == user["id"]
+                    or user["id"] in fresh_room.get("co_hosts", [])
+                )
+                if not can_change:
+                    continue
+                if not rate_limit("ws-custom-url", user["id"], limit=6, window_seconds=5.0):
+                    continue
+                # Hard length guardrails
+                raw = raw[:500]
+                embed = embed[:600]
+                await db.rooms.update_one(
+                    {"id": room_id},
+                    {"$set": {"custom_url": raw or None, "custom_embed": embed or None}},
+                )
+                await hub.broadcast(room_id, {
+                    "type": "custom-url",
+                    "url": raw or None,
+                    "embed": embed or None,
+                    "by": user["id"],
+                    "by_name": user.get("name", "Host"),
+                })
     except WebSocketDisconnect:
         pass
     except Exception as e:

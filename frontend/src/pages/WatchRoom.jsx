@@ -12,6 +12,7 @@ import {
 } from "lucide-react";
 import PlatformLogo from "../components/PlatformLogo";
 import useVoiceCommands from "../hooks/useVoiceCommands";
+import ConfirmDialog from "../components/ConfirmDialog";
 
 const PLATFORM_LABEL = {
   netflix: "Netflix", prime: "Prime Video", hotstar: "JioHotstar",
@@ -149,6 +150,7 @@ export default function WatchRoom() {
   const [remoteSharerName, setRemoteSharerName] = useState("");
   const [videoMuted, setVideoMuted] = useState(true);
   const [showShareGuide, setShowShareGuide] = useState(false);
+  const [showEndConfirm, setShowEndConfirm] = useState(false);
 
   // Custom-platform in-stage iframe (only when platform === "custom")
   const [customUrlInput, setCustomUrlInput] = useState("");
@@ -189,6 +191,11 @@ export default function WatchRoom() {
       setPlaying(!!data.room.state?.playing);
       setPosition(Number(data.room.state?.position || 0));
       setLastSyncAt(Date.now());
+      // Hydrate Custom-platform iframe from persisted room state
+      if (data.room.platform === "custom") {
+        if (data.room.custom_embed) setCustomIframeSrc(data.room.custom_embed);
+        if (data.room.custom_url) setCustomUrlInput(data.room.custom_url);
+      }
     } catch (e) {
       toast.error(formatApiError(e.response?.data?.detail) || e.message);
       navigate("/dashboard");
@@ -269,6 +276,18 @@ export default function WatchRoom() {
         setMessages((prev) => [...prev, msg.message]);
       } else if (msg.type === "platform-change") {
         setRoom((r) => (r ? { ...r, platform: msg.platform } : r));
+      } else if (msg.type === "custom-url") {
+        const newEmbed = msg.embed || "";
+        setCustomIframeSrc(newEmbed);
+        if (msg.url) setCustomUrlInput(msg.url);
+        setRoom((r) => (r ? { ...r, custom_url: msg.url || null, custom_embed: newEmbed || null } : r));
+        if (msg.by && msg.by !== user.id) {
+          if (newEmbed) {
+            toast.success(`${msg.by_name || "Host"} loaded a new video`);
+          } else {
+            toast(`${msg.by_name || "Host"} cleared the video`);
+          }
+        }
       } else if (msg.type === "screenshare-start") {
         setRemoteSharerId(msg.from);
         setRemoteSharerName(msg.from_name);
@@ -743,8 +762,11 @@ export default function WatchRoom() {
 
   const endRoom = async () => {
     if (!room || room.host_id !== user.id) return;
-    const ok = window.confirm("End the watch party for everyone? This will kick all guests and delete the room.");
-    if (!ok) return;
+    setShowEndConfirm(true);
+  };
+
+  const confirmEndRoom = async () => {
+    setShowEndConfirm(false);
     try {
       await api.delete(`/rooms/${roomId}`);
       toast.success("Watch party ended");
@@ -882,7 +904,13 @@ export default function WatchRoom() {
               {room.platform === "custom" && customIframeSrc && !sharing && !remoteSharerId && isHost && (
                 <button
                   type="button"
-                  onClick={() => { setCustomIframeSrc(""); setCustomUrlInput(""); }}
+                  onClick={() => {
+                    setCustomIframeSrc("");
+                    setCustomUrlInput("");
+                    try {
+                      wsRef.current?.send(JSON.stringify({ type: "custom-url", url: "", embed: "" }));
+                    } catch {}
+                  }}
                   data-testid="watch-custom-iframe-close"
                   className={
                     "absolute top-3 right-3 bg-black/70 border border-white/30 text-white px-3 py-1.5 font-mono text-[10px] tracking-[0.25em] uppercase hover:bg-white/10 z-10 transition-opacity duration-300 " +
@@ -927,6 +955,14 @@ export default function WatchRoom() {
                             const embed = toEmbedUrl(customUrlInput);
                             if (!embed) { toast.error("Please paste a valid video link"); return; }
                             setCustomIframeSrc(embed);
+                            // Broadcast to all peers so guests auto-load the same URL
+                            try {
+                              wsRef.current?.send(JSON.stringify({
+                                type: "custom-url",
+                                url: customUrlInput.trim(),
+                                embed,
+                              }));
+                            } catch {}
                           }}
                           className="flex flex-col sm:flex-row gap-2 justify-center items-stretch"
                         >
@@ -1297,6 +1333,18 @@ export default function WatchRoom() {
           </aside>
         </div>
       </main>
+
+      <ConfirmDialog
+        open={showEndConfirm}
+        onOpenChange={setShowEndConfirm}
+        title="End the watch party?"
+        description="All guests will be kicked out and the room permanently deleted. This cannot be undone."
+        confirmLabel="End room"
+        cancelLabel="Keep watching"
+        tone="danger"
+        onConfirm={confirmEndRoom}
+        testid="end-room-confirm"
+      />
 
       {/* Share-tab guide modal (OTT platforms) */}
       {showShareGuide && (
