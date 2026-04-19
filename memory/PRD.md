@@ -54,18 +54,20 @@ Build a real-time watch-party web app (like Discord + Teleparty) that syncs OTT 
 - [x] **[2026-04-19] Admin bulk-delete users** — `POST /api/admin/users/bulk-delete` accepts `{user_ids: [...]}` (up to 500), filters out self + other admins, runs the same full `_purge_user` cascade per target. Admin panel Users tab now has per-row checkboxes + header "select all visible" checkbox. Selections persist across search (previously selected users stay selected even when filtered out). Confirmation modal shows preview of selected users and requires typing "DELETE" to proceed.
 - [x] **[2026-04-19] Role-split Dashboard** — KPI row + LineChart/Doughnut/BarChart are gated behind `user.is_admin`. Regular users get a clean **`UserSummary`** hero card with personalized greeting + 4 icon-driven info tiles (New invitations · Live rooms · Friends · Past rooms) and a standalone Invitations inbox. All functional data is preserved, just no analytics visuals for non-admins.
 - [x] **[2026-04-19] `cinemasync.co.in` verified on Resend** — DNS records (DKIM, SPF, MX, DMARC) added to GoDaddy, Resend Tokyo region (ap-northeast-1). `SENDER_EMAIL` flipped from sandbox `onboarding@resend.dev` to production `no-reply@cinemasync.co.in`. Verified: test email to brand-new example.com address returns `delivered:true, fallback_link:null`.
+- [x] **[2026-04-19] End Room (Terminate Session)** — new `DELETE /api/rooms/{id}` endpoint (host-only, 403 for non-host). Broadcasts `{type:'room-ended', by_name, room_id, ended_at}` over WS then closes all sockets for that room. Purges `db.rooms`, `db.messages`, `db.notifications(type=room-invite)`; keeps `room_history` (flagged inactive via `/rooms/history`). WatchRoom header now shows a themed `watch-end-room-button` for host only, with confirm dialog. Non-host clients auto-redirect to `/dashboard` with toast "Host ended the watch party". 9/9 pytest (REST + WS E2E) pass.
+- [x] **[2026-04-19] Room Name = Platform · Custom Title** — `CreateRoomIn` schema accepts optional `custom_title` (max 80). Dashboard `CreateRoomForm` replaces the free-text Room Name field with a "What are you watching?" input (`create-room-custom-title-input`), live-previews the final room name `PLATFORM · TITLE` (or `PLATFORM WATCH PARTY` when empty) at `create-room-final-name`. Backend echoes `custom_title` on create + GET. Backward-compat: field is optional.
 
 ## Verified (2026-04-18)
 - Backend: 14/14 tests pass (upload happy path + 400 invalid type + 413 oversize + 401 unauth + regression auth/rooms/friends/admin)
 - Frontend: all 6 platform logo tiles render with naturalWidth>0; Profile upload end-to-end works.
 
 ## Prioritized Backlog
-- **P1**: TURN server for WebRTC NAT traversal (currently STUN-only)
-- **P1**: Password reset flow (forgot-password), email verification
-- **P2**: Voice/Video chat in watch rooms
-- **P2**: Multi-host control (co-hosts), persistent room history, AI movie recommendations
-- **P2**: Browser extension to drive `sync` events from host's <video> element
-- **P2**: Rate limiting on chat/sync, brute-force lockout on login
+- **P2**: Refactor `/app/backend/server.py` (>1500 lines) into `routes/{auth,rooms,friends,admin,account}.py` modules
+- **P2**: Migrate WebRTC Mesh → Metered SFU for >8-person watch parties
+- **P2**: AI live subtitles / translation (OpenAI Whisper STT + Gemini translate)
+- **P2**: Replace `window.confirm` End Room dialog with themed shadcn `AlertDialog`
+- **P2**: Tighten CORS `allow_origins` from `*` to the production domain list
+- **P3**: Browser extension to drive real-OTT `<video>` sync events
 
 ## Known Limitations
 - Playback sync uses a server-side virtual timer; host manually controls it. Real OTT `<video>` element hookup requires a browser extension (future).
