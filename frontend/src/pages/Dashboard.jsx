@@ -332,6 +332,91 @@ function HistoryCard({ row, onClick }) {
   );
 }
 
+function InvitationsInbox({ notifs, onAccept, onDismiss }) {
+  return (
+    <div className="glass-card rounded-xl p-5 flex flex-col" data-testid="invitations-inbox-card">
+      <div className="flex items-center gap-2 mb-4">
+        <Bell size={14} className="text-[#7209b7]" />
+        <span className="font-mono text-[10px] tracking-[0.3em] uppercase text-[#6b5b84]">Inbox</span>
+        {notifs.length > 0 && (
+          <span className="ml-auto bg-[#f72585] text-white font-mono text-[10px] px-2 py-0.5 rounded-full" data-testid="invite-count">{notifs.length}</span>
+        )}
+      </div>
+      <div className="font-head text-2xl uppercase text-[#1a0b2e] mb-3">Invitations</div>
+      {notifs.length === 0 ? (
+        <div className="text-xs font-mono tracking-widest uppercase text-[#6b5b84]">No invitations waiting.</div>
+      ) : (
+        <div className="space-y-3 max-h-[260px] overflow-y-auto pr-1" data-testid="invite-inbox">
+          {notifs.map((n) => <InviteRow key={n.id} n={n} onAccept={onAccept} onDismiss={onDismiss} />)}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function UserStat({ label, value, icon: Icon, accent = "#7209b7", testid }) {
+  return (
+    <div
+      className="glass-card rounded-xl p-5 flex items-center gap-4"
+      data-testid={testid}
+      style={{ borderColor: `${accent}33` }}
+    >
+      <div
+        className="w-12 h-12 rounded-full flex items-center justify-center shrink-0"
+        style={{ background: `${accent}15`, color: accent }}
+      >
+        <Icon size={22} />
+      </div>
+      <div className="min-w-0">
+        <div className="font-head text-3xl uppercase text-[#1a0b2e] leading-none">{value}</div>
+        <div className="font-mono text-[10px] tracking-[0.25em] uppercase text-[#6b5b84] mt-1 truncate">{label}</div>
+      </div>
+    </div>
+  );
+}
+
+function UserSummary({ user, friendCount, invitationCount, liveRoomCount, historyCount }) {
+  return (
+    <section className="mb-6" data-testid="dashboard-user-summary">
+      <div className="glass-card rounded-xl p-5 md:p-6 mb-4 relative overflow-hidden">
+        <div className="absolute -right-10 -top-10 w-48 h-48 bg-[#f72585]/10 rounded-full blur-3xl pointer-events-none" />
+        <div className="absolute -left-10 -bottom-10 w-48 h-48 bg-[#7209b7]/10 rounded-full blur-3xl pointer-events-none" />
+        <div className="relative">
+          <div className="flex items-center gap-2 mb-2">
+            <Film size={14} className="text-[#7209b7]" />
+            <span className="font-mono text-[10px] tracking-[0.3em] uppercase text-[#7209b7]">Your CineStub</span>
+          </div>
+          <h3 className="font-head text-2xl md:text-3xl uppercase leading-none">
+            {greetLine(user, friendCount, invitationCount, liveRoomCount, historyCount)}
+          </h3>
+          <p className="text-sm text-[#6b5b84] mt-2 max-w-2xl">
+            {invitationCount > 0
+              ? `${invitationCount} fresh invite${invitationCount > 1 ? "s" : ""} below — tap accept to join the party.`
+              : liveRoomCount > 0
+              ? `There ${liveRoomCount === 1 ? "is" : "are"} ${liveRoomCount} live room${liveRoomCount === 1 ? "" : "s"} buzzing. Rejoin from the list below.`
+              : "Kick things off — host a room or ping a friend to start a watch party."}
+          </p>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3" data-testid="dashboard-user-stats">
+        <UserStat testid="user-stat-invites" label="New invitations" value={invitationCount} icon={Bell} accent="#f72585" />
+        <UserStat testid="user-stat-live" label="Live rooms" value={liveRoomCount} icon={Film} accent="#7209b7" />
+        <UserStat testid="user-stat-friends" label="Friends" value={friendCount} icon={Users} accent="#4361ee" />
+        <UserStat testid="user-stat-history" label="Past rooms" value={historyCount} icon={Clock} accent="#4cc9f0" />
+      </div>
+    </section>
+  );
+}
+
+function greetLine(user, friends, invites, live, history) {
+  if (invites > 0) return `Hey ${user.name?.split(" ")[0] || "there"}, someone's waiting for you.`;
+  if (live > 0) return `${live} party${live === 1 ? "" : " ies"} happening right now.`;
+  if (friends === 0) return "Let's build your first movie circle.";
+  if (history === 0) return "Time for your first CinemaSync room.";
+  return `Welcome back, ${user.name?.split(" ")[0] || "friend"}.`;
+}
+
 function RoomCreatedModal({ room, password, friendCount, onClose }) {
   return (
     <div
@@ -480,79 +565,80 @@ export default function Dashboard() {
         hasInvited={history.length > 0}
       />
 
-      {/* KPI row */}
-      <section className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6" data-testid="dashboard-stats">
-        <KPI testid="stat-live" label="Live Rooms" value={liveCount} delta={12} up sparkData={sparkA} sparkColor="#f72585" />
-        <KPI testid="stat-invites" label="Invitations" value={notifs.length} delta={5} up={notifs.length > 0} sparkData={sparkC} sparkColor="#4cc9f0" />
-        <KPI testid="stat-friends" label="Regulars" value={friends.length} delta={8} up sparkData={sparkB} sparkColor="#7209b7" />
-        <KPI testid="stat-minutes" label="Minutes Watched" value={watchMinutes} delta={24} up sparkData={sparkD} sparkColor="#4361ee" />
-      </section>
+      {/* Admin-only analytics: KPI row + charts */}
+      {user.is_admin && (
+        <>
+          <section className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6" data-testid="dashboard-stats">
+            <KPI testid="stat-live" label="Live Rooms" value={liveCount} delta={12} up sparkData={sparkA} sparkColor="#f72585" />
+            <KPI testid="stat-invites" label="Invitations" value={notifs.length} delta={5} up={notifs.length > 0} sparkData={sparkC} sparkColor="#4cc9f0" />
+            <KPI testid="stat-friends" label="Regulars" value={friends.length} delta={8} up sparkData={sparkB} sparkColor="#7209b7" />
+            <KPI testid="stat-minutes" label="Minutes Watched" value={watchMinutes} delta={24} up sparkData={sparkD} sparkColor="#4361ee" />
+          </section>
 
-      {/* Charts row */}
-      <section className="grid grid-cols-1 lg:grid-cols-3 gap-4 mb-6">
-        {/* Line chart */}
-        <div className="lg:col-span-2 glass-card rounded-xl p-5">
-          <div className="flex items-start justify-between mb-4">
-            <div>
-              <div className="font-mono text-[10px] tracking-[0.3em] uppercase text-[#6b5b84]">Activity · 7 days</div>
-              <div className="font-head text-2xl uppercase text-[#1a0b2e]">Parties & Guests</div>
+          <section className="grid grid-cols-1 lg:grid-cols-3 gap-4 mb-6" data-testid="dashboard-charts-row-1">
+            <div className="lg:col-span-2 glass-card rounded-xl p-5">
+              <div className="flex items-start justify-between mb-4">
+                <div>
+                  <div className="font-mono text-[10px] tracking-[0.3em] uppercase text-[#6b5b84]">Activity · 7 days</div>
+                  <div className="font-head text-2xl uppercase text-[#1a0b2e]">Parties & Guests</div>
+                </div>
+                <div className="flex gap-3 text-[10px] font-mono uppercase tracking-wider">
+                  <span className="flex items-center gap-1.5"><span className="w-3 h-1.5 bg-[#7209b7] rounded-sm" /> Parties</span>
+                  <span className="flex items-center gap-1.5"><span className="w-3 h-1.5 bg-[#4cc9f0] rounded-sm" style={{ backgroundImage: "repeating-linear-gradient(90deg,#4cc9f0 0 4px,transparent 4px 6px)" }} /> Guests</span>
+                </div>
+              </div>
+              <LineChart seriesA={partiesWeek} seriesB={guestsWeek} labels={weekLabels} />
             </div>
-            <div className="flex gap-3 text-[10px] font-mono uppercase tracking-wider">
-              <span className="flex items-center gap-1.5"><span className="w-3 h-1.5 bg-[#7209b7] rounded-sm" /> Parties</span>
-              <span className="flex items-center gap-1.5"><span className="w-3 h-1.5 bg-[#4cc9f0] rounded-sm" style={{ backgroundImage: "repeating-linear-gradient(90deg,#4cc9f0 0 4px,transparent 4px 6px)" }} /> Guests</span>
-            </div>
-          </div>
-          <LineChart seriesA={partiesWeek} seriesB={guestsWeek} labels={weekLabels} />
-        </div>
 
-        {/* Doughnut */}
-        <div className="glass-card rounded-xl p-5 flex flex-col">
-          <div className="mb-2">
-            <div className="font-mono text-[10px] tracking-[0.3em] uppercase text-[#6b5b84]">Platform split</div>
-            <div className="font-head text-2xl uppercase text-[#1a0b2e]">OTT Mix</div>
-          </div>
-          <div className="flex items-center gap-4 flex-1">
-            <div className="shrink-0"><Doughnut segments={platformSegments} /></div>
-            <div className="flex-1 min-w-0">
-              <Legend items={platformSegments} />
+            <div className="glass-card rounded-xl p-5 flex flex-col">
+              <div className="mb-2">
+                <div className="font-mono text-[10px] tracking-[0.3em] uppercase text-[#6b5b84]">Platform split</div>
+                <div className="font-head text-2xl uppercase text-[#1a0b2e]">OTT Mix</div>
+              </div>
+              <div className="flex items-center gap-4 flex-1">
+                <div className="shrink-0"><Doughnut segments={platformSegments} /></div>
+                <div className="flex-1 min-w-0">
+                  <Legend items={platformSegments} />
+                </div>
+              </div>
             </div>
-          </div>
-        </div>
-      </section>
+          </section>
 
-      {/* Second charts row */}
-      <section className="grid grid-cols-1 lg:grid-cols-3 gap-4 mb-6">
-        {/* Bar chart */}
-        <div className="lg:col-span-2 glass-card rounded-xl p-5">
-          <div className="flex items-start justify-between mb-4">
-            <div>
-              <div className="font-mono text-[10px] tracking-[0.3em] uppercase text-[#6b5b84]">Peak hours</div>
-              <div className="font-head text-2xl uppercase text-[#1a0b2e]">When you watch</div>
+          <section className="grid grid-cols-1 lg:grid-cols-3 gap-4 mb-6" data-testid="dashboard-charts-row-2">
+            <div className="lg:col-span-2 glass-card rounded-xl p-5">
+              <div className="flex items-start justify-between mb-4">
+                <div>
+                  <div className="font-mono text-[10px] tracking-[0.3em] uppercase text-[#6b5b84]">Peak hours</div>
+                  <div className="font-head text-2xl uppercase text-[#1a0b2e]">When you watch</div>
+                </div>
+                <Clock size={18} className="text-[#7209b7]" />
+              </div>
+              <BarChart bars={hoursBars} />
             </div>
-            <Clock size={18} className="text-[#7209b7]" />
-          </div>
-          <BarChart bars={hoursBars} />
-        </div>
 
-        {/* Invitations inbox */}
-        <div className="glass-card rounded-xl p-5 flex flex-col">
-          <div className="flex items-center gap-2 mb-4">
-            <Bell size={14} className="text-[#7209b7]" />
-            <span className="font-mono text-[10px] tracking-[0.3em] uppercase text-[#6b5b84]">Inbox</span>
-            {notifs.length > 0 && (
-              <span className="ml-auto bg-[#f72585] text-white font-mono text-[10px] px-2 py-0.5 rounded-full" data-testid="invite-count">{notifs.length}</span>
-            )}
-          </div>
-          <div className="font-head text-2xl uppercase text-[#1a0b2e] mb-3">Invitations</div>
-          {notifs.length === 0 ? (
-            <div className="text-xs font-mono tracking-widest uppercase text-[#6b5b84]">No invitations waiting.</div>
-          ) : (
-            <div className="space-y-3 max-h-[260px] overflow-y-auto pr-1" data-testid="invite-inbox">
-              {notifs.map((n) => <InviteRow key={n.id} n={n} onAccept={acceptInvite} onDismiss={dismissInvite} />)}
-            </div>
-          )}
-        </div>
-      </section>
+            {/* Admin inbox sits beside the bar chart */}
+            <InvitationsInbox notifs={notifs} onAccept={acceptInvite} onDismiss={dismissInvite} />
+          </section>
+        </>
+      )}
+
+      {/* Non-admin summary strip (replaces the analytics section for regular users) */}
+      {!user.is_admin && (
+        <UserSummary
+          user={user}
+          friendCount={friends.length}
+          invitationCount={notifs.length}
+          liveRoomCount={liveCount}
+          historyCount={history.length}
+        />
+      )}
+
+      {/* Invitations inbox for regular users (admins see it inside charts row) */}
+      {!user.is_admin && (
+        <section className="mb-6" data-testid="dashboard-user-inbox">
+          <InvitationsInbox notifs={notifs} onAccept={acceptInvite} onDismiss={dismissInvite} />
+        </section>
+      )}
 
       {/* Live Now cards */}
       {activeRooms.length > 0 && (
