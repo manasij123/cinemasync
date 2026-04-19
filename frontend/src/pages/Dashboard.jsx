@@ -315,6 +315,89 @@ function InviteRow({ n, onAccept, onDismiss }) {
   );
 }
 
+function FolderTile({ testid, tone, icon: Icon, label, count, subtitle, previewRooms = [], active, disabled, onClick }) {
+  const palette = tone === "pink"
+    ? { accent: "#f72585", soft: "#fde5f1", ring: "rgba(247,37,133,0.30)", badge: "#f72585" }
+    : { accent: "#7209b7", soft: "#f0e5ff", ring: "rgba(114,9,183,0.30)", badge: "#7209b7" };
+  return (
+    <button
+      type="button"
+      onClick={disabled ? undefined : onClick}
+      disabled={disabled}
+      data-testid={testid}
+      aria-expanded={!!active}
+      className={`relative overflow-hidden text-left rounded-xl p-4 sm:p-5 border transition-all group h-full
+        ${disabled
+          ? "border-[#e7c6ff]/60 bg-[#fdf4ff]/40 cursor-not-allowed opacity-70"
+          : active
+            ? "border-transparent shadow-[0_14px_34px_rgba(26,11,46,0.18)] -translate-y-0.5"
+            : "border-[#e7c6ff] bg-white hover:-translate-y-0.5 hover:shadow-[0_10px_28px_rgba(26,11,46,0.10)]"}
+      `}
+      style={active ? { borderColor: palette.accent, background: palette.soft } : {}}
+    >
+      {/* Folder tab */}
+      <span
+        className="absolute -top-2 left-5 h-4 w-14 rounded-t-md"
+        style={{ background: palette.accent, opacity: disabled ? 0.3 : 1 }}
+        aria-hidden
+      />
+      <div className="flex items-start gap-3">
+        <div
+          className="w-11 h-11 rounded-lg flex items-center justify-center shrink-0"
+          style={{ background: palette.accent, color: "white" }}
+        >
+          <Icon size={20} />
+        </div>
+        <div className="min-w-0 flex-1">
+          <div className="font-mono text-[10px] tracking-[0.3em] uppercase" style={{ color: palette.accent }}>
+            {label}
+          </div>
+          <div className="font-head text-3xl sm:text-4xl uppercase text-[#1a0b2e] leading-none mt-1">{count}</div>
+          <div className="font-mono text-[10px] tracking-widest uppercase text-[#6b5b84] mt-1 truncate">
+            {subtitle}
+          </div>
+        </div>
+      </div>
+      {/* Preview logos strip */}
+      <div className="mt-3 flex items-center gap-1.5">
+        {previewRooms.length === 0 ? (
+          <span className="font-mono text-[9px] tracking-widest uppercase text-[#a597c4]">—</span>
+        ) : (
+          <>
+            {previewRooms.map((r, i) => (
+              <div
+                key={i}
+                className="w-6 h-6 rounded-md overflow-hidden ring-1 ring-white shadow-sm"
+                aria-hidden
+              >
+                <PlatformLogo platform={r.platform} size={24} rounded="md" />
+              </div>
+            ))}
+            {count > previewRooms.length && (
+              <span className="ml-1 font-mono text-[9px] tracking-widest uppercase text-[#6b5b84]">
+                +{count - previewRooms.length}
+              </span>
+            )}
+          </>
+        )}
+        {!disabled && (
+          <span
+            className="ml-auto font-mono text-[9px] tracking-[0.2em] uppercase transition-colors"
+            style={{ color: active ? palette.accent : "#a597c4" }}
+          >
+            {active ? "Opened" : "Open"}
+          </span>
+        )}
+      </div>
+      {/* Paper sheet edges (folder feel) */}
+      <span
+        className="absolute inset-0 pointer-events-none rounded-xl"
+        style={{ boxShadow: active ? `inset 0 0 0 1px ${palette.ring}` : "" }}
+      />
+    </button>
+  );
+}
+
 function HistoryCard({ row, onClick, selectable, selected, onToggleSelect }) {
   const when = row.last_joined_at ? new Date(row.last_joined_at) : null;
   const whenLabel = when
@@ -509,6 +592,7 @@ export default function Dashboard() {
   const [selectedHistory, setSelectedHistory] = useState(() => new Set());
   const [manageMode, setManageMode] = useState(false);
   const [bulkDeleting, setBulkDeleting] = useState(false);
+  const [openFolder, setOpenFolder] = useState(null); // null | "live" | "recent"
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -614,6 +698,7 @@ export default function Dashboard() {
   };
   const clearHistorySelection = () => setSelectedHistory(new Set());
   const exitManageMode = () => { setManageMode(false); clearHistorySelection(); };
+  const closeOpenFolder = () => { setOpenFolder(null); setManageMode(false); clearHistorySelection(); };
   const bulkKillSelected = async () => {
     const ids = Array.from(selectedHistory);
     if (!ids.length) return;
@@ -729,86 +814,142 @@ export default function Dashboard() {
         </section>
       )}
 
-      {/* Live Now cards */}
-      {activeRooms.length > 0 && (
-        <section className="mb-6" data-testid="dashboard-live-section">
-          <div className="flex items-center gap-3 mb-3">
-            <Radio size={16} className="text-[#f72585]" />
-            <span className="font-mono text-xs tracking-[0.3em] uppercase text-[#f72585]">Live now · {activeRooms.length}</span>
+      {/* Live + Recent folders — side-by-side compact view */}
+      {(activeRooms.length > 0 || history.length > 0) && (
+        <section className="mb-6" data-testid="dashboard-folders-section">
+          <div className="grid grid-cols-2 gap-3 sm:gap-4" data-testid="dashboard-folders-grid">
+            <FolderTile
+              testid="folder-tile-live"
+              tone="pink"
+              icon={Radio}
+              label="Live now"
+              count={activeRooms.length}
+              subtitle={activeRooms.length === 0 ? "No live rooms" : `${activeRooms.length} active`}
+              previewRooms={activeRooms.slice(0, 4)}
+              active={openFolder === "live"}
+              disabled={activeRooms.length === 0}
+              onClick={() => setOpenFolder(openFolder === "live" ? null : "live")}
+            />
+            <FolderTile
+              testid="folder-tile-recent"
+              tone="purple"
+              icon={Film}
+              label="Recent"
+              count={history.length}
+              subtitle={history.length === 0 ? "No recent rooms" : `${history.length} in archive`}
+              previewRooms={history.slice(0, 4).map((h) => ({ platform: h.platform }))}
+              active={openFolder === "recent"}
+              disabled={history.length === 0}
+              onClick={() => setOpenFolder(openFolder === "recent" ? null : "recent")}
+            />
           </div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
-            {activeRooms.map((r) => (
-              <LiveRoomCard key={r.id} room={r} currentUserId={user.id} onClick={() => navigate(`/room/${r.id}`)} />
-            ))}
-          </div>
-        </section>
-      )}
 
-      {/* Room history */}
-      {history.length > 0 && (
-        <section className="mb-6" data-testid="dashboard-history-section">
-          <div className="flex items-center gap-3 mb-3 flex-wrap">
-            <Film size={16} className="text-[#7209b7]" />
-            <span className="font-mono text-xs tracking-[0.3em] uppercase text-[#7209b7]">Recent rooms · {history.length}</span>
-            <div className="ml-auto flex items-center gap-2">
-              {manageMode ? (
-                <>
-                  <span
-                    className="font-mono text-[10px] tracking-widest uppercase text-[#6b5b84]"
-                    data-testid="history-selection-count"
-                  >
-                    {selectedHistory.size} selected
-                  </span>
-                  <button
-                    type="button"
-                    onClick={bulkKillSelected}
-                    disabled={bulkDeleting || selectedHistory.size === 0}
-                    data-testid="history-bulk-delete-button"
-                    className="flex items-center gap-1.5 bg-[#f72585] text-white font-mono text-[10px] tracking-widest uppercase px-3 py-1.5 rounded-md hover:bg-[#d81674] disabled:opacity-40 transition-colors"
-                  >
-                    <Trash2 size={12} />
-                    {bulkDeleting ? "Killing…" : "Delete"}
-                  </button>
-                  <button
-                    type="button"
-                    onClick={exitManageMode}
-                    data-testid="history-manage-cancel"
-                    className="border border-[#e7c6ff] font-mono text-[10px] tracking-widest uppercase px-3 py-1.5 rounded-md hover:border-[#7209b7]/60"
-                  >
-                    Done
-                  </button>
-                </>
-              ) : (
+          {/* Live folder — opened drawer */}
+          {openFolder === "live" && activeRooms.length > 0 && (
+            <div
+              className="mt-4 glass-card rounded-xl p-4 sm:p-5 border border-[#f72585]/25"
+              data-testid="dashboard-live-section"
+            >
+              <div className="flex items-center gap-3 mb-3">
+                <Radio size={16} className="text-[#f72585]" />
+                <span className="font-mono text-xs tracking-[0.3em] uppercase text-[#f72585]">Live now · {activeRooms.length}</span>
                 <button
                   type="button"
-                  onClick={() => setManageMode(true)}
-                  data-testid="history-manage-button"
-                  className="flex items-center gap-1.5 border border-[#e7c6ff] font-mono text-[10px] tracking-widest uppercase px-3 py-1.5 rounded-md hover:border-[#f72585] hover:text-[#f72585] transition-colors"
+                  onClick={() => setOpenFolder(null)}
+                  data-testid="folder-close-live"
+                  className="ml-auto border border-[#e7c6ff] font-mono text-[10px] tracking-widest uppercase px-3 py-1.5 rounded-md hover:border-[#7209b7]/60"
                 >
-                  <Trash2 size={12} /> Manage
+                  Close
                 </button>
-              )}
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
+                {activeRooms.map((r) => (
+                  <LiveRoomCard key={r.id} room={r} currentUserId={user.id} onClick={() => navigate(`/room/${r.id}`)} />
+                ))}
+              </div>
             </div>
-          </div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-3" data-testid="dashboard-history-list">
-            {history.slice(0, 9).map((h) => (
-              <HistoryCard
-                key={`${h.room_id}-${h.last_joined_at}`}
-                row={h}
-                selectable={manageMode}
-                selected={selectedHistory.has(h.room_id)}
-                onToggleSelect={toggleHistorySelect}
-                onClick={() => {
-                  if (manageMode) {
-                    toggleHistorySelect(h.room_id);
-                    return;
-                  }
-                  if (h.is_active) navigate(`/room/${h.room_id}`);
-                  else toast.info("This room has ended. Ask the host to create a new one.");
-                }}
-              />
-            ))}
-          </div>
+          )}
+
+          {/* Recent folder — opened drawer */}
+          {openFolder === "recent" && history.length > 0 && (
+            <div
+              className="mt-4 glass-card rounded-xl p-4 sm:p-5 border border-[#7209b7]/25"
+              data-testid="dashboard-history-section"
+            >
+              <div className="flex items-center gap-3 mb-3 flex-wrap">
+                <Film size={16} className="text-[#7209b7]" />
+                <span className="font-mono text-xs tracking-[0.3em] uppercase text-[#7209b7]">Recent rooms · {history.length}</span>
+                <div className="ml-auto flex items-center gap-2">
+                  {manageMode ? (
+                    <>
+                      <span
+                        className="font-mono text-[10px] tracking-widest uppercase text-[#6b5b84]"
+                        data-testid="history-selection-count"
+                      >
+                        {selectedHistory.size} selected
+                      </span>
+                      <button
+                        type="button"
+                        onClick={bulkKillSelected}
+                        disabled={bulkDeleting || selectedHistory.size === 0}
+                        data-testid="history-bulk-delete-button"
+                        className="flex items-center gap-1.5 bg-[#f72585] text-white font-mono text-[10px] tracking-widest uppercase px-3 py-1.5 rounded-md hover:bg-[#d81674] disabled:opacity-40 transition-colors"
+                      >
+                        <Trash2 size={12} />
+                        {bulkDeleting ? "Killing…" : "Delete"}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={exitManageMode}
+                        data-testid="history-manage-cancel"
+                        className="border border-[#e7c6ff] font-mono text-[10px] tracking-widest uppercase px-3 py-1.5 rounded-md hover:border-[#7209b7]/60"
+                      >
+                        Done
+                      </button>
+                    </>
+                  ) : (
+                    <>
+                      <button
+                        type="button"
+                        onClick={() => setManageMode(true)}
+                        data-testid="history-manage-button"
+                        className="flex items-center gap-1.5 border border-[#e7c6ff] font-mono text-[10px] tracking-widest uppercase px-3 py-1.5 rounded-md hover:border-[#f72585] hover:text-[#f72585] transition-colors"
+                      >
+                        <Trash2 size={12} /> Manage
+                      </button>
+                      <button
+                        type="button"
+                        onClick={closeOpenFolder}
+                        data-testid="folder-close-recent"
+                        className="border border-[#e7c6ff] font-mono text-[10px] tracking-widest uppercase px-3 py-1.5 rounded-md hover:border-[#7209b7]/60"
+                      >
+                        Close
+                      </button>
+                    </>
+                  )}
+                </div>
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-3" data-testid="dashboard-history-list">
+                {history.slice(0, 9).map((h) => (
+                  <HistoryCard
+                    key={`${h.room_id}-${h.last_joined_at}`}
+                    row={h}
+                    selectable={manageMode}
+                    selected={selectedHistory.has(h.room_id)}
+                    onToggleSelect={toggleHistorySelect}
+                    onClick={() => {
+                      if (manageMode) {
+                        toggleHistorySelect(h.room_id);
+                        return;
+                      }
+                      if (h.is_active) navigate(`/room/${h.room_id}`);
+                      else toast.info("This room has ended. Ask the host to create a new one.");
+                    }}
+                  />
+                ))}
+              </div>
+            </div>
+          )}
         </section>
       )}
 
