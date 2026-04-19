@@ -631,6 +631,7 @@ export default function Dashboard() {
           : `${data.deleted} removed from Recent`
       );
       clearHistorySelection();
+      // Auto-exit manage mode once action is done
       setManageMode(false);
       refreshHistory();
     } catch (e) {

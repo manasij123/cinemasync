@@ -56,17 +56,19 @@ Build a real-time watch-party web app (like Discord + Teleparty) that syncs OTT 
 - [x] **[2026-04-19] `cinemasync.co.in` verified on Resend** — DNS records (DKIM, SPF, MX, DMARC) added to GoDaddy, Resend Tokyo region (ap-northeast-1). `SENDER_EMAIL` flipped from sandbox `onboarding@resend.dev` to production `no-reply@cinemasync.co.in`. Verified: test email to brand-new example.com address returns `delivered:true, fallback_link:null`.
 - [x] **[2026-04-19] End Room (Terminate Session)** — new `DELETE /api/rooms/{id}` endpoint (host-only, 403 for non-host). Broadcasts `{type:'room-ended', by_name, room_id, ended_at}` over WS then closes all sockets for that room. Purges `db.rooms`, `db.messages`, `db.notifications(type=room-invite)`; keeps `room_history` (flagged inactive via `/rooms/history`). WatchRoom header now shows a themed `watch-end-room-button` for host only, with confirm dialog. Non-host clients auto-redirect to `/dashboard` with toast "Host ended the watch party". 9/9 pytest (REST + WS E2E) pass.
 - [x] **[2026-04-19] Room Name = Platform · Custom Title** — `CreateRoomIn` schema accepts optional `custom_title` (max 80). Dashboard `CreateRoomForm` replaces the free-text Room Name field with a "What are you watching?" input (`create-room-custom-title-input`), live-previews the final room name `PLATFORM · TITLE` (or `PLATFORM WATCH PARTY` when empty) at `create-room-final-name`. Backend echoes `custom_title` on create + GET. Backward-compat: field is optional.
+- [x] **[2026-04-19] Recent-rooms bulk kill + admin alerts** — Dashboard "Recent rooms" gets a `history-manage-button` that toggles manage mode with per-card checkboxes (`history-select-{id}`), a live selection count, and `history-bulk-delete-button`. Backend `DELETE /api/rooms/history/{id}` + `POST /api/rooms/history/bulk-delete`: **cascade** when the caller was the host (nukes room + messages + invite notifications + every user's room_history + closes live WS sockets) and fires a `type:'admin-alert', subtype:'room-killed'` notification for every OTHER admin. Guests can just remove their own Recent-row without cascade. Admin panel gets a new **Alerts** tab (`admin-tab-alerts`) listing alerts with per-row `OK` dismiss and a "Dismiss all" action. 10/10 pytest + full frontend automation pass.
 
 ## Verified (2026-04-18)
 - Backend: 14/14 tests pass (upload happy path + 400 invalid type + 413 oversize + 401 unauth + regression auth/rooms/friends/admin)
 - Frontend: all 6 platform logo tiles render with naturalWidth>0; Profile upload end-to-end works.
 
 ## Prioritized Backlog
-- **P2**: Refactor `/app/backend/server.py` (>1500 lines) into `routes/{auth,rooms,friends,admin,account}.py` modules
+- **P2**: Refactor `/app/backend/server.py` (>1640 lines) into `routes/{auth,rooms,friends,admin,notifications}.py` modules
 - **P2**: Migrate WebRTC Mesh → Metered SFU for >8-person watch parties
 - **P2**: AI live subtitles / translation (OpenAI Whisper STT + Gemini translate)
-- **P2**: Replace `window.confirm` End Room dialog with themed shadcn `AlertDialog`
-- **P2**: Tighten CORS `allow_origins` from `*` to the production domain list
+- **P2**: Replace `window.confirm` End Room + Bulk-Kill dialogs with themed shadcn `AlertDialog`
+- **P2**: Pause AlertsTab polling when `document.hidden` for background savings
+- **P2**: Tighten CORS `allow_origins` from `*` to production domain list
 - **P3**: Browser extension to drive real-OTT `<video>` sync events
 
 ## Known Limitations
