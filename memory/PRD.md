@@ -45,6 +45,9 @@ Build a real-time watch-party web app (like Discord + Teleparty) that syncs OTT 
 - [x] **[2026-04-18] Persistent room history** — `/api/rooms/history` tracks every create/join with visit count + last_joined_at; Dashboard shows "Recent rooms" grid with live indicator + re-enter.
 - [x] **[2026-04-18] Rate limiting** — login (8/10min email, 30/10min IP), chat (10/5s per user, emits `rate-limited` WS event), sync (8/sec host), forgot-password (3/hr per email).
 - [x] **[2026-04-18] TURN server + Voice/Video chat** — `/api/rtc/ice` returns Metered TURN creds (server-side fetched via API key, 5-min cached). WatchRoom consumes it for all PeerConnections. Added voice + video mesh on dedicated "voice" WS channel with floating tile grid overlay (self + remote peers, mic/cam toggles in sync bar). Graceful fallback to STUN-only if Metered is down.
+- [x] **[2026-04-19] QR code + Friend broadcast on room creation** — new `POST /api/rooms/{id}/broadcast` endpoint sends `room-invite` notifications to ALL friends at once. New `QRCodeCard` component (uses `qrcode` npm). `RoomCreatedModal` shows QR + room code + password post-creation; Lobby gets a `QRCard` panel so host can regenerate QR any time. 12/12 tests pass.
+- [x] **[2026-04-19] Onboarding checklist** — `OnboardingChecklist` component on Dashboard with 5 steps (profile photo, email verify, add friend, host room, send invite), progress bar, auto-completing detection, localStorage dismiss.
+- [x] **[2026-04-19] Voice commands** — `useVoiceCommands` Web Speech API hook in WatchRoom. Radio button in sync bar starts listening (host/co-host only). Commands: play / pause / reset / forward N / back N / mute / unmute. Live "Listening…" banner with transcript at top of stage.
 
 ## Verified (2026-04-18)
 - Backend: 14/14 tests pass (upload happy path + 400 invalid type + 413 oversize + 401 unauth + regression auth/rooms/friends/admin)
