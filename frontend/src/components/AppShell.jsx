@@ -21,8 +21,8 @@ function SideBody({ onNavigate }) {
     <div className="flex flex-col h-full">
       {/* Logo */}
       <Link to="/dashboard" onClick={onNavigate} data-testid="sidebar-logo" className="flex items-center gap-3 px-5 py-5 border-b border-[#7209b7]/30">
-        <div className="w-10 h-10 overflow-hidden border border-[#7209b7]/40 bg-[#fdf4ff] shrink-0">
-          <img src="/logo.jpg" alt="CinemaSync" className="w-full h-full object-cover" />
+        <div className="w-11 h-11 overflow-hidden rounded-md bg-white border border-[#7209b7]/30 shrink-0 flex items-center justify-center p-1">
+          <img src="/cinemasync-logo.svg" alt="CinemaSync" className="w-full h-full object-contain" />
         </div>
         <div className="flex flex-col leading-tight">
           <span className="font-head text-xl tracking-wider uppercase">CinemaSync</span>
