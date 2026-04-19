@@ -1193,7 +1193,7 @@ async def admin_stats(admin: dict = Depends(require_admin)):
 
 @api_router.get("/admin/users")
 async def admin_list_users(admin: dict = Depends(require_admin)):
-    cursor = db.users.find({}, {"_id": 0, "password_hash": 0}).sort("created_at", -1)
+    cursor = db.users.find({}, {"_id": 0, "password_hash": 0}).sort("created_at", -1).limit(1000)
     out = []
     async for u in cursor:
         out.append({
@@ -1285,7 +1285,7 @@ async def admin_demote_user(user_id: str, admin: dict = Depends(require_admin)):
 
 @api_router.get("/admin/rooms")
 async def admin_list_rooms(admin: dict = Depends(require_admin)):
-    cursor = db.rooms.find({}, {"_id": 0, "password_hash": 0}).sort("created_at", -1)
+    cursor = db.rooms.find({}, {"_id": 0, "password_hash": 0}).sort("created_at", -1).limit(1000)
     out = []
     async for r in cursor:
         out.append({
@@ -1316,23 +1316,25 @@ class BroadcastIn(BaseModel):
 
 @api_router.post("/admin/broadcast")
 async def admin_broadcast(body: BroadcastIn, admin: dict = Depends(require_admin)):
-    """Creates a notification for every user."""
-    created = 0
-    async for u in db.users.find({}, {"_id": 0, "id": 1}):
-        await db.notifications.insert_one({
+    """Creates a notification for every user (capped at 10000, bulk insert)."""
+    now = datetime.now(timezone.utc).isoformat()
+    docs = []
+    async for u in db.users.find({}, {"_id": 0, "id": 1}).limit(10000):
+        docs.append({
             "id": str(uuid.uuid4()),
             "user_id": u["id"],
             "type": "admin-broadcast",
             "room_id": None,
             "room_name": body.title,
-            "password": body.body,  # re-using password field for body text
+            "password": body.body,
             "from_user_id": admin["id"],
             "from_name": admin.get("name", "Admin"),
             "read": False,
-            "created_at": datetime.now(timezone.utc).isoformat(),
+            "created_at": now,
         })
-        created += 1
-    return {"ok": True, "sent_to": created}
+    if docs:
+        await db.notifications.insert_many(docs)
+    return {"ok": True, "sent_to": len(docs)}
 
 
 # ------------- Health -------------
@@ -1360,6 +1362,33 @@ async def startup():
         init_storage()
     except Exception as e:
         logger.error(f"Storage startup init failed: {e}")
+
+    # Seed admin
+    if ADMIN_EMAIL and ADMIN_PASSWORD:
+        existing = await db.users.find_one({"email": ADMIN_EMAIL})
+        if not existing:
+            await db.users.insert_one({
+                "id": str(uuid.uuid4()),
+                "email": ADMIN_EMAIL,
+                "name": "Admin",
+                "password_hash": hash_password(ADMIN_PASSWORD),
+                "unique_id": generate_unique_id("Admin"),
+                "profile_image": None,
+                "friends": [],
+                "requests_in": [],
+                "requests_out": [],
+                "is_admin": True,
+                "email_verified": True,
+                "created_at": datetime.now(timezone.utc).isoformat(),
+            })
+            logger.info(f"Seeded admin {ADMIN_EMAIL}")
+        else:
+            # Ensure existing admin is flagged
+            await db.users.update_one(
+                {"email": ADMIN_EMAIL},
+                {"$set": {"is_admin": True, "email_verified": True}},
+            )
+            logger.info(f"Re-flagged admin {ADMIN_EMAIL}")
 
     # Schedule daily inactivity sweep
     asyncio.create_task(_inactivity_sweeper_loop())
@@ -1395,25 +1424,6 @@ async def _inactivity_sweeper_loop():
             logger.error(f"Inactivity sweep error: {e}")
         # Run every 24 hours
         await asyncio.sleep(24 * 60 * 60)
-    # Seed admin
-    existing = await db.users.find_one({"email": ADMIN_EMAIL})
-    if not existing:
-        await db.users.insert_one({
-            "id": str(uuid.uuid4()),
-            "email": ADMIN_EMAIL,
-            "name": "Admin",
-            "password_hash": hash_password(ADMIN_PASSWORD),
-            "unique_id": generate_unique_id("Admin"),
-            "profile_image": None,
-            "friends": [],
-            "requests_in": [],
-            "requests_out": [],
-            "is_admin": True,
-            "created_at": datetime.now(timezone.utc).isoformat(),
-        })
-    else:
-        # Ensure existing admin is flagged
-        await db.users.update_one({"email": ADMIN_EMAIL}, {"$set": {"is_admin": True, "email_verified": True}})
 
 
 @app.on_event("shutdown")
