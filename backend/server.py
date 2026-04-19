@@ -257,6 +257,17 @@ async def login(body: LoginIn, response: Response, request: Request):
     user = await db.users.find_one({"email": email}, {"_id": 0})
     if not user or not verify_password(body.password, user["password_hash"]):
         raise HTTPException(status_code=401, detail="Invalid credentials")
+    # Self-heal admin flag — if this login is for the configured ADMIN_EMAIL,
+    # ensure is_admin=True + email_verified=True even if the startup seed
+    # didn't run (e.g. first boot after env-var change on deployed instance).
+    if ADMIN_EMAIL and email == ADMIN_EMAIL.lower() and not user.get("is_admin"):
+        await db.users.update_one(
+            {"id": user["id"]},
+            {"$set": {"is_admin": True, "email_verified": True}},
+        )
+        user["is_admin"] = True
+        user["email_verified"] = True
+        logger.info(f"Admin self-healed on login for {email}")
     token = create_access_token(user["id"], email)
     set_auth_cookie(response, token)
     await db.users.update_one({"id": user["id"]}, {"$set": {"last_active_at": datetime.now(timezone.utc).isoformat()}})
