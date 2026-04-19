@@ -186,6 +186,10 @@ class InviteIn(BaseModel):
     password: str
 
 
+class BroadcastInviteIn(BaseModel):
+    password: str
+
+
 class ForgotPasswordIn(BaseModel):
     email: EmailStr
 
@@ -786,6 +790,41 @@ async def invite_friend(room_id: str, body: InviteIn, user: dict = Depends(get_c
     await db.notifications.insert_one(dict(notif))
     notif.pop("_id", None)
     return {"ok": True, "notification": notif}
+
+
+@api_router.post("/rooms/{room_id}/broadcast")
+async def broadcast_room_to_friends(room_id: str, body: BroadcastInviteIn, user: dict = Depends(get_current_user)):
+    """Send a room-invite notification to ALL friends at once (when creating a room)."""
+    room = await db.rooms.find_one({"id": room_id.upper()}, {"_id": 0})
+    if not room:
+        raise HTTPException(status_code=404, detail="Room not found")
+    if user["id"] not in room.get("participants", []):
+        raise HTTPException(status_code=403, detail="Not a participant")
+    if not verify_password(body.password, room["password_hash"]):
+        raise HTTPException(status_code=401, detail="Incorrect room password")
+
+    friends = user.get("friends", [])
+    if not friends:
+        return {"ok": True, "sent": 0}
+
+    docs = []
+    now = datetime.now(timezone.utc).isoformat()
+    for fid in friends:
+        docs.append({
+            "id": str(uuid.uuid4()),
+            "user_id": fid,
+            "type": "room-invite",
+            "room_id": room["id"],
+            "room_name": room["name"],
+            "password": body.password,
+            "from_user_id": user["id"],
+            "from_name": user["name"],
+            "read": False,
+            "created_at": now,
+        })
+    if docs:
+        await db.notifications.insert_many(docs)
+    return {"ok": True, "sent": len(docs)}
 
 
 # --- Share Party Poster (Gemini Nano Banana image generation) ---

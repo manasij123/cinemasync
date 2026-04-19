@@ -1,0 +1,38 @@
+{
+  "summary": "Iteration 4 — Broadcast notifications, QR modal, Onboarding checklist, and Voice-command toggle. 12/12 backend tests pass (100%): POST /api/rooms/{id}/broadcast returns {ok:true, sent:N} where N=host friend count, creates one room-invite notification per friend (verified via GET /api/notifications as each friend — type='room-invite', password, from_user_id, from_name, read=false match); wrong password → 401; non-participant → 403; no-friends host → sent=0. Regression for auth (register/login/me/forgot-password/reset-password/verify-email), rooms (create/join/active/history/promote/demote), rtc/ice — all green. Frontend e2e: fresh registered user sees OnboardingChecklist with heading 'Your first 5 scenes', all 5 step cards [photo,verify,friend,room,invite], progress bar at 0%; dismiss button hides it and persists `cinemasync.onboarding.dismissed.{userId}` in localStorage. CreateRoomForm renders [data-testid=create-room-notify-friends] checkbox (checked by default, label 'NOTIFY MY FRIENDS' for friendCount=0, ' · N' appears when host has friends — verified via backend friend-count=2 and toast 'Invite sent to 2 friend(s)' path in code). After submit, [data-testid=room-created-modal] appears with [data-testid=room-created-qr-canvas], room-created-qr-copy & room-created-qr-download buttons and 'Enter the lobby' button navigating to /lobby/{id}. Lobby has [data-testid=qr-panel] with password input + Generate-QR → [data-testid=lobby-qr-canvas] renders. WatchRoom has [data-testid=voice-command-toggle] visible for host; clicking (with microphone permission granted via context.grant_permissions) surfaces [data-testid=voice-listening-banner] with text 'Listening… say: play, pause, forward 30, back 10, reset'; second click removes banner (toggle state works).",
+  "backend_issues": {"critical": [], "minor": []},
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_broadcast_feature.py",
+    "/app/test_reports/pytest/pytest_results_iter4.xml"
+  ],
+  "action_items": [],
+  "critical_code_review_comments": [
+    "QRCodeCard encodes plaintext password into the QR — intentional per spec, but worth noting the payload ends up in storage on devices scanning it.",
+    "RoomCreatedModal onClose navigates to lobby unconditionally (even if user clicks outside the modal or presses ✕). That matches the Enter-lobby flow since there's no explicit ✕, but clicking the dimmed overlay also triggers navigation — may surprise a user who wanted to stay on dashboard. Consider a tighter separation between Close and Enter actions.",
+    "broadcast endpoint happily re-broadcasts every time it is called — no de-dup on already-notified friends. A host re-creating rooms rapidly could spam the same friends. Consider collapsing or rate-limiting per (from_user_id, friend) pair.",
+    "OnboardingChecklist 'Send an invite' step uses `hasInvited = history.length > 0`, which is the same signal as 'host room'. So steps 4 and 5 complete simultaneously on first room create — the two steps effectively collapse into one. If intent was to track a genuine invite-sent event, derive from notifications where from_user_id=me and type=room-invite.",
+    "CORSMiddleware still uses allow_origins=['*'] + allow_credentials=True + allow_origin_regex='.*' (unchanged from iter 3).",
+    "server.py is now ~1300 lines with new endpoints — splitting into routers (auth, rooms, friends, admin, notifications) is overdue."
+  ],
+  "updated_files": [
+    "/app/backend/tests/test_broadcast_feature.py"
+  ],
+  "success_rate": {
+    "backend": "100% (12/12 tests passed)",
+    "frontend": "100% (checklist + notify checkbox + QR modal + lobby QR + voice toggle/banner all verified)"
+  },
+  "test_credentials": {
+    "admin": {"email": "manasijmandal1999@gmail.com", "password": "Manasij@081199"},
+    "ephemeral": "Each test registers fresh {uuid}@example.com users"
+  },
+  "seed_data_creation": "None — tests self-seed ephemeral users.",
+  "retest_needed": false,
+  "should_main_agent_self_test": false,
+  "context_for_next_testing_agent": "Broadcast endpoint POST /api/rooms/{id}/broadcast {password} requires auth + participant + correct room password. Returns {ok:true, sent:N}. Inserts one db.notifications doc per friend (id, user_id=friend, type='room-invite', room_id, room_name, password (PLAINTEXT), from_user_id, from_name, read=false, created_at). Dashboard CreateRoomForm Notify-friends checkbox default=true; on submit calls /rooms then /rooms/{id}/broadcast only if notifyFriends && friendCount>0. Lobby qr-panel: password input + Generate button → renders lobby-qr-canvas. WatchRoom voice-command-toggle uses useVoiceCommands hook (Web Speech API); in headless testing, context.grant_permissions(['microphone']) is enough for the listening-banner state to toggle on click (the hook sets listening=true synchronously on start()). Actual speech recognition is NOT testable in headless. OnboardingChecklist keys localStorage as `cinemasync.onboarding.dismissed.{user.id}` — verified persistence. NOTE: steps 'room' and 'invite' share hasInvited=(history.length>0) so they complete in lock-step.",
+  "rca of the issue": "n/a — all features behave as specified."
+}

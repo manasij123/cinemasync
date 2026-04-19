@@ -4,8 +4,9 @@ import Navbar from "../components/Navbar";
 import { api } from "../lib/api";
 import { useAuth } from "../context/AuthContext";
 import { toast } from "sonner";
-import { Clapperboard, Copy, Check, Users, Send, Link2, UserPlus, Sparkles, Download, Share2 } from "lucide-react";
+import { Clapperboard, Copy, Check, Users, Send, Link2, UserPlus, Sparkles, Download, Share2, QrCode } from "lucide-react";
 import PlatformLogo from "../components/PlatformLogo";
+import QRCodeCard from "../components/QRCodeCard";
 
 const PLATFORM_LABEL = {
   netflix: "Netflix", prime: "Prime Video", hotstar: "JioHotstar",
@@ -136,6 +137,54 @@ function PosterCard({ roomId, room }) {
           <Sparkles size={14} />
           {loading ? "Rolling the poster…" : "Generate AI poster"}
         </button>
+      )}
+    </div>
+  );
+}
+
+function QRCard({ roomId, room }) {
+  const [pw, setPw] = useState("");
+  const [show, setShow] = useState(false);
+  return (
+    <div className="border border-[#7209b7]/30 bg-white p-6" data-testid="qr-panel">
+      <div className="flex items-center gap-2 mb-3">
+        <QrCode size={16} className="text-[#7209b7]" />
+        <span className="font-mono text-xs tracking-[0.3em] uppercase text-[#7209b7]">Scan to join</span>
+      </div>
+      <h3 className="font-head text-2xl uppercase mb-2">Room QR</h3>
+      <p className="text-[#6b5b84] text-sm mb-4">
+        Re-type the room password to regenerate a scannable QR for friends.
+      </p>
+      {show ? (
+        <div className="space-y-3">
+          <QRCodeCard roomId={roomId} password={pw} roomName={room.name} size={200} testid="lobby-qr" />
+          <button
+            onClick={() => { setShow(false); setPw(""); }}
+            data-testid="lobby-qr-hide"
+            className="w-full border border-[#7209b7]/40 text-[#7209b7] font-mono text-xs tracking-widest uppercase px-4 py-2 rounded-md hover:bg-[#7209b7]/10"
+          >
+            Hide QR
+          </button>
+        </div>
+      ) : (
+        <form onSubmit={(e) => { e.preventDefault(); if (pw.trim()) setShow(true); }} className="space-y-3">
+          <input
+            type="text"
+            value={pw}
+            onChange={(e) => setPw(e.target.value)}
+            placeholder="Room password"
+            data-testid="lobby-qr-password-input"
+            className="w-full bg-[#fdf4ff] border border-[#7209b7]/30 focus:border-[#7209b7] px-3 py-2 rounded-md text-sm"
+          />
+          <button
+            type="submit"
+            disabled={!pw.trim()}
+            data-testid="lobby-qr-generate"
+            className="w-full bg-[#7209b7] text-white font-mono tracking-[0.25em] uppercase text-xs px-4 py-3 rounded-md hover:bg-[#4a0580] disabled:opacity-60"
+          >
+            Generate QR
+          </button>
+        </form>
       )}
     </div>
   );
@@ -423,6 +472,8 @@ export default function Lobby() {
             </div>
 
             <PosterCard roomId={roomId} room={room} />
+
+            <QRCard roomId={roomId} room={room} />
 
             <InvitePanel roomId={roomId} isHost={isHost} />
           </div>

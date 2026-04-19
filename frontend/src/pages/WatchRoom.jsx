@@ -8,8 +8,10 @@ import {
   Play, Pause, RotateCcw, RotateCw, Send, Cast, CastOff, Film, Smile,
   SkipBack, SkipForward, Users, MonitorOff, ExternalLink, Maximize2, Minimize2,
   MessageSquare, MessageSquareOff, Mic, MicOff, Video, VideoOff, Headphones,
+  Radio,
 } from "lucide-react";
 import PlatformLogo from "../components/PlatformLogo";
+import useVoiceCommands from "../hooks/useVoiceCommands";
 
 const PLATFORM_LABEL = {
   netflix: "Netflix", prime: "Prime Video", hotstar: "JioHotstar",
@@ -337,6 +339,35 @@ export default function WatchRoom() {
     if (!canControl) return;
     setPosition(0);
     sendSync("seek", playing, 0);
+  };
+
+  // Voice commands (host / co-host only for controls)
+  const voice = useVoiceCommands({
+    enabled: canControl,
+    handlers: {
+      play: () => { if (!playing) onPlayPause(); },
+      pause: () => { if (playing) onPlayPause(); },
+      reset: () => resetTimer(),
+      forward: (s = 10) => seek(s),
+      back: (s = 10) => seek(-s),
+      mute: () => { if (micOn) toggleMic(); },
+      unmute: () => { if (!micOn) toggleMic(); },
+    },
+  });
+
+  const toggleVoiceCmd = () => {
+    if (!voice.supported) {
+      toast.error("Voice commands aren't supported in this browser (try Chrome).");
+      return;
+    }
+    if (!canControl) {
+      toast.error("Only the host or co-host can use voice commands");
+      return;
+    }
+    voice.toggle();
+    if (!voice.listening) {
+      toast.success("Listening… say: play, pause, forward 30, back 10, reset");
+    }
   };
 
   // --- chat ---
@@ -898,8 +929,41 @@ export default function WatchRoom() {
               >
                 {camOn ? <Video size={16} /> : <VideoOff size={16} />}
               </button>
+              {canControl && voice.supported && (
+                <button
+                  onClick={toggleVoiceCmd}
+                  data-testid="voice-command-toggle"
+                  title={voice.listening ? "Stop listening" : "Voice commands — say play, pause, forward 30"}
+                  className={
+                    "relative flex items-center gap-1.5 font-mono text-[10px] tracking-widest uppercase transition-colors " +
+                    (voice.listening
+                      ? (fullscreen ? "text-[#f72585]" : "text-[#f72585]")
+                      : (fullscreen ? "text-white/60 hover:text-white" : "text-[#6b5b84] hover:text-[#1a0b2e]"))
+                  }
+                >
+                  <Radio size={16} />
+                  {voice.listening && (
+                    <span className="absolute -top-0.5 -right-0.5 w-2 h-2 rounded-full bg-[#f72585] pulse-live" />
+                  )}
+                </button>
+              )}
             </div>
 
+            {/* Voice-command listening banner (top-center) */}
+            {voice.listening && (
+              <div
+                data-testid="voice-listening-banner"
+                className="absolute left-1/2 -translate-x-1/2 top-4 z-30 px-4 py-2 rounded-full bg-black/75 text-white font-mono text-[11px] tracking-widest uppercase flex items-center gap-2 shadow-xl backdrop-blur-sm"
+              >
+                <span className="w-2 h-2 rounded-full bg-[#f72585] pulse-live" />
+                Listening…
+                {voice.transcript && (
+                  <span className="text-[#4cc9f0] normal-case tracking-normal max-w-[240px] truncate">
+                    "{voice.transcript}"
+                  </span>
+                )}
+              </div>
+            )}
             {/* Floating voice/video tile grid (top-right) */}
             {(micOn || camOn || Object.keys(remoteMedia).length > 0) && (
               <div

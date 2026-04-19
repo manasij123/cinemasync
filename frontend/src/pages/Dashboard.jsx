@@ -11,6 +11,8 @@ import {
 } from "lucide-react";
 import { Sparkline, LineChart, Doughnut, BarChart } from "../components/Charts";
 import PlatformLogo, { PLATFORM_LIST, platformLabel } from "../components/PlatformLogo";
+import QRCodeCard from "../components/QRCodeCard";
+import OnboardingChecklist from "../components/OnboardingChecklist";
 
 // Chart colour accents per platform (purely for charts/doughnut)
 const PLATFORM_CHART_COLOR = {
@@ -82,10 +84,11 @@ function Legend({ items }) {
   );
 }
 
-function CreateRoomForm({ onCreated }) {
+function CreateRoomForm({ onCreated, friendCount }) {
   const [name, setName] = useState("Friday Night Reel");
   const [password, setPassword] = useState("");
   const [platform, setPlatform] = useState("custom");
+  const [notifyFriends, setNotifyFriends] = useState(true);
   const [loading, setLoading] = useState(false);
   const { formatApiError } = useAuth();
   const submit = async (e) => {
@@ -94,7 +97,14 @@ function CreateRoomForm({ onCreated }) {
     try {
       const { data } = await api.post("/rooms", { name, password, platform });
       toast.success(`Room ${data.room.id} created`);
-      onCreated(data.room);
+      if (notifyFriends && friendCount > 0) {
+        try {
+          const res = await api.post(`/rooms/${data.room.id}/broadcast`, { password });
+          const n = res.data?.sent || 0;
+          if (n > 0) toast.success(`Invite sent to ${n} friend${n > 1 ? "s" : ""}`);
+        } catch {}
+      }
+      onCreated(data.room, { password });
     } catch (e) {
       toast.error(formatApiError(e.response?.data?.detail) || e.message);
     } finally {
@@ -157,6 +167,18 @@ function CreateRoomForm({ onCreated }) {
           );
         })}
       </div>
+      <label className="flex items-center gap-2 cursor-pointer select-none">
+        <input
+          type="checkbox"
+          checked={notifyFriends}
+          onChange={(e) => setNotifyFriends(e.target.checked)}
+          data-testid="create-room-notify-friends"
+          className="accent-[#7209b7] w-4 h-4"
+        />
+        <span className="font-mono text-[10px] tracking-[0.25em] uppercase text-[#6b5b84]">
+          Notify my friends{friendCount > 0 ? ` · ${friendCount}` : ""}
+        </span>
+      </label>
       <button
         disabled={loading}
         data-testid="create-room-submit-button"
@@ -310,6 +332,42 @@ function HistoryCard({ row, onClick }) {
   );
 }
 
+function RoomCreatedModal({ room, password, friendCount, onClose }) {
+  return (
+    <div
+      data-testid="room-created-modal"
+      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-[#1a0b2e]/70 backdrop-blur-sm"
+      onClick={onClose}
+    >
+      <div
+        className="w-full max-w-md rounded-xl bg-white border border-[#7209b7]/30 overflow-hidden shadow-[0_30px_80px_rgba(26,11,46,0.4)]"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="p-5 bg-gradient-to-r from-[#7209b7] to-[#f72585] text-white">
+          <div className="font-mono text-[10px] tracking-[0.3em] uppercase opacity-80">Room created</div>
+          <div className="font-head text-2xl uppercase leading-tight truncate">{room.name}</div>
+          <div className="font-mono text-[11px] tracking-widest mt-1 opacity-90">
+            ID: {room.id} · {friendCount > 0 ? `Friends notified` : "No friends yet"}
+          </div>
+        </div>
+        <div className="p-5">
+          <QRCodeCard roomId={room.id} password={password} roomName={room.name} size={200} testid="room-created-qr" />
+          <p className="text-xs text-[#6b5b84] mt-3 text-center">
+            Your friends can point Google Lens or any QR app at this code — it will reveal the Room ID and Password instantly.
+          </p>
+          <button
+            onClick={onClose}
+            data-testid="room-created-enter-button"
+            className="mt-4 w-full bg-[#7209b7] text-white font-mono tracking-[0.25em] uppercase text-xs px-4 py-3 rounded-lg hover:bg-[#4a0580]"
+          >
+            Enter the lobby
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export default function Dashboard() {
   const { user, formatApiError } = useAuth();
   const [friends, setFriends] = useState([]);
@@ -387,7 +445,14 @@ export default function Dashboard() {
     return vals.map((v, i) => ({ value: v, label: labels[i] }));
   }, [user.id]);
 
-  const onEnterRoom = (room) => navigate(`/lobby/${room.id}`);
+  const [justCreated, setJustCreated] = useState(null); // { room, password }
+  const onEnterRoom = (room, extras) => {
+    if (extras?.password) {
+      setJustCreated({ room, password: extras.password });
+    } else {
+      navigate(`/lobby/${room.id}`);
+    }
+  };
   const acceptInvite = async (n) => {
     try {
       await api.post("/rooms/join", { room_id: n.room_id, password: n.password });
@@ -408,6 +473,13 @@ export default function Dashboard() {
       title={`${greet()}, ${user.name}`}
       actions={<UniqueIdBadge value={user.unique_id} user={user} testid="dashboard-unique-id" />}
     >
+      <OnboardingChecklist
+        user={user}
+        friendCount={friends.length}
+        roomCount={history.length}
+        hasInvited={history.length > 0}
+      />
+
       {/* KPI row */}
       <section className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6" data-testid="dashboard-stats">
         <KPI testid="stat-live" label="Live Rooms" value={liveCount} delta={12} up sparkData={sparkA} sparkColor="#f72585" />
@@ -521,13 +593,13 @@ export default function Dashboard() {
 
       {/* Actions row — stacked: Host creates room on top, Join room below */}
       <section className="space-y-4">
-        <div className="glass-card rounded-xl p-5 md:p-6">
+        <div id="create-room" className="glass-card rounded-xl p-5 md:p-6">
           <div className="flex items-center gap-2 mb-3">
             <Plus size={16} className="text-[#f72585]" />
             <span className="font-mono text-xs tracking-[0.3em] uppercase text-[#f72585]">Host</span>
           </div>
           <h2 className="font-head text-2xl md:text-3xl uppercase mb-5">Create room</h2>
-          <CreateRoomForm onCreated={onEnterRoom} />
+          <CreateRoomForm onCreated={onEnterRoom} friendCount={friends.length} />
         </div>
 
         <div className="glass-card rounded-xl p-5 md:p-6">
@@ -541,6 +613,19 @@ export default function Dashboard() {
           </div>
         </div>
       </section>
+
+      {justCreated && (
+        <RoomCreatedModal
+          room={justCreated.room}
+          password={justCreated.password}
+          friendCount={friends.length}
+          onClose={() => {
+            const room = justCreated.room;
+            setJustCreated(null);
+            navigate(`/lobby/${room.id}`);
+          }}
+        />
+      )}
     </AppShell>
   );
 }
