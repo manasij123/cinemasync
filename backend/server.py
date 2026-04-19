@@ -6,6 +6,7 @@ load_dotenv(ROOT_DIR / '.env')
 
 import os
 import logging
+import asyncio
 import uuid
 import bcrypt
 import jwt
@@ -450,6 +451,62 @@ async def serve_file(
         media_type=record.get("content_type") or content_type,
         headers={"Cache-Control": "private, max-age=300"},
     )
+
+
+# --- WebRTC ICE servers (TURN via Metered) ---
+import requests as _requests
+
+_METERED_CACHE: Dict[str, object] = {}
+
+
+def _static_ice_servers() -> list:
+    user = os.environ.get("METERED_TURN_USERNAME")
+    cred = os.environ.get("METERED_TURN_CREDENTIAL")
+    base = [{"urls": "stun:stun.l.google.com:19302"}]
+    if user and cred:
+        base += [
+            {"urls": "stun:stun.relay.metered.ca:80"},
+            {"urls": "turn:global.relay.metered.ca:80", "username": user, "credential": cred},
+            {"urls": "turn:global.relay.metered.ca:80?transport=tcp", "username": user, "credential": cred},
+            {"urls": "turn:global.relay.metered.ca:443", "username": user, "credential": cred},
+            {"urls": "turns:global.relay.metered.ca:443?transport=tcp", "username": user, "credential": cred},
+        ]
+    return base
+
+
+@api_router.get("/rtc/ice")
+async def rtc_ice(user: dict = Depends(get_current_user)):
+    """Return ICE servers for WebRTC. Tries Metered REST API first (short-TTL
+    credentials), falls back to static env-provided TURN creds."""
+    import time
+    app_name = os.environ.get("METERED_TURN_APP") or "cinemasync"
+    api_key = os.environ.get("METERED_TURN_API_KEY")
+    cached = _METERED_CACHE.get("ice")
+    cached_at = _METERED_CACHE.get("at") or 0
+    if cached and (time.time() - float(cached_at)) < 300:  # 5-min cache
+        return {"iceServers": cached, "source": "cache"}
+
+    if api_key:
+        try:
+            resp = await asyncio.to_thread(
+                _requests.get,
+                f"https://{app_name}.metered.live/api/v1/turn/credentials",
+                params={"apiKey": api_key},
+                timeout=8,
+            )
+            if resp.ok:
+                ice = resp.json()
+                if isinstance(ice, list) and ice:
+                    _METERED_CACHE["ice"] = ice
+                    _METERED_CACHE["at"] = time.time()
+                    return {"iceServers": ice, "source": "metered"}
+        except Exception as e:
+            logger.warning(f"Metered ICE fetch failed: {e}")
+
+    ice = _static_ice_servers()
+    _METERED_CACHE["ice"] = ice
+    _METERED_CACHE["at"] = time.time()
+    return {"iceServers": ice, "source": "static"}
 
 
 # ------------- Friends -------------
@@ -972,6 +1029,7 @@ async def websocket_room(websocket: WebSocket, room_id: str):
                 target_id = msg.get("to")
                 payload = {
                     "type": "webrtc-signal",
+                    "channel": msg.get("channel", "screen"),
                     "from": user["id"],
                     "from_name": user["name"],
                     "signal": msg.get("signal"),

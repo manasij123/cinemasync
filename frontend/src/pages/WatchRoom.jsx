@@ -7,7 +7,7 @@ import { toast } from "sonner";
 import {
   Play, Pause, RotateCcw, RotateCw, Send, Cast, CastOff, Film, Smile,
   SkipBack, SkipForward, Users, MonitorOff, ExternalLink, Maximize2, Minimize2,
-  MessageSquare, MessageSquareOff,
+  MessageSquare, MessageSquareOff, Mic, MicOff, Video, VideoOff, Headphones,
 } from "lucide-react";
 import PlatformLogo from "../components/PlatformLogo";
 
@@ -27,7 +27,58 @@ const PLATFORM_URL = {
 
 const EMOJIS = ["😂","🔥","🎬","🍿","😱","❤️","👏","🤣","😭","🥹","😎","💀","👀","🎉","💯","🙌","🤯","👍"];
 
+// Fallback — replaced at runtime by fetchIceServers()
 const ICE_SERVERS = [{ urls: "stun:stun.l.google.com:19302" }];
+
+function VoiceTile({ self = false, name, stream, videoRef, hasVideo, hasAudio }) {
+  const localRef = useRef(null);
+  const targetRef = videoRef || localRef;
+  useEffect(() => {
+    if (targetRef.current && stream) {
+      targetRef.current.srcObject = stream;
+      const p = targetRef.current.play();
+      if (p && typeof p.catch === "function") p.catch(() => {});
+    }
+  }, [stream, targetRef]);
+  const initials = (name || "?")
+    .split(/\s+/)
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((s) => s[0]?.toUpperCase())
+    .join("") || "?";
+  return (
+    <div
+      data-testid={`voice-tile-${self ? "self" : name}`}
+      className="relative w-36 h-24 bg-black/80 border border-white/20 rounded-md overflow-hidden shadow-[0_6px_20px_rgba(26,11,46,0.35)]"
+    >
+      {hasVideo ? (
+        <video
+          ref={targetRef}
+          autoPlay
+          playsInline
+          muted={self}
+          className="w-full h-full object-cover"
+        />
+      ) : (
+        <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-[#7209b7] to-[#1a0b2e]">
+          <span className="font-head uppercase text-white text-2xl tracking-wider">{initials}</span>
+        </div>
+      )}
+      <div className="absolute bottom-0 left-0 right-0 px-2 py-1 flex items-center justify-between bg-gradient-to-t from-black/80 to-transparent">
+        <span className="font-mono text-[9px] tracking-widest uppercase text-white truncate">
+          {self ? "You" : name}
+        </span>
+        <span className="flex items-center gap-1">
+          {hasAudio ? (
+            <Mic size={10} className="text-[#4cc9f0]" />
+          ) : (
+            <MicOff size={10} className="text-[#f72585]" />
+          )}
+        </span>
+      </div>
+    </div>
+  );
+}
 
 function fmtTime(s) {
   if (!Number.isFinite(s) || s < 0) s = 0;
@@ -66,9 +117,18 @@ export default function WatchRoom() {
   const [controlsVisible, setControlsVisible] = useState(true);
   const localStreamRef = useRef(null);
   const videoRef = useRef(null);
-  const peersRef = useRef({}); // user_id -> RTCPeerConnection
+  const peersRef = useRef({}); // user_id -> RTCPeerConnection (screen-share channel)
   const stageRef = useRef(null);
   const idleTimerRef = useRef(null);
+
+  // Voice/Video chat (mesh) — separate peer connections on "voice" channel
+  const [micOn, setMicOn] = useState(false);
+  const [camOn, setCamOn] = useState(false);
+  const [remoteMedia, setRemoteMedia] = useState({}); // peer_id -> { stream, hasVideo, hasAudio, name }
+  const localMediaRef = useRef(null); // our MediaStream for mic+cam
+  const voicePeersRef = useRef({}); // user_id -> RTCPeerConnection (voice/video channel)
+  const iceServersRef = useRef(ICE_SERVERS);
+  const localVideoRef = useRef(null);
 
   const wsRef = useRef(null);
   const chatEndRef = useRef(null);
@@ -98,6 +158,10 @@ export default function WatchRoom() {
       try {
         const { data } = await api.get(`/rooms/${roomId}/messages`);
         setMessages(data.messages || []);
+      } catch {}
+      try {
+        const { data } = await api.get("/rtc/ice");
+        if (data?.iceServers?.length) iceServersRef.current = data.iceServers;
       } catch {}
     })();
   }, [loadRoom, roomId]);
@@ -148,6 +212,10 @@ export default function WatchRoom() {
           if (room.host_id === user.id && localStreamRef.current) {
             wsRef.current?.send(JSON.stringify({ type: "screenshare-start" }));
             createOfferTo(msg.joined.id, localStreamRef.current).catch(() => {});
+          }
+          // If we're already in voice/video chat, dial the new joiner
+          if ((micOn || camOn) && !voicePeersRef.current[msg.joined.id]) {
+            callVoicePeer(msg.joined.id, msg.joined.name).catch(() => {});
           }
         }
       } else if (msg.type === "sync") {
@@ -326,7 +394,7 @@ export default function WatchRoom() {
 
   const getOrCreatePeer = (peerId) => {
     if (peersRef.current[peerId]) return peersRef.current[peerId];
-    const pc = new RTCPeerConnection({ iceServers: ICE_SERVERS });
+    const pc = new RTCPeerConnection({ iceServers: iceServersRef.current });
     pc.onicecandidate = (ev) => {
       if (ev.candidate) {
         wsRef.current?.send(JSON.stringify({
@@ -374,6 +442,10 @@ export default function WatchRoom() {
   };
 
   const handleSignal = async (msg) => {
+    // Dispatch by channel: "voice" routes to voice mesh, else screen-share
+    if (msg.channel === "voice") {
+      return handleVoiceSignal(msg);
+    }
     const from = msg.from;
     const kind = msg.kind;
     const signal = msg.signal;
@@ -400,6 +472,168 @@ export default function WatchRoom() {
       try { await pc.addIceCandidate(new RTCIceCandidate(signal)); } catch {}
     }
   };
+
+  // =======================
+  // Voice/Video chat (mesh)
+  // =======================
+  const getOrCreateVoicePeer = (peerId, peerName) => {
+    if (voicePeersRef.current[peerId]) return voicePeersRef.current[peerId];
+    const pc = new RTCPeerConnection({ iceServers: iceServersRef.current });
+    pc.onicecandidate = (ev) => {
+      if (ev.candidate) {
+        wsRef.current?.send(JSON.stringify({
+          type: "webrtc-signal",
+          channel: "voice",
+          to: peerId,
+          kind: "ice",
+          signal: ev.candidate,
+        }));
+      }
+    };
+    pc.ontrack = (ev) => {
+      const stream = ev.streams[0];
+      setRemoteMedia((m) => ({
+        ...m,
+        [peerId]: {
+          stream,
+          name: peerName || m[peerId]?.name || "Guest",
+          hasAudio: stream.getAudioTracks().some((t) => t.enabled),
+          hasVideo: stream.getVideoTracks().some((t) => t.enabled),
+        },
+      }));
+    };
+    pc.onconnectionstatechange = () => {
+      if (["failed", "closed", "disconnected"].includes(pc.connectionState)) {
+        try { pc.close(); } catch {}
+        delete voicePeersRef.current[peerId];
+        setRemoteMedia((m) => {
+          const n = { ...m };
+          delete n[peerId];
+          return n;
+        });
+      }
+    };
+    voicePeersRef.current[peerId] = pc;
+    // Add our local tracks (if already streaming)
+    const local = localMediaRef.current;
+    if (local) {
+      local.getTracks().forEach((t) => pc.addTrack(t, local));
+    }
+    return pc;
+  };
+
+  const callVoicePeer = async (peerId, peerName) => {
+    const pc = getOrCreateVoicePeer(peerId, peerName);
+    const offer = await pc.createOffer({ offerToReceiveAudio: true, offerToReceiveVideo: true });
+    await pc.setLocalDescription(offer);
+    wsRef.current?.send(JSON.stringify({
+      type: "webrtc-signal",
+      channel: "voice",
+      to: peerId,
+      kind: "offer",
+      signal: offer,
+    }));
+  };
+
+  const handleVoiceSignal = async (msg) => {
+    const from = msg.from;
+    const pc = getOrCreateVoicePeer(from, msg.from_name);
+    if (msg.kind === "offer") {
+      await pc.setRemoteDescription(new RTCSessionDescription(msg.signal));
+      const answer = await pc.createAnswer();
+      await pc.setLocalDescription(answer);
+      wsRef.current?.send(JSON.stringify({
+        type: "webrtc-signal",
+        channel: "voice",
+        to: from,
+        kind: "answer",
+        signal: answer,
+      }));
+    } else if (msg.kind === "answer") {
+      try { await pc.setRemoteDescription(new RTCSessionDescription(msg.signal)); } catch {}
+    } else if (msg.kind === "ice") {
+      try { await pc.addIceCandidate(new RTCIceCandidate(msg.signal)); } catch {}
+    }
+  };
+
+  const ensureLocalMedia = async (wantVideo) => {
+    const want = { audio: true, video: wantVideo ? { width: 640, height: 360 } : false };
+    let stream = localMediaRef.current;
+    const needReplace = !stream || (wantVideo && stream.getVideoTracks().length === 0);
+    if (needReplace) {
+      try {
+        stream = await navigator.mediaDevices.getUserMedia(want);
+      } catch (e) {
+        toast.error(e.message || "Microphone/camera access denied");
+        return null;
+      }
+      // stop old if upgrading
+      if (localMediaRef.current) {
+        localMediaRef.current.getTracks().forEach((t) => t.stop());
+      }
+      localMediaRef.current = stream;
+      if (localVideoRef.current) localVideoRef.current.srcObject = stream;
+      // replace / add tracks on every existing voice peer
+      Object.values(voicePeersRef.current).forEach((pc) => {
+        const senders = pc.getSenders();
+        stream.getTracks().forEach((t) => {
+          const s = senders.find((s) => s.track && s.track.kind === t.kind);
+          if (s) s.replaceTrack(t);
+          else pc.addTrack(t, stream);
+        });
+      });
+    }
+    return stream;
+  };
+
+  const toggleMic = async () => {
+    if (!micOn) {
+      const stream = await ensureLocalMedia(camOn);
+      if (!stream) return;
+      stream.getAudioTracks().forEach((t) => { t.enabled = true; });
+      setMicOn(true);
+      // Call every other presence user on the voice channel
+      (presence || []).forEach((p) => {
+        if (p.id !== user.id && !voicePeersRef.current[p.id]) {
+          callVoicePeer(p.id, p.name).catch(() => {});
+        }
+      });
+    } else {
+      const stream = localMediaRef.current;
+      stream?.getAudioTracks().forEach((t) => { t.enabled = false; });
+      setMicOn(false);
+    }
+  };
+
+  const toggleCam = async () => {
+    if (!camOn) {
+      const stream = await ensureLocalMedia(true);
+      if (!stream) return;
+      stream.getVideoTracks().forEach((t) => { t.enabled = true; });
+      setCamOn(true);
+      (presence || []).forEach((p) => {
+        if (p.id !== user.id && !voicePeersRef.current[p.id]) {
+          callVoicePeer(p.id, p.name).catch(() => {});
+        }
+      });
+    } else {
+      const stream = localMediaRef.current;
+      stream?.getVideoTracks().forEach((t) => { t.enabled = false; });
+      setCamOn(false);
+    }
+  };
+
+  // Clean up voice peers + local stream on unmount / leave
+  useEffect(() => {
+    return () => {
+      Object.values(voicePeersRef.current).forEach((pc) => { try { pc.close(); } catch {} });
+      voicePeersRef.current = {};
+      if (localMediaRef.current) {
+        localMediaRef.current.getTracks().forEach((t) => t.stop());
+        localMediaRef.current = null;
+      }
+    };
+  }, []);
 
   const leave = async () => {
     try { wsRef.current?.close(); } catch {}
@@ -637,7 +871,67 @@ export default function WatchRoom() {
               ) : (
                 <span className={"font-mono text-[10px] tracking-widest uppercase " + (fullscreen ? "text-white/60" : "text-[#6b5b84]")}>Guest</span>
               )}
+              <div className="w-px h-8 bg-[#7209b7]/15" />
+              <button
+                onClick={toggleMic}
+                data-testid="voice-mic-toggle"
+                title={micOn ? "Mute microphone" : "Unmute microphone"}
+                className={
+                  "flex items-center gap-1.5 font-mono text-[10px] tracking-widest uppercase transition-colors " +
+                  (micOn
+                    ? (fullscreen ? "text-[#4cc9f0]" : "text-[#7209b7]")
+                    : (fullscreen ? "text-white/60 hover:text-white" : "text-[#6b5b84] hover:text-[#1a0b2e]"))
+                }
+              >
+                {micOn ? <Mic size={16} /> : <MicOff size={16} />}
+              </button>
+              <button
+                onClick={toggleCam}
+                data-testid="voice-cam-toggle"
+                title={camOn ? "Turn camera off" : "Turn camera on"}
+                className={
+                  "flex items-center gap-1.5 font-mono text-[10px] tracking-widest uppercase transition-colors " +
+                  (camOn
+                    ? (fullscreen ? "text-[#4cc9f0]" : "text-[#7209b7]")
+                    : (fullscreen ? "text-white/60 hover:text-white" : "text-[#6b5b84] hover:text-[#1a0b2e]"))
+                }
+              >
+                {camOn ? <Video size={16} /> : <VideoOff size={16} />}
+              </button>
             </div>
+
+            {/* Floating voice/video tile grid (top-right) */}
+            {(micOn || camOn || Object.keys(remoteMedia).length > 0) && (
+              <div
+                data-testid="voice-tile-grid"
+                className={
+                  "absolute right-3 top-16 z-20 flex flex-col gap-2 max-h-[calc(100%-10rem)] overflow-y-auto transition-opacity duration-300 " +
+                  (fullscreen && !controlsVisible ? "opacity-0 pointer-events-none" : "opacity-100")
+                }
+              >
+                {/* Self */}
+                {(micOn || camOn) && (
+                  <VoiceTile
+                    self
+                    name="You"
+                    stream={localMediaRef.current}
+                    videoRef={localVideoRef}
+                    hasVideo={camOn}
+                    hasAudio={micOn}
+                  />
+                )}
+                {/* Remote peers */}
+                {Object.entries(remoteMedia).map(([pid, m]) => (
+                  <VoiceTile
+                    key={pid}
+                    name={m.name}
+                    stream={m.stream}
+                    hasVideo={m.stream?.getVideoTracks().some((t) => t.enabled && t.readyState === "live")}
+                    hasAudio={m.stream?.getAudioTracks().some((t) => t.enabled && t.readyState === "live")}
+                  />
+                ))}
+              </div>
+            )}
 
             {/* In-stage chat overlay (only in fullscreen) */}
             {fullscreen && chatOpenInFs && (
