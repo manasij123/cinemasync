@@ -8,7 +8,7 @@ import {
   Play, Pause, RotateCcw, RotateCw, Send, Cast, CastOff, Film, Smile,
   SkipBack, SkipForward, Users, MonitorOff, ExternalLink, Maximize2, Minimize2,
   MessageSquare, MessageSquareOff, Mic, MicOff, Video, VideoOff, Headphones,
-  Radio,
+  Radio, Info,
 } from "lucide-react";
 import PlatformLogo from "../components/PlatformLogo";
 import useVoiceCommands from "../hooks/useVoiceCommands";
@@ -90,6 +90,42 @@ function fmtTime(s) {
   return `${h > 0 ? String(h).padStart(2, "0") + ":" : ""}${String(m).padStart(2, "0")}:${String(sec).padStart(2, "0")}`;
 }
 
+// Convert pasted media URLs to embeddable form (YouTube, Vimeo). Direct .mp4/.webm
+// and general iframe-friendly pages are returned as-is. Returns empty string for invalid input.
+function toEmbedUrl(raw) {
+  const url = (raw || "").trim();
+  if (!url) return "";
+  try {
+    const u = new URL(/^https?:\/\//i.test(url) ? url : `https://${url}`);
+    const host = u.hostname.replace(/^www\./, "").toLowerCase();
+    // YouTube
+    if (host === "youtu.be") {
+      const id = u.pathname.slice(1);
+      return id ? `https://www.youtube.com/embed/${id}?autoplay=1` : "";
+    }
+    if (host.endsWith("youtube.com") || host === "m.youtube.com") {
+      if (u.pathname.startsWith("/watch")) {
+        const id = u.searchParams.get("v");
+        return id ? `https://www.youtube.com/embed/${id}?autoplay=1` : "";
+      }
+      if (u.pathname.startsWith("/embed/") || u.pathname.startsWith("/shorts/")) {
+        const id = u.pathname.split("/").filter(Boolean)[1];
+        return id ? `https://www.youtube.com/embed/${id}?autoplay=1` : "";
+      }
+    }
+    // Vimeo
+    if (host === "vimeo.com") {
+      const id = u.pathname.split("/").filter(Boolean)[0];
+      return /^\d+$/.test(id) ? `https://player.vimeo.com/video/${id}?autoplay=1` : "";
+    }
+    if (host === "player.vimeo.com") return u.href;
+    // Direct media / generic page
+    return u.href;
+  } catch {
+    return "";
+  }
+}
+
 export default function WatchRoom() {
   const { roomId } = useParams();
   const { user, formatApiError } = useAuth();
@@ -112,6 +148,11 @@ export default function WatchRoom() {
   const [remoteSharerId, setRemoteSharerId] = useState(null);
   const [remoteSharerName, setRemoteSharerName] = useState("");
   const [videoMuted, setVideoMuted] = useState(true);
+  const [showShareGuide, setShowShareGuide] = useState(false);
+
+  // Custom-platform in-stage iframe (only when platform === "custom")
+  const [customUrlInput, setCustomUrlInput] = useState("");
+  const [customIframeSrc, setCustomIframeSrc] = useState("");
 
   // Fullscreen / chat collapse
   const [fullscreen, setFullscreen] = useState(false);
@@ -391,13 +432,18 @@ export default function WatchRoom() {
 
   // --- webrtc screen share ---
   // Host creates PeerConnection to each viewer and offers the stream
-  const startShare = async () => {
-    if (!isHost) {
-      toast.error("Only host can screen-share in this version");
-      return;
-    }
+  const doStartShare = async (opts = {}) => {
+    const { preferTab = false } = opts;
     try {
-      const stream = await navigator.mediaDevices.getDisplayMedia({ video: true, audio: true });
+      const constraints = {
+        video: preferTab
+          ? { displaySurface: "browser" }
+          : true,
+        audio: true,
+      };
+      // `preferCurrentTab` is a recent Chromium hint; pass only when supported
+      if (preferTab) constraints.preferCurrentTab = false; // want OTT tab, not CinemaSync tab
+      const stream = await navigator.mediaDevices.getDisplayMedia(constraints);
       localStreamRef.current = stream;
       if (videoRef.current) {
         videoRef.current.srcObject = stream;
@@ -406,16 +452,32 @@ export default function WatchRoom() {
       }
       setSharing(true);
       wsRef.current?.send(JSON.stringify({ type: "screenshare-start" }));
-      // Create peer to each viewer (use latest presence)
       const viewers = presence.filter((p) => p.id !== user.id);
       for (const v of viewers) {
         await createOfferTo(v.id, stream);
       }
-      // Auto stop handler
       stream.getVideoTracks()[0].onended = () => stopShare();
     } catch (e) {
       toast.error("Screen share cancelled or blocked");
     }
+  };
+
+  const startShare = async () => {
+    if (!isHost) {
+      toast.error("Only host can screen-share in this version");
+      return;
+    }
+    // For the "custom" in-stage iframe player we skip the guide and share this tab
+    if (room?.platform === "custom" && customIframeSrc) {
+      await doStartShare({ preferTab: true });
+      return;
+    }
+    // For external OTT platforms: show the "Share this tab" guide first
+    if (room?.platform && room.platform !== "custom") {
+      setShowShareGuide(true);
+      return;
+    }
+    await doStartShare();
   };
 
   const stopShare = () => {
@@ -770,6 +832,19 @@ export default function WatchRoom() {
                 className={`w-full h-full object-contain bg-[#0A0908] ${sharing || remoteSharerId ? "block" : "hidden"}`}
                 data-testid="watch-video-surface"
               />
+              {/* Custom-platform in-stage iframe player (only when host hasn't started share) */}
+              {room.platform === "custom" && customIframeSrc && !sharing && !remoteSharerId && (
+                <iframe
+                  src={customIframeSrc}
+                  title="CinemaSync in-stage player"
+                  data-testid="watch-custom-iframe"
+                  className="absolute inset-0 w-full h-full bg-black"
+                  allow="autoplay; encrypted-media; picture-in-picture; fullscreen; clipboard-write"
+                  allowFullScreen
+                  referrerPolicy="no-referrer"
+                  sandbox="allow-same-origin allow-scripts allow-forms allow-popups allow-presentation"
+                />
+              )}
               {remoteSharerId && !sharing && (
                 <button
                   onClick={() => {
@@ -803,6 +878,21 @@ export default function WatchRoom() {
               >
                 {fullscreen ? <Minimize2 size={16} /> : <Maximize2 size={16} />}
               </button>
+              {/* In-stage iframe → "Change URL" / "Close" controls for host */}
+              {room.platform === "custom" && customIframeSrc && !sharing && !remoteSharerId && isHost && (
+                <button
+                  type="button"
+                  onClick={() => { setCustomIframeSrc(""); setCustomUrlInput(""); }}
+                  data-testid="watch-custom-iframe-close"
+                  className={
+                    "absolute top-3 right-3 bg-black/70 border border-white/30 text-white px-3 py-1.5 font-mono text-[10px] tracking-[0.25em] uppercase hover:bg-white/10 z-10 transition-opacity duration-300 " +
+                    (fullscreen && !controlsVisible ? "opacity-0 pointer-events-none" : "opacity-100")
+                  }
+                  title="Close the embedded player"
+                >
+                  Change URL
+                </button>
+              )}
               {/* Chat toggle (only while fullscreen) — overlay */}
               {fullscreen && (
                 <button
@@ -817,40 +907,79 @@ export default function WatchRoom() {
                   {chatOpenInFs ? <MessageSquareOff size={16} /> : <MessageSquare size={16} />}
                 </button>
               )}
-              {!sharing && !remoteSharerId && !fullscreen && (
-                <div className="text-center px-6">
+              {!sharing && !remoteSharerId && !fullscreen && !(room.platform === "custom" && customIframeSrc) && (
+                <div className="text-center px-6 max-w-xl w-full">
                   {room.platform !== "custom" && (
                     <div className="flex justify-center mb-4">
                       <PlatformLogo platform={room.platform} size={110} rounded="xl" showRing />
                     </div>
                   )}
                   <div className="font-head text-3xl sm:text-5xl uppercase text-[#7209b7] mb-3">Intermission</div>
-                  <p className="text-[#6b5b84] max-w-md mx-auto mb-6">
-                    Open <span className="font-mono text-[#7209b7]">{PLATFORM_LABEL[room.platform]}</span> in a new tab and hit play — your room syncs the timer.
-                    {isHost && " Or start screen-share to broadcast your window."}
-                  </p>
-                  <div className="flex justify-center gap-3 flex-wrap">
-                    {room.platform !== "custom" && (
-                      <button
-                        type="button"
-                        onClick={() => {
-                          const w = window.screen.availWidth;
-                          const h = window.screen.availHeight;
-                          const popW = Math.min(1280, Math.round(w * 0.7));
-                          const popH = Math.min(800, Math.round(h * 0.85));
-                          window.open(
-                            PLATFORM_URL[room.platform],
-                            "cinemasync-ott",
-                            `popup=yes,width=${popW},height=${popH},left=${w - popW - 20},top=40,scrollbars=yes,resizable=yes`
-                          );
-                        }}
-                        data-testid="watch-open-platform-link"
-                        className="inline-flex items-center gap-2 border border-[#7209b7]/45 font-mono text-xs tracking-widest uppercase px-4 py-3 hover:border-[#7209b7] hover:text-[#7209b7]"
-                      >
-                        <ExternalLink size={13} /> Open {PLATFORM_LABEL[room.platform]} popup
-                      </button>
-                    )}
-                  </div>
+                  {room.platform === "custom" ? (
+                    <>
+                      <p className="text-[#6b5b84] max-w-md mx-auto mb-5">
+                        Paste a video link (YouTube, Vimeo, direct <span className="font-mono">.mp4</span>) to play it right here on the stage. Host shares this tab and guests see the same pixels — no stray ribbons on their screens.
+                      </p>
+                      {isHost ? (
+                        <form
+                          onSubmit={(e) => {
+                            e.preventDefault();
+                            const embed = toEmbedUrl(customUrlInput);
+                            if (!embed) { toast.error("Please paste a valid video link"); return; }
+                            setCustomIframeSrc(embed);
+                          }}
+                          className="flex flex-col sm:flex-row gap-2 justify-center items-stretch"
+                        >
+                          <input
+                            type="text"
+                            value={customUrlInput}
+                            onChange={(e) => setCustomUrlInput(e.target.value)}
+                            data-testid="watch-custom-url-input"
+                            placeholder="https://youtu.be/… or https://…/video.mp4"
+                            className="flex-1 min-w-0 bg-white border border-[#e7c6ff] focus:border-[#7209b7] rounded-lg px-3 py-2 text-sm"
+                          />
+                          <button
+                            type="submit"
+                            data-testid="watch-custom-launch-button"
+                            className="bg-gradient-to-r from-[#f72585] to-[#7209b7] text-white font-mono text-xs tracking-[0.2em] uppercase px-4 py-2 rounded-lg hover:shadow-[0_8px_20px_rgba(247,37,133,0.35)]"
+                          >
+                            Launch here
+                          </button>
+                        </form>
+                      ) : (
+                        <p className="font-mono text-[10px] tracking-widest uppercase text-[#a597c4]">
+                          Waiting for host to pick a video…
+                        </p>
+                      )}
+                    </>
+                  ) : (
+                    <>
+                      <p className="text-[#6b5b84] max-w-md mx-auto mb-6">
+                        Open <span className="font-mono text-[#7209b7]">{PLATFORM_LABEL[room.platform]}</span> in a new tab and hit play — your room syncs the timer.
+                        {isHost && " Or start screen-share to broadcast your window."}
+                      </p>
+                      <div className="flex justify-center gap-3 flex-wrap">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const w = window.screen.availWidth;
+                            const h = window.screen.availHeight;
+                            const popW = Math.min(1280, Math.round(w * 0.7));
+                            const popH = Math.min(800, Math.round(h * 0.85));
+                            window.open(
+                              PLATFORM_URL[room.platform],
+                              "cinemasync-ott",
+                              `popup=yes,width=${popW},height=${popH},left=${w - popW - 20},top=40,scrollbars=yes,resizable=yes`
+                            );
+                          }}
+                          data-testid="watch-open-platform-link"
+                          className="inline-flex items-center gap-2 border border-[#7209b7]/45 font-mono text-xs tracking-widest uppercase px-4 py-3 hover:border-[#7209b7] hover:text-[#7209b7]"
+                        >
+                          <ExternalLink size={13} /> Open {PLATFORM_LABEL[room.platform]} popup
+                        </button>
+                      </div>
+                    </>
+                  )}
                 </div>
               )}
               {remoteSharerId && !sharing && (
@@ -1168,6 +1297,81 @@ export default function WatchRoom() {
           </aside>
         </div>
       </main>
+
+      {/* Share-tab guide modal (OTT platforms) */}
+      {showShareGuide && (
+        <div
+          className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-[#1a0b2e]/70 backdrop-blur-sm"
+          data-testid="share-guide-modal"
+          onClick={() => setShowShareGuide(false)}
+        >
+          <div
+            className="w-full max-w-lg bg-white rounded-xl border border-[#7209b7]/30 shadow-[0_30px_80px_rgba(26,11,46,0.45)] overflow-hidden"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="p-5 bg-gradient-to-r from-[#7209b7] to-[#f72585] text-white">
+              <div className="font-mono text-[10px] tracking-[0.3em] uppercase opacity-80">Before you share</div>
+              <h3 className="font-head text-2xl uppercase mt-1">Pick the right surface</h3>
+              <p className="text-sm opacity-90 mt-2">
+                Share <span className="font-semibold underline underline-offset-2">only the {PLATFORM_LABEL[room.platform]} tab</span>, not your whole screen. Guests get clean video, and the "Stop sharing" bar stays on the OTT tab only — it never covers your CinemaSync window.
+              </p>
+            </div>
+            <div className="p-5 space-y-3">
+              <Step n={1} title={`Open ${PLATFORM_LABEL[room.platform]} in a new tab`} body="Use the button on the intermission stage or your bookmarks. Log in if needed." />
+              <Step n={2} title="Come back to CinemaSync and click Share" body="Your browser will pop up a chooser dialog." />
+              <Step
+                n={3}
+                title={<>In the chooser, pick the <span className="font-semibold">Chrome Tab</span> option</>}
+                body={
+                  <>
+                    Select the tab playing <span className="font-mono text-[#7209b7]">{PLATFORM_LABEL[room.platform]}</span> and tick
+                    <span className="mx-1 px-1.5 py-0.5 bg-[#fdf4ff] border border-[#e7c6ff] rounded text-[11px] font-mono">Also share tab audio</span>.
+                    Then hit Share.
+                  </>
+                }
+              />
+              <div className="mt-4 flex items-center gap-2 bg-[#fdf4ff] border border-[#e7c6ff] rounded-lg p-3 text-[11px] text-[#6b5b84]">
+                <Info size={14} className="text-[#7209b7] shrink-0" />
+                <span>
+                  <span className="font-semibold text-[#1a0b2e]">Why Tab, not Screen?</span> The "stop sharing" bar then lives only on the OTT tab — guests never see it, and your CinemaSync chat stays clean.
+                </span>
+              </div>
+            </div>
+            <div className="p-4 bg-[#fdf4ff] border-t border-[#e7c6ff] flex flex-wrap gap-2 justify-end">
+              <button
+                type="button"
+                onClick={() => setShowShareGuide(false)}
+                data-testid="share-guide-cancel"
+                className="border border-[#7209b7]/40 font-mono text-[10px] tracking-widest uppercase px-4 py-2 rounded-md hover:border-[#f72585] hover:text-[#f72585]"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={async () => { setShowShareGuide(false); await doStartShare({ preferTab: true }); }}
+                data-testid="share-guide-continue"
+                className="bg-gradient-to-r from-[#7209b7] to-[#f72585] text-white font-mono text-[10px] tracking-widest uppercase px-4 py-2 rounded-md hover:shadow-[0_8px_20px_rgba(247,37,133,0.35)]"
+              >
+                Pick a tab →
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function Step({ n, title, body }) {
+  return (
+    <div className="flex gap-3">
+      <div className="w-7 h-7 rounded-full bg-[#7209b7] text-white flex items-center justify-center font-mono text-[11px] font-semibold shrink-0">
+        {n}
+      </div>
+      <div className="min-w-0">
+        <div className="font-head text-sm uppercase text-[#1a0b2e]">{title}</div>
+        <div className="text-[12px] text-[#6b5b84] leading-relaxed mt-0.5">{body}</div>
+      </div>
     </div>
   );
 }
