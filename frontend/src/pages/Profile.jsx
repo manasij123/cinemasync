@@ -4,7 +4,7 @@ import { useAuth } from "../context/AuthContext";
 import UniqueIdBadge from "../components/UniqueIdBadge";
 import { api } from "../lib/api";
 import { toast } from "sonner";
-import { Mail, MailCheck } from "lucide-react";
+import { Mail, MailCheck, Trash2, ShieldAlert, ExternalLink } from "lucide-react";
 
 const MAX_BYTES = 10 * 1024 * 1024; // 10 MB
 
@@ -15,6 +15,8 @@ export default function Profile() {
   const [loading, setLoading] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [progress, setProgress] = useState(0);
+  const [verifyLink, setVerifyLink] = useState("");
+  const [showDelete, setShowDelete] = useState(false);
   const inputRef = useRef(null);
 
   const onFile = async (e) => {
@@ -64,8 +66,12 @@ export default function Profile() {
 
   const sendVerify = async () => {
     try {
-      await api.post("/auth/send-verify-email");
-      toast.success("Verification email sent — check your inbox");
+      const { data } = await api.post("/auth/send-verify-email");
+      if (data.already_verified) return toast.success("Email already verified");
+      if (data.delivered) return toast.success(data.message || "Verification email sent — check your inbox");
+      // Sandbox / email-provider fallback — surface the link directly
+      setVerifyLink(data.fallback_link || "");
+      toast.info(data.message || "Email delivery unavailable — use the link shown below");
     } catch (err) {
       toast.error(formatApiError(err.response?.data?.detail) || err.message);
     }
@@ -123,6 +129,21 @@ export default function Profile() {
                 <Mail size={11} /> Verify email
               </button>
             )}
+            {verifyLink && !user.email_verified && (
+              <div className="mt-3 w-full text-center" data-testid="profile-verify-fallback">
+                <p className="text-[10px] font-mono tracking-widest uppercase text-[#6b5b84] mb-1">
+                  Click to verify now
+                </p>
+                <a
+                  href={verifyLink}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-1 text-[10px] font-mono tracking-widest uppercase text-[#7209b7] underline break-all px-2"
+                >
+                  <ExternalLink size={10} /> Open verification link
+                </a>
+              </div>
+            )}
           </div>
 
           <form onSubmit={save} className="md:col-span-2 border border-[#7209b7]/30 bg-white p-6 space-y-4">
@@ -150,6 +171,112 @@ export default function Profile() {
           </form>
         </div>
       </div>
+      {!user.is_admin && <DeleteAccountSection />}
     </AppShell>
+  );
+}
+
+function DeleteAccountSection() {
+  const { logout, formatApiError } = useAuth();
+  const [open, setOpen] = useState(false);
+  const [pw, setPw] = useState("");
+  const [confirmText, setConfirmText] = useState("");
+  const [loading, setLoading] = useState(false);
+  const canSubmit = pw.length > 0 && confirmText.trim() === "DELETE MY ACCOUNT";
+
+  const submit = async (e) => {
+    e.preventDefault();
+    if (!canSubmit) return;
+    setLoading(true);
+    try {
+      await api.delete("/account", { data: { password: pw, confirm: confirmText.trim() } });
+      toast.success("Account permanently deleted");
+      try { await logout(); } catch {}
+      // Force a hard redirect so all in-memory state is cleared
+      window.location.href = "/";
+    } catch (err) {
+      toast.error(formatApiError(err.response?.data?.detail) || err.message);
+      setLoading(false);
+    }
+  };
+
+  return (
+    <section className="max-w-[1000px] mt-8" data-testid="danger-zone">
+      <div className="border border-[#f72585]/40 bg-[#fff5f9] rounded-md p-6">
+        <div className="flex items-center gap-2 mb-2">
+          <ShieldAlert size={16} className="text-[#f72585]" />
+          <span className="font-mono text-xs tracking-[0.3em] uppercase text-[#f72585]">Danger zone</span>
+        </div>
+        <h2 className="font-head text-2xl uppercase mb-2">Permanently delete account</h2>
+        <p className="text-sm text-[#6b5b84] mb-4">
+          Removes your profile, friends, rooms, chats, notifications, uploaded photos and watch history from our servers.
+          This action is irreversible.
+        </p>
+        <p className="text-[11px] font-mono tracking-widest uppercase text-[#6b5b84] mb-4">
+          Heads up · Inactive accounts are also auto-deleted after <strong>30 days</strong> of not logging in.
+        </p>
+
+        {!open ? (
+          <button
+            type="button"
+            onClick={() => setOpen(true)}
+            data-testid="delete-account-open-button"
+            className="inline-flex items-center gap-2 border-2 border-[#f72585] text-[#f72585] font-mono tracking-[0.25em] uppercase text-xs px-4 py-3 rounded-md hover:bg-[#f72585] hover:text-white"
+          >
+            <Trash2 size={14} /> Delete my account
+          </button>
+        ) : (
+          <form onSubmit={submit} className="space-y-3" data-testid="delete-account-form">
+            <div>
+              <label className="font-mono text-[10px] tracking-[0.3em] uppercase text-[#6b5b84] block mb-1">
+                Confirm your password
+              </label>
+              <input
+                type="password"
+                required
+                autoFocus
+                value={pw}
+                onChange={(e) => setPw(e.target.value)}
+                data-testid="delete-account-password"
+                className="w-full bg-white border border-[#f72585]/40 focus:border-[#f72585] px-3 py-2 rounded-md font-body"
+              />
+            </div>
+            <div>
+              <label className="font-mono text-[10px] tracking-[0.3em] uppercase text-[#6b5b84] block mb-1">
+                Type <span className="text-[#f72585] font-semibold">DELETE MY ACCOUNT</span> to proceed
+              </label>
+              <input
+                type="text"
+                required
+                value={confirmText}
+                onChange={(e) => setConfirmText(e.target.value)}
+                data-testid="delete-account-confirm"
+                placeholder="DELETE MY ACCOUNT"
+                className="w-full bg-white border border-[#f72585]/40 focus:border-[#f72585] px-3 py-2 rounded-md font-mono uppercase tracking-widest text-sm"
+              />
+            </div>
+            <div className="flex flex-wrap gap-2">
+              <button
+                type="submit"
+                disabled={!canSubmit || loading}
+                data-testid="delete-account-submit"
+                className="flex-1 min-w-[160px] bg-[#f72585] text-white font-mono tracking-[0.25em] uppercase text-xs px-4 py-3 rounded-md hover:bg-[#d80d6f] disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+              >
+                <Trash2 size={13} /> {loading ? "Deleting…" : "Delete forever"}
+              </button>
+              <button
+                type="button"
+                onClick={() => { setOpen(false); setPw(""); setConfirmText(""); }}
+                disabled={loading}
+                data-testid="delete-account-cancel"
+                className="flex-1 min-w-[160px] border border-[#7209b7]/40 text-[#7209b7] font-mono tracking-[0.25em] uppercase text-xs px-4 py-3 rounded-md hover:bg-[#7209b7]/10 disabled:opacity-60"
+              >
+                Cancel
+              </button>
+            </div>
+          </form>
+        )}
+      </div>
+    </section>
   );
 }

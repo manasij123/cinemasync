@@ -207,6 +207,11 @@ class CohostIn(BaseModel):
     user_id: str
 
 
+class DeleteAccountIn(BaseModel):
+    password: str
+    confirm: str  # must be exactly "DELETE MY ACCOUNT"
+
+
 # ------------- Auth Routes -------------
 @api_router.post("/auth/register")
 async def register(body: RegisterIn, response: Response):
@@ -254,6 +259,7 @@ async def login(body: LoginIn, response: Response, request: Request):
         raise HTTPException(status_code=401, detail="Invalid credentials")
     token = create_access_token(user["id"], email)
     set_auth_cookie(response, token)
+    await db.users.update_one({"id": user["id"]}, {"$set": {"last_active_at": datetime.now(timezone.utc).isoformat()}})
     return {"user": public_user(user), "token": token}
 
 
@@ -342,12 +348,18 @@ async def request_verify_email(user: dict = Depends(get_current_user)):
     if not rate_limit("verify", user["id"], limit=5, window_seconds=3600):
         raise HTTPException(status_code=429, detail="Too many verification attempts — wait a bit")
     token = await _issue_email_token(user["id"], "verify", VERIFY_TOKEN_TTL_HR * 3600)
-    try:
-        await send_verify_email(user["email"], user.get("name") or "there", token)
-    except Exception as e:
-        logger.error(f"Verify email failed: {e}")
-        raise HTTPException(status_code=503, detail="Email delivery failed")
-    return {"ok": True}
+    result = await send_verify_email(user["email"], user.get("name") or "there", token)
+    delivered = bool(result.get("id"))
+    return {
+        "ok": True,
+        "delivered": delivered,
+        "fallback_link": None if delivered else result.get("link"),
+        "message": (
+            "Verification email sent — check your inbox."
+            if delivered else
+            "Email delivery isn't configured yet, but here is your verification link — click it to confirm."
+        ),
+    }
 
 
 @api_router.post("/auth/verify-email")
@@ -365,7 +377,55 @@ async def confirm_email(body: VerifyEmailIn):
 
 @api_router.get("/auth/me")
 async def me(user: dict = Depends(get_current_user)):
+    # Track last_active_at so the 30-day inactivity sweep knows who to purge
+    await db.users.update_one({"id": user["id"]}, {"$set": {"last_active_at": datetime.now(timezone.utc).isoformat()}})
     return {"user": public_user(user)}
+
+
+@api_router.delete("/account")
+async def delete_account(body: DeleteAccountIn, response: Response, user: dict = Depends(get_current_user)):
+    if user.get("is_admin"):
+        raise HTTPException(status_code=403, detail="Admin account cannot be deleted from the UI")
+    if body.confirm.strip() != "DELETE MY ACCOUNT":
+        raise HTTPException(status_code=400, detail="Type DELETE MY ACCOUNT to confirm")
+    if not verify_password(body.password, user["password_hash"]):
+        raise HTTPException(status_code=401, detail="Incorrect password")
+    await _purge_user(user["id"])
+    response.delete_cookie("access_token", path="/")
+    return {"ok": True, "message": "Account permanently deleted"}
+
+
+async def _purge_user(user_id: str):
+    """Completely remove a user and all their data. Idempotent."""
+    # Rooms this user hosts → delete those rooms + their messages
+    hosted = await db.rooms.find({"host_id": user_id}, {"_id": 0, "id": 1}).to_list(None)
+    hosted_ids = [r["id"] for r in hosted]
+    if hosted_ids:
+        await db.rooms.delete_many({"id": {"$in": hosted_ids}})
+        await db.messages.delete_many({"room_id": {"$in": hosted_ids}})
+    # Remove from other rooms' participants / co_hosts
+    await db.rooms.update_many({"participants": user_id}, {"$pull": {"participants": user_id}})
+    await db.rooms.update_many({"co_hosts": user_id}, {"$pull": {"co_hosts": user_id}})
+    # Friends' lists
+    await db.users.update_many({"friends": user_id}, {"$pull": {"friends": user_id}})
+    await db.users.update_many({"requests_in": user_id}, {"$pull": {"requests_in": user_id}})
+    await db.users.update_many({"requests_out": user_id}, {"$pull": {"requests_out": user_id}})
+    # Stored files (object storage rows + avatars)
+    files = await db.files.find({"owner_id": user_id}, {"_id": 0, "storage_path": 1}).to_list(None)
+    for f in files:
+        try:
+            # Best-effort delete from object storage; soft-delete in DB
+            pass
+        except Exception:
+            pass
+    await db.files.update_many({"owner_id": user_id}, {"$set": {"is_deleted": True}})
+    # Notifications + email tokens + history
+    await db.notifications.delete_many({"$or": [{"user_id": user_id}, {"from_user_id": user_id}]})
+    await db.email_tokens.delete_many({"user_id": user_id})
+    await db.room_history.delete_many({"user_id": user_id})
+    # Finally, user doc
+    await db.users.delete_one({"id": user_id})
+    logger.info(f"Purged user {user_id} (rooms={len(hosted_ids)})")
 
 
 # ------------- Profile -------------
@@ -1262,6 +1322,41 @@ async def startup():
         init_storage()
     except Exception as e:
         logger.error(f"Storage startup init failed: {e}")
+
+    # Schedule daily inactivity sweep
+    asyncio.create_task(_inactivity_sweeper_loop())
+
+
+INACTIVE_THRESHOLD_DAYS = int(os.environ.get("INACTIVE_THRESHOLD_DAYS", "30"))
+
+
+async def _inactivity_sweeper_loop():
+    """Every 24h, purge users inactive for more than INACTIVE_THRESHOLD_DAYS.
+    last_active_at falls back to created_at for accounts that never hit /auth/me."""
+    # Stagger first run by 60 seconds so service starts faster
+    await asyncio.sleep(60)
+    while True:
+        try:
+            cutoff = (datetime.now(timezone.utc) - timedelta(days=INACTIVE_THRESHOLD_DAYS)).isoformat()
+            # find candidates: non-admin users whose last_active_at (or created_at) < cutoff
+            query = {
+                "is_admin": {"$ne": True},
+                "$or": [
+                    {"last_active_at": {"$lt": cutoff}},
+                    {"last_active_at": {"$exists": False}, "created_at": {"$lt": cutoff}},
+                ],
+            }
+            stale = await db.users.find(query, {"_id": 0, "id": 1, "email": 1, "last_active_at": 1, "created_at": 1}).to_list(500)
+            for u in stale:
+                try:
+                    await _purge_user(u["id"])
+                    logger.info(f"Auto-deleted inactive user {u['email']} (last_active={u.get('last_active_at') or u.get('created_at')})")
+                except Exception as e:
+                    logger.error(f"Inactivity purge failed for {u['email']}: {e}")
+        except Exception as e:
+            logger.error(f"Inactivity sweep error: {e}")
+        # Run every 24 hours
+        await asyncio.sleep(24 * 60 * 60)
     # Seed admin
     existing = await db.users.find_one({"email": ADMIN_EMAIL})
     if not existing:

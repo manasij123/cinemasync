@@ -1,0 +1,30 @@
+{
+  "summary": "Iteration 5 — email-verify fallback link, DELETE /api/account, last_active_at + 30-day inactivity sweep. Backend: 13/13 pytest pass (100%). POST /api/auth/send-verify-email returns {ok:true, delivered:false, fallback_link:'…/verify-email?token=<64hex>', message} for sandbox (non-owner) emails; the fallback token successfully POSTs to /api/auth/verify-email and /auth/me subsequently reports email_verified=true. DELETE /api/account: wrong password → 401; wrong confirm text → 400 'Type DELETE MY ACCOUNT to confirm'; correct password+confirm → 200 and relogin returns 401. Admin self-delete blocked with 403 'Admin account cannot be deleted from the UI'. Purge cascade verified: after alice deletes her account, bob's /notifications no longer contains any docs with from_user_id=alice.id (broadcast-room-invite from alice removed). /auth/me returns 200 on back-to-back calls (last_active_at is updated server-side; not exposed on public_user, so no visible assertion possible). Regression smoke: rooms create/list, forgot-password, rtc/ice, broadcast (auth-gated), poster — all green. FRONTEND: Fresh non-admin user on /profile → click [data-testid=profile-send-verify-button] → [data-testid=profile-verify-fallback] appears with anchor href starting with '/verify-email?token=' (full URL verified). [data-testid=danger-zone] + [data-testid=delete-account-open-button] render; opening reveals [data-testid=delete-account-form] with password+confirm inputs; submit disabled until confirm==='DELETE MY ACCOUNT'; submit deletes the account and hard-redirects to '/'. Subsequent login with the deleted email stays on /login with 'Invalid credentials' toast. Admin (manasijmandal1999@gmail.com) profile: no danger-zone, no delete button (correctly hidden via !user.is_admin). Also verified admin shows the 'VERIFIED' badge instead of the send-verify button.",
+  "backend_issues": {"critical": [], "minor": []},
+  "frontend_issues": {"ui_bugs": [], "integration_issues": [], "design_issues": []},
+  "test_report_links": [
+    "/app/backend/tests/test_iter5_delete_verify.py",
+    "/app/test_reports/pytest/pytest_results_iter5.xml"
+  ],
+  "action_items": [],
+  "critical_code_review_comments": [
+    "public_user() does not expose last_active_at, so there is no client-visible way to confirm the timestamp is advancing; consider adding it (or a server-side admin-only query) for observability — the write in /auth/me and /auth/login is present in code but untestable via API response.",
+    "_inactivity_sweeper_loop runs every 24 h and purges non-admin users whose last_active_at (or created_at fallback) is older than 30 d. The loop is fire-and-forget from startup — if it crashes silently nothing surfaces. Wrap in a try/except with logger.exception and consider a health endpoint that reports last-sweep-at.",
+    "email_service.send_verify_email returns {'id': None, 'link': ...} when Resend accepts the POST but the provider returns no id, which the endpoint treats as delivered=False. That is correct for the sandbox, but for the owner email the response also has id set → delivered=True; worth covering in unit tests (currently only sandbox path is asserted).",
+    "DELETE /api/account first checks is_admin (403) then confirm text (400) then password (401). Order is fine, but attackers can enumerate the confirm-string requirement without knowing the password. Low severity — but consider verifying the password BEFORE the confirm-text check to keep 401s opaque.",
+    "Fallback verification link is bound to the backend-side APP_PUBLIC_URL; if that env drifts from REACT_APP_BACKEND_URL the anchor href will break silently. Add a smoke assertion on the host part.",
+    "server.py at ~1400 lines and growing — splitting into routers (auth, account, rooms, friends, admin, notifications) is overdue (carried from iter 4).",
+    "CORSMiddleware still allow_origins=['*'] + allow_credentials=True — this is an invalid CORS combo per spec and only works because allow_origin_regex='.*' is also set. Tighten to explicit origins."
+  ],
+  "updated_files": ["/app/backend/tests/test_iter5_delete_verify.py"],
+  "success_rate": {"backend": "100% (13/13)", "frontend": "100% (verify-fallback + delete form + admin hide all verified)"},
+  "test_credentials": {
+    "admin": {"email": "manasijmandal1999@gmail.com", "password": "Manasij@081199"},
+    "ephemeral": "del_test_{uuid}@example.com / pw12345 — fresh user per test, consumed by delete"
+  },
+  "seed_data_creation": "None persistent — each test registers and (when needed) deletes a fresh ephemeral user.",
+  "retest_needed": false,
+  "should_main_agent_self_test": false,
+  "context_for_next_testing_agent": "send-verify-email response shape: {ok, delivered, fallback_link, message, already_verified?}. Sandbox (any non-owner @example.com) → delivered=false and fallback_link set. verify-email consumes the token and marks user.email_verified=true (single-use tokens). DELETE /api/account: body={password, confirm}; 403 for admin regardless, 400 if confirm!='DELETE MY ACCOUNT', 401 if password wrong, 200 + cookie cleared on success. _purge_user removes notifications (user_id OR from_user_id), email_tokens, room_history, user doc, removes user_id from friends/requests_in/requests_out/participants/co_hosts of peers, hard-deletes rooms they host (+ messages), soft-deletes files (is_deleted=true). Unique-id is deterministic from name+YYYYMMDD so tests involving two users must use distinct names (alice/bob with uuid suffix), otherwise friends/request finds the wrong user. Admin sidebar still renders but profile page correctly hides danger-zone via !user.is_admin. /auth/me updates last_active_at but it's stripped by public_user — not client-visible.",
+  "rca of the issue": "n/a — no unresolved bugs."
+}

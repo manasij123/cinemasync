@@ -74,11 +74,15 @@ async def send_password_reset(to: str, name: str, token: str) -> dict:
       <p>Hi <strong>{name or 'there'}</strong>,</p>
       <p>Someone (hopefully you) asked to reset the password for this CinemaSync account. Click the button below to set a new one — the link expires in <strong>30 minutes</strong>.</p>
     """
-    return await _send(
-        to,
-        "Reset your CinemaSync password",
-        _wrap("Reset your password", "Reset your CinemaSync password", body, "Reset password", link),
-    )
+    try:
+        r = await _send(
+            to,
+            "Reset your CinemaSync password",
+            _wrap("Reset your password", "Reset your CinemaSync password", body, "Reset password", link),
+        )
+        return {**r, "link": link}
+    except Exception as e:
+        return {"delivered": False, "link": link, "error": str(e)}
 
 
 async def send_verify_email(to: str, name: str, token: str) -> dict:
@@ -88,8 +92,12 @@ async def send_verify_email(to: str, name: str, token: str) -> dict:
       <p>Welcome, <strong>{name or 'there'}</strong>!</p>
       <p>Confirm this email address so we can secure your CinemaSync account and send you room invites you actually want to see.</p>
     """
-    return await _send(
-        to,
-        "Confirm your CinemaSync email",
-        _wrap("Confirm your email", "Verify your CinemaSync email address", body, "Confirm email", link),
-    )
+    try:
+        r = await _send(
+            to,
+            "Confirm your CinemaSync email",
+            _wrap("Confirm your email", "Verify your CinemaSync email address", body, "Confirm email", link),
+        )
+        return {**r, "link": link}
+    except Exception as e:
+        return {"delivered": False, "link": link, "error": str(e)}
