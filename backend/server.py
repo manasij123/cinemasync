@@ -762,6 +762,147 @@ async def room_history(user: dict = Depends(get_current_user), limit: int = 20):
     return {"history": rows}
 
 
+class BulkHistoryDeleteIn(BaseModel):
+    room_ids: List[str] = Field(default_factory=list)
+
+
+async def _notify_admins_room_killed(actor: dict, room_id: str, room_name: str):
+    """Create one admin-alert per admin. Skip the actor themselves if they are admin."""
+    now = datetime.now(timezone.utc).isoformat()
+    admin_ids: List[str] = []
+    async for a in db.users.find({"is_admin": True}, {"_id": 0, "id": 1}):
+        if a.get("id") and a["id"] != actor["id"]:
+            admin_ids.append(a["id"])
+    if not admin_ids:
+        return
+    docs = [{
+        "id": str(uuid.uuid4()),
+        "user_id": aid,
+        "type": "admin-alert",
+        "subtype": "room-killed",
+        "room_id": room_id,
+        "room_name": room_name,
+        "from_user_id": actor["id"],
+        "from_name": actor.get("name", "Host"),
+        "read": False,
+        "created_at": now,
+    } for aid in admin_ids]
+    await db.notifications.insert_many(docs)
+
+
+async def _purge_room_for_host(actor: dict, room_id: str) -> bool:
+    """Full cascade purge of a room initiated by its host from Recent-rooms.
+    Removes history for all users, room doc, messages, pending invites, and
+    closes any live WebSocket connections. Emits an admin-alert. Returns True
+    if the current user was legitimately the host, False otherwise."""
+    rid = room_id.upper()
+    # Prefer live room doc; fallback to history for ended rooms
+    room_doc = await db.rooms.find_one({"id": rid}, {"_id": 0})
+    host_id = room_doc["host_id"] if room_doc else None
+    room_name = room_doc["name"] if room_doc else None
+    if host_id is None:
+        hist = await db.room_history.find_one(
+            {"user_id": actor["id"], "room_id": rid, "role": "host"}, {"_id": 0}
+        )
+        if not hist:
+            return False
+        host_id = actor["id"]
+        room_name = hist.get("room_name") or rid
+    if host_id != actor["id"]:
+        return False
+
+    # Broadcast + close sockets if room is still live
+    if room_doc:
+        try:
+            await hub.broadcast(rid, {
+                "type": "room-ended",
+                "by": actor["id"],
+                "by_name": actor.get("name", "Host"),
+                "room_id": rid,
+                "ended_at": datetime.now(timezone.utc).isoformat(),
+            })
+        except Exception:
+            pass
+        try:
+            for sock in list(hub.rooms.get(rid, [])):
+                try:
+                    await sock.close(code=1000)
+                except Exception:
+                    pass
+            hub.rooms.pop(rid, None)
+        except Exception:
+            pass
+        await db.rooms.delete_one({"id": rid})
+
+    # Cascade: remove room-history for every user
+    await db.room_history.delete_many({"room_id": rid})
+    await db.messages.delete_many({"room_id": rid})
+    await db.notifications.delete_many({"type": "room-invite", "room_id": rid})
+
+    await _notify_admins_room_killed(actor, rid, room_name or rid)
+    return True
+
+
+@api_router.delete("/rooms/history/{room_id}")
+async def delete_history_entry(room_id: str, user: dict = Depends(get_current_user)):
+    """Delete a single recent-room entry.
+    - If the current user was the host of that room → cascade kill it for everyone + admin alert.
+    - Otherwise just remove their personal history row (guest-side).
+    """
+    rid = room_id.upper()
+    hist = await db.room_history.find_one({"user_id": user["id"], "room_id": rid}, {"_id": 0})
+    if not hist:
+        raise HTTPException(status_code=404, detail="History entry not found")
+
+    was_host_here = hist.get("role") == "host"
+    if was_host_here:
+        ok = await _purge_room_for_host(user, rid)
+        if not ok:
+            # Fallback — just drop their own row
+            await db.room_history.delete_one({"user_id": user["id"], "room_id": rid})
+        return {"ok": True, "cascaded": bool(ok), "room_id": rid}
+
+    await db.room_history.delete_one({"user_id": user["id"], "room_id": rid})
+    return {"ok": True, "cascaded": False, "room_id": rid}
+
+
+@api_router.post("/rooms/history/bulk-delete")
+async def bulk_delete_history(body: BulkHistoryDeleteIn, user: dict = Depends(get_current_user)):
+    """Bulk variant — same rules as single delete, applied per room_id."""
+    if not body.room_ids:
+        return {"ok": True, "deleted": 0, "cascaded": 0}
+    seen: Set[str] = set()
+    cleaned: List[str] = []
+    for rid in body.room_ids:
+        u = (rid or "").strip().upper()
+        if u and u not in seen:
+            seen.add(u)
+            cleaned.append(u)
+    cleaned = cleaned[:100]  # safety cap
+
+    hist_rows = await db.room_history.find(
+        {"user_id": user["id"], "room_id": {"$in": cleaned}},
+        {"_id": 0, "room_id": 1, "role": 1},
+    ).to_list(200)
+    host_rooms = {h["room_id"] for h in hist_rows if h.get("role") == "host"}
+    guest_rooms = {h["room_id"] for h in hist_rows} - host_rooms
+
+    cascaded = 0
+    for rid in host_rooms:
+        if await _purge_room_for_host(user, rid):
+            cascaded += 1
+    if guest_rooms:
+        await db.room_history.delete_many(
+            {"user_id": user["id"], "room_id": {"$in": list(guest_rooms)}}
+        )
+
+    return {
+        "ok": True,
+        "deleted": len(host_rooms) + len(guest_rooms),
+        "cascaded": cascaded,
+    }
+
+
 @api_router.post("/rooms/{room_id}/promote")
 async def promote_cohost(room_id: str, body: CohostIn, user: dict = Depends(get_current_user)):
     room_id = room_id.upper()

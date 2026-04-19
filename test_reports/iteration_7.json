@@ -1,0 +1,36 @@
+{
+  "summary": "Iteration 7 — Recent-rooms bulk kill + admin-alert notification cascade. Backend: 10/10 pytest pass (100%) covering single DELETE /api/rooms/history/{id} (404, guest-only row, host cascade), POST /api/rooms/history/bulk-delete (dedupe + case-normalize + 100 cap + mixed host/guest), admin-alert semantics (fires for non-admin host, excluded for admin-actor, dismissible via existing /notifications/{nid}), guest cascade view verified, and End Room endpoint regression (does NOT fire admin-alert). Frontend: all data-testids wired correctly — history-manage-button toggles manage mode, history-selection-count reflects 'N selected', history-bulk-delete-button invokes window.confirm → bulk-delete (cards dropped from 3→1 after selecting 2), history-manage-cancel 'Done' exits manage mode; admin-tab-alerts switches view, admin-alerts-list renders populated alerts (6 present after bulk kill), admin-alert-ok-{id} dismisses single alert, admin-alerts-dismiss-all clears all and admin-alerts-empty shows. Full cross-user cascade confirmed: guest joined, host killed from Recent, guest's /rooms/history no longer contains room.",
+  "backend_issues": {"critical": [], "minor": []},
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_iter7_recent_bulk_kill.py",
+    "/app/test_reports/pytest/pytest_results_iter7.xml"
+  ],
+  "action_items": [],
+  "critical_code_review_comments": [
+    "server.py:869 bulk_delete_history — `deleted` returns len(host_rooms)+len(guest_rooms) but silently drops unknown rids from the payload (rooms not in caller's history). Consider returning `requested`, `matched`, `deleted`, `cascaded` for clearer UX feedback.",
+    "server.py:793 _purge_room_for_host — mutation order is: broadcast → close sockets → delete rooms → delete_many room_history/messages/notifications → insert admin alert. If insert_many fails mid-flight (admin alert), the room is already gone with no alert — acceptable but not atomic. Could wrap in a best-effort transaction/session for audit.",
+    "server.py:840 deletes notifications of type=room-invite for this room but leaves stale admin-alert notifications pointing at a now-deleted room intact across dismissal lifecycles — fine, but if the same room_id ever cycles (collision), historical alert rows could mislead. Consider also storing a kill_id.",
+    "AlertsTab (Admin.jsx:507) polls every 15s via setInterval. On tab unmount interval is cleared, good, but consider pausing when document.hidden to reduce background load.",
+    "Dashboard bulkKillSelected uses window.confirm — same a11y/mobile concern as End Room. A themed AlertDialog with data-testid='history-bulk-delete-confirm' would be more testable.",
+    "Dashboard 'Manage' button remains visible even when history.length==0 already short-circuited by outer {history.length > 0 && ...} guard — OK. But after a full manage-mode delete of ALL rooms, manageMode remains true with 0 cards (no exit on empty). Consider auto-exiting manageMode when selectedHistory resolves to 0 visible rows.",
+    "Carry-over: server.py ~1642 lines — splitting into routers (rooms, auth, notifications, admin) is overdue. CORS allow_origins=['*']+allow_credentials=True + allow_origin_regex='.*' still technically spec-invalid."
+  ],
+  "updated_files": [
+    "/app/backend/tests/test_iter7_recent_bulk_kill.py"
+  ],
+  "success_rate": {"backend": "100% (10/10)", "frontend": "100% (manage+bulk delete + admin alerts OK + Dismiss all + empty state all verified)"},
+  "test_credentials": {
+    "admin": {"email": "manasijmandal1999@gmail.com", "password": "Manasij@081199"},
+    "ephemeral_non_admin_host": "uihost_{uuid6}@cinemasync.co.in / test1234 (registered fresh per test)"
+  },
+  "seed_data_creation": "None persistent — each test registers a fresh non-admin host, creates throwaway TEST_-prefixed rooms, and the bulk-kill flow cascades them away including any admin-alert notifications (dismissed in-test).",
+  "retest_needed": false,
+  "should_main_agent_self_test": false,
+  "context_for_next_testing_agent": "Endpoints: DELETE /api/rooms/history/{room_id} → {ok, cascaded, room_id}; returns 404 if user has no history row for that room. Non-host deletion returns cascaded:false and only nukes caller's history row. Host deletion returns cascaded:true and: deletes db.rooms, db.messages, db.notifications(type='room-invite'), db.room_history for ALL users, closes live WS, fires db.notifications(type='admin-alert', subtype='room-killed', room_id, room_name, from_user_id, from_name, read:false, created_at) for every admin EXCEPT the actor (if actor is admin). POST /api/rooms/history/bulk-delete {room_ids:[...]} dedupes+uppercases+caps at 100; response {ok, deleted (host+guest unique count), cascaded (host-only count)}. DELETE /api/rooms/{id} (legacy End Room) unchanged — does NOT create admin-alert. Frontend: window.confirm is used for bulk delete → Playwright needs page.on('dialog', d.accept()). Manage button is below the live-rooms section; use scroll_into_view_if_needed() + JS .click() to reliably toggle manageMode. AlertsTab polls every 15s. All data-testids per spec are present and wired.",
+  "rca of the issue": "n/a — no unresolved bugs; all 7 sub-features (A–G) from the review request verified passing."
+}

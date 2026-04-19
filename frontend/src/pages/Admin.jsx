@@ -487,6 +487,105 @@ function BroadcastTab() {
   );
 }
 
+function AlertsTab() {
+  const { formatApiError } = useAuth();
+  const [alerts, setAlerts] = useState([]);
+  const [loading, setLoading] = useState(false);
+
+  const load = async () => {
+    setLoading(true);
+    try {
+      const { data } = await api.get("/notifications");
+      const onlyAlerts = (data.notifications || []).filter((n) => n.type === "admin-alert");
+      setAlerts(onlyAlerts);
+    } catch (e) {
+      toast.error(formatApiError(e.response?.data?.detail) || e.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+  useEffect(() => { load(); const t = setInterval(load, 15000); return () => clearInterval(t); }, []);
+
+  const dismiss = async (id) => {
+    try {
+      await api.delete(`/notifications/${id}`);
+      setAlerts((c) => c.filter((n) => n.id !== id));
+    } catch (e) {
+      toast.error(formatApiError(e.response?.data?.detail) || e.message);
+    }
+  };
+  const dismissAll = async () => {
+    if (!alerts.length) return;
+    if (!window.confirm(`Dismiss all ${alerts.length} alerts?`)) return;
+    for (const a of alerts) {
+      try { await api.delete(`/notifications/${a.id}`); } catch {}
+    }
+    setAlerts([]);
+    toast.success("All alerts cleared");
+  };
+
+  return (
+    <div className="glass-card rounded-xl p-5">
+      <div className="flex items-center gap-2 mb-2">
+        <Bell size={16} className="text-[#f72585]" />
+        <span className="font-mono text-[10px] tracking-[0.3em] uppercase text-[#f72585]">System alerts</span>
+        {alerts.length > 0 && (
+          <button
+            onClick={dismissAll}
+            data-testid="admin-alerts-dismiss-all"
+            className="ml-auto border border-[#e7c6ff] font-mono text-[10px] tracking-widest uppercase px-3 py-1.5 rounded-md hover:border-[#f72585] hover:text-[#f72585]"
+          >
+            Dismiss all
+          </button>
+        )}
+      </div>
+      <h2 className="font-head text-2xl uppercase mb-4">Alerts · {alerts.length}</h2>
+      {loading && alerts.length === 0 && (
+        <div className="font-mono text-[10px] tracking-widest uppercase text-[#6b5b84]">Loading…</div>
+      )}
+      {!loading && alerts.length === 0 && (
+        <div className="font-mono text-[10px] tracking-widest uppercase text-[#6b5b84]" data-testid="admin-alerts-empty">
+          Nothing to review. All quiet on the host front.
+        </div>
+      )}
+      <div className="space-y-3" data-testid="admin-alerts-list">
+        {alerts.map((a) => {
+          const when = a.created_at ? new Date(a.created_at) : null;
+          const whenLabel = when ? when.toLocaleString() : "";
+          return (
+            <div
+              key={a.id}
+              className="border border-[#e7c6ff] bg-[#fdf4ff] rounded-lg p-4 flex items-start gap-3"
+              data-testid={`admin-alert-${a.id}`}
+            >
+              <div className="w-9 h-9 rounded-full bg-[#f72585]/15 text-[#f72585] flex items-center justify-center shrink-0">
+                <Trash2 size={16} />
+              </div>
+              <div className="min-w-0 flex-1">
+                <div className="font-mono text-[10px] tracking-widest uppercase text-[#6b5b84] mb-1">
+                  Room killed · {whenLabel}
+                </div>
+                <div className="font-body text-sm text-[#1a0b2e]">
+                  Host <span className="text-[#7209b7] font-semibold">{a.from_name || "Unknown"}</span> killed room{" "}
+                  <span className="font-head uppercase">{a.room_name || a.room_id}</span>
+                  {a.room_id && <span className="font-mono text-[11px] text-[#6b5b84]"> · {a.room_id}</span>}
+                </div>
+              </div>
+              <button
+                onClick={() => dismiss(a.id)}
+                data-testid={`admin-alert-ok-${a.id}`}
+                className="bg-[#7209b7] text-white font-mono text-[10px] tracking-widest uppercase px-3 py-1.5 rounded-md hover:bg-[#4a0580]"
+              >
+                OK
+              </button>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
 export default function Admin() {
   const { user, loading } = useAuth();
   const [tab, setTab] = useState("overview");
@@ -520,6 +619,7 @@ export default function Admin() {
     { id: "overview", label: "Overview" },
     { id: "users", label: "Users" },
     { id: "rooms", label: "Rooms" },
+    { id: "alerts", label: "Alerts" },
     { id: "broadcast", label: "Broadcast" },
   ];
 
@@ -564,6 +664,7 @@ export default function Admin() {
 
       {tab === "users" && <UsersTab stats={stats} />}
       {tab === "rooms" && <RoomsTab />}
+      {tab === "alerts" && <AlertsTab />}
       {tab === "broadcast" && <BroadcastTab />}
     </AppShell>
   );

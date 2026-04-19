@@ -7,7 +7,7 @@ import UniqueIdBadge from "../components/UniqueIdBadge";
 import { toast } from "sonner";
 import {
   Plus, DoorOpen, Users, Radio, Bell, Check, X, ArrowRight, Sparkles, TicketCheck,
-  TrendingUp, TrendingDown, Clock, MessageSquare, Film,
+  TrendingUp, TrendingDown, Clock, MessageSquare, Film, Trash2, Crown,
 } from "lucide-react";
 import { Sparkline, LineChart, Doughnut, BarChart } from "../components/Charts";
 import PlatformLogo, { PLATFORM_LIST, platformLabel } from "../components/PlatformLogo";
@@ -315,38 +315,67 @@ function InviteRow({ n, onAccept, onDismiss }) {
   );
 }
 
-function HistoryCard({ row, onClick }) {
+function HistoryCard({ row, onClick, selectable, selected, onToggleSelect }) {
   const when = row.last_joined_at ? new Date(row.last_joined_at) : null;
   const whenLabel = when
     ? `${Math.max(0, Math.round((Date.now() - when.getTime()) / 60000))}m ago`
     : "";
+  const isHost = row.role === "host";
   return (
-    <button
-      onClick={onClick}
+    <div
+      className={`relative w-full text-left glass-card rounded-xl p-4 transition-all group ${
+        selected ? "ring-2 ring-[#f72585] shadow-[0_10px_28px_rgba(247,37,133,0.25)]" : "hover:-translate-y-0.5"
+      }`}
       data-testid={`history-card-${row.room_id}`}
-      className="w-full text-left glass-card rounded-xl p-4 transition-all hover:-translate-y-0.5 group"
     >
-      <div className="flex items-start gap-3 mb-2">
-        <PlatformLogo platform={row.platform} size={40} rounded="md" />
-        <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-2">
-            {row.is_active ? (
-              <span className="font-mono text-[10px] tracking-[0.3em] uppercase text-[#f72585] flex items-center gap-1">
-                <span className="w-2 h-2 rounded-full bg-[#f72585] pulse-live" /> Live
-              </span>
-            ) : (
-              <span className="font-mono text-[10px] tracking-[0.3em] uppercase text-[#6b5b84]">Ended</span>
-            )}
-            <span className="ml-auto font-mono text-[9px] tracking-widest uppercase text-[#6b5b84]">{whenLabel}</span>
+      {selectable && (
+        <label
+          className="absolute top-2 right-2 z-10 flex items-center justify-center cursor-pointer"
+          onClick={(e) => e.stopPropagation()}
+          title={isHost ? "Select to permanently kill this room for everyone" : "Select to remove from your Recent list"}
+        >
+          <input
+            type="checkbox"
+            checked={!!selected}
+            onChange={() => onToggleSelect && onToggleSelect(row.room_id)}
+            data-testid={`history-select-${row.room_id}`}
+            className="accent-[#f72585] w-4 h-4"
+          />
+        </label>
+      )}
+      <button
+        type="button"
+        onClick={onClick}
+        className="w-full text-left"
+        data-testid={`history-open-${row.room_id}`}
+      >
+        <div className="flex items-start gap-3 mb-2">
+          <PlatformLogo platform={row.platform} size={40} rounded="md" />
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center gap-2">
+              {row.is_active ? (
+                <span className="font-mono text-[10px] tracking-[0.3em] uppercase text-[#f72585] flex items-center gap-1">
+                  <span className="w-2 h-2 rounded-full bg-[#f72585] pulse-live" /> Live
+                </span>
+              ) : (
+                <span className="font-mono text-[10px] tracking-[0.3em] uppercase text-[#6b5b84]">Ended</span>
+              )}
+              {isHost && (
+                <span className="font-mono text-[9px] tracking-widest uppercase text-[#7209b7] flex items-center gap-1">
+                  <Crown size={10} /> Host
+                </span>
+              )}
+              <span className="ml-auto font-mono text-[9px] tracking-widest uppercase text-[#6b5b84]">{whenLabel}</span>
+            </div>
+            <div className="font-head text-base uppercase text-[#1a0b2e] truncate">{row.room_name}</div>
           </div>
-          <div className="font-head text-base uppercase text-[#1a0b2e] truncate">{row.room_name}</div>
         </div>
-      </div>
-      <div className="font-mono text-[10px] tracking-widest uppercase text-[#6b5b84] flex justify-between">
-        <span className="truncate">{PLATFORM_LABEL[row.platform] || "Custom"} · {row.room_id}</span>
-        <span>{row.visit_count}× visited</span>
-      </div>
-    </button>
+        <div className="font-mono text-[10px] tracking-widest uppercase text-[#6b5b84] flex justify-between">
+          <span className="truncate">{PLATFORM_LABEL[row.platform] || "Custom"} · {row.room_id}</span>
+          <span>{row.visit_count}× visited</span>
+        </div>
+      </button>
+    </div>
   );
 }
 
@@ -477,6 +506,9 @@ export default function Dashboard() {
   const [activeRooms, setActiveRooms] = useState([]);
   const [notifs, setNotifs] = useState([]);
   const [history, setHistory] = useState([]);
+  const [selectedHistory, setSelectedHistory] = useState(() => new Set());
+  const [manageMode, setManageMode] = useState(false);
+  const [bulkDeleting, setBulkDeleting] = useState(false);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -568,6 +600,44 @@ export default function Dashboard() {
   };
   const dismissInvite = async (id) => {
     try { await api.delete(`/notifications/${id}`); setNotifs((c) => c.filter((n) => n.id !== id)); } catch {}
+  };
+
+  const refreshHistory = async () => {
+    try { const { data } = await api.get("/rooms/history?limit=20"); setHistory(data.history || []); } catch {}
+  };
+  const toggleHistorySelect = (rid) => {
+    setSelectedHistory((prev) => {
+      const n = new Set(prev);
+      if (n.has(rid)) n.delete(rid); else n.add(rid);
+      return n;
+    });
+  };
+  const clearHistorySelection = () => setSelectedHistory(new Set());
+  const exitManageMode = () => { setManageMode(false); clearHistorySelection(); };
+  const bulkKillSelected = async () => {
+    const ids = Array.from(selectedHistory);
+    if (!ids.length) return;
+    const hostCount = history.filter((h) => ids.includes(h.room_id) && h.role === "host").length;
+    const msg = hostCount > 0
+      ? `${ids.length} room${ids.length > 1 ? "s" : ""} selected. ${hostCount} of these you hosted will be permanently killed for EVERYONE. Continue?`
+      : `Remove ${ids.length} room${ids.length > 1 ? "s" : ""} from your Recent list?`;
+    if (!window.confirm(msg)) return;
+    setBulkDeleting(true);
+    try {
+      const { data } = await api.post("/rooms/history/bulk-delete", { room_ids: ids });
+      toast.success(
+        data.cascaded > 0
+          ? `${data.deleted} removed · ${data.cascaded} room${data.cascaded > 1 ? "s" : ""} killed for everyone`
+          : `${data.deleted} removed from Recent`
+      );
+      clearHistorySelection();
+      setManageMode(false);
+      refreshHistory();
+    } catch (e) {
+      toast.error(formatApiError(e.response?.data?.detail) || e.message);
+    } finally {
+      setBulkDeleting(false);
+    }
   };
 
   return (
@@ -676,16 +746,62 @@ export default function Dashboard() {
       {/* Room history */}
       {history.length > 0 && (
         <section className="mb-6" data-testid="dashboard-history-section">
-          <div className="flex items-center gap-3 mb-3">
+          <div className="flex items-center gap-3 mb-3 flex-wrap">
             <Film size={16} className="text-[#7209b7]" />
             <span className="font-mono text-xs tracking-[0.3em] uppercase text-[#7209b7]">Recent rooms · {history.length}</span>
+            <div className="ml-auto flex items-center gap-2">
+              {manageMode ? (
+                <>
+                  <span
+                    className="font-mono text-[10px] tracking-widest uppercase text-[#6b5b84]"
+                    data-testid="history-selection-count"
+                  >
+                    {selectedHistory.size} selected
+                  </span>
+                  <button
+                    type="button"
+                    onClick={bulkKillSelected}
+                    disabled={bulkDeleting || selectedHistory.size === 0}
+                    data-testid="history-bulk-delete-button"
+                    className="flex items-center gap-1.5 bg-[#f72585] text-white font-mono text-[10px] tracking-widest uppercase px-3 py-1.5 rounded-md hover:bg-[#d81674] disabled:opacity-40 transition-colors"
+                  >
+                    <Trash2 size={12} />
+                    {bulkDeleting ? "Killing…" : "Delete"}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={exitManageMode}
+                    data-testid="history-manage-cancel"
+                    className="border border-[#e7c6ff] font-mono text-[10px] tracking-widest uppercase px-3 py-1.5 rounded-md hover:border-[#7209b7]/60"
+                  >
+                    Done
+                  </button>
+                </>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => setManageMode(true)}
+                  data-testid="history-manage-button"
+                  className="flex items-center gap-1.5 border border-[#e7c6ff] font-mono text-[10px] tracking-widest uppercase px-3 py-1.5 rounded-md hover:border-[#f72585] hover:text-[#f72585] transition-colors"
+                >
+                  <Trash2 size={12} /> Manage
+                </button>
+              )}
+            </div>
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-3" data-testid="dashboard-history-list">
             {history.slice(0, 9).map((h) => (
               <HistoryCard
                 key={`${h.room_id}-${h.last_joined_at}`}
                 row={h}
+                selectable={manageMode}
+                selected={selectedHistory.has(h.room_id)}
+                onToggleSelect={toggleHistorySelect}
                 onClick={() => {
+                  if (manageMode) {
+                    toggleHistorySelect(h.room_id);
+                    return;
+                  }
                   if (h.is_active) navigate(`/room/${h.room_id}`);
                   else toast.info("This room has ended. Ask the host to create a new one.");
                 }}
