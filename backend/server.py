@@ -1217,14 +1217,52 @@ async def admin_delete_user(user_id: str, admin: dict = Depends(require_admin)):
         raise HTTPException(status_code=404, detail="User not found")
     if target.get("is_admin"):
         raise HTTPException(status_code=400, detail="Cannot delete another admin")
-    await db.users.delete_one({"id": user_id})
-    # Cleanup: pull from friends/requests of others, remove from rooms, delete their rooms-as-host, delete notifications
-    await db.users.update_many({}, {"$pull": {"friends": user_id, "requests_in": user_id, "requests_out": user_id}})
-    await db.rooms.update_many({}, {"$pull": {"participants": user_id}})
-    await db.rooms.delete_many({"host_id": user_id})
-    await db.notifications.delete_many({"$or": [{"user_id": user_id}, {"from_user_id": user_id}]})
-    await db.messages.delete_many({"sender_id": user_id})
+    await _purge_user(user_id)
     return {"ok": True}
+
+
+class BulkDeleteIn(BaseModel):
+    user_ids: List[str]
+
+
+@api_router.post("/admin/users/bulk-delete")
+async def admin_bulk_delete_users(body: BulkDeleteIn, admin: dict = Depends(require_admin)):
+    if not body.user_ids:
+        raise HTTPException(status_code=400, detail="No user_ids provided")
+    if len(body.user_ids) > 500:
+        raise HTTPException(status_code=400, detail="Too many users in one batch (max 500)")
+
+    # De-dupe, drop self & admin targets up front
+    targets = [uid for uid in set(body.user_ids) if uid and uid != admin["id"]]
+    if not targets:
+        return {"ok": True, "deleted": 0, "skipped": len(body.user_ids), "errors": []}
+
+    # Fetch which of those are actually non-admin users
+    rows = await db.users.find(
+        {"id": {"$in": targets}},
+        {"_id": 0, "id": 1, "email": 1, "is_admin": 1},
+    ).to_list(len(targets))
+    admin_ids = {r["id"] for r in rows if r.get("is_admin")}
+    missing = set(targets) - {r["id"] for r in rows}
+
+    deletable = [r["id"] for r in rows if not r.get("is_admin")]
+    deleted = 0
+    errors: List[Dict[str, str]] = []
+    for uid in deletable:
+        try:
+            await _purge_user(uid)
+            deleted += 1
+        except Exception as e:
+            logger.error(f"bulk delete failed for {uid}: {e}")
+            errors.append({"user_id": uid, "error": str(e)[:120]})
+
+    return {
+        "ok": True,
+        "deleted": deleted,
+        "skipped_admins": len(admin_ids),
+        "skipped_missing": len(missing),
+        "errors": errors,
+    }
 
 
 @api_router.post("/admin/users/{user_id}/promote")

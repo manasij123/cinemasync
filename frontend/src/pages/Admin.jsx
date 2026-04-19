@@ -26,6 +26,9 @@ function UsersTab({ stats }) {
   const { user: currentUser, formatApiError } = useAuth();
   const [users, setUsers] = useState([]);
   const [q, setQ] = useState("");
+  const [selected, setSelected] = useState(() => new Set()); // persists across search
+  const [bulkLoading, setBulkLoading] = useState(false);
+  const [bulkConfirmOpen, setBulkConfirmOpen] = useState(false);
 
   const load = async () => {
     try { const { data } = await api.get("/admin/users"); setUsers(data.users || []); } catch (e) {
@@ -34,11 +37,14 @@ function UsersTab({ stats }) {
   };
   useEffect(() => { load(); }, []);
 
+  const isDeletable = (u) => !u.is_admin && u.id !== currentUser.id;
+
   const del = async (u) => {
     if (!window.confirm(`Delete ${u.email}? This cannot be undone.`)) return;
     try {
       await api.delete(`/admin/users/${u.id}`);
       toast.success("User deleted");
+      setSelected((s) => { const n = new Set(s); n.delete(u.id); return n; });
       load();
     } catch (e) {
       toast.error(formatApiError(e.response?.data?.detail) || e.message);
@@ -48,6 +54,7 @@ function UsersTab({ stats }) {
     try {
       await api.post(`/admin/users/${u.id}/promote`);
       toast.success(`${u.name} promoted to admin`);
+      setSelected((s) => { const n = new Set(s); n.delete(u.id); return n; });
       load();
     } catch (e) {
       toast.error(formatApiError(e.response?.data?.detail) || e.message);
@@ -68,9 +75,68 @@ function UsersTab({ stats }) {
     return !s || u.email.toLowerCase().includes(s) || u.name.toLowerCase().includes(s) || u.unique_id.toLowerCase().includes(s);
   });
 
+  // Header checkbox reflects *visible, deletable* rows only. Selecting it
+  // adds them to the persisted Set. Unselecting it only removes *visible*
+  // rows from the Set — any previously selected user hidden by the current
+  // search stays selected, per user's explicit requirement.
+  const visibleDeletable = filtered.filter(isDeletable);
+  const visibleSelectedCount = visibleDeletable.filter((u) => selected.has(u.id)).length;
+  const headerState =
+    visibleDeletable.length > 0 && visibleSelectedCount === visibleDeletable.length
+      ? "all"
+      : visibleSelectedCount > 0
+      ? "some"
+      : "none";
+
+  const toggleOne = (id) => {
+    setSelected((s) => {
+      const n = new Set(s);
+      if (n.has(id)) n.delete(id); else n.add(id);
+      return n;
+    });
+  };
+  const toggleVisible = () => {
+    setSelected((s) => {
+      const n = new Set(s);
+      if (headerState === "all") {
+        visibleDeletable.forEach((u) => n.delete(u.id));
+      } else {
+        visibleDeletable.forEach((u) => n.add(u.id));
+      }
+      return n;
+    });
+  };
+  const clearSelection = () => setSelected(new Set());
+
+  const bulkDelete = async () => {
+    if (selected.size === 0) return;
+    setBulkLoading(true);
+    try {
+      const { data } = await api.post("/admin/users/bulk-delete", {
+        user_ids: Array.from(selected),
+      });
+      const msg = [`Deleted ${data.deleted}`];
+      if (data.skipped_admins) msg.push(`skipped ${data.skipped_admins} admin(s)`);
+      if (data.skipped_missing) msg.push(`${data.skipped_missing} missing`);
+      toast.success(msg.join(" · "));
+      if ((data.errors || []).length) toast.error(`${data.errors.length} errors`);
+      setSelected(new Set());
+      setBulkConfirmOpen(false);
+      load();
+    } catch (e) {
+      toast.error(formatApiError(e.response?.data?.detail) || e.message);
+    } finally {
+      setBulkLoading(false);
+    }
+  };
+
+  // Build a preview list of users (across all pages) currently in Set — so the
+  // admin can see what they're about to delete even if filtered out.
+  const selectedUsers = users.filter((u) => selected.has(u.id));
+
   return (
     <div className="glass-card rounded-xl p-5">
-      <div className="flex items-center justify-between gap-4 mb-4">
+      <div className="flex items-center justify-between gap-4 mb-4 flex-wrap">
         <div>
           <div className="font-mono text-[10px] tracking-[0.3em] uppercase text-[#6b5b84]">Directory</div>
           <h2 className="font-head text-2xl uppercase">Users · {users.length}</h2>
@@ -83,10 +149,54 @@ function UsersTab({ stats }) {
           className="bg-[#fdf4ff] border border-[#e7c6ff] focus:border-[#7209b7] rounded-lg px-3 py-2 text-sm w-80 max-w-full"
         />
       </div>
+
+      {/* Bulk action bar */}
+      {selected.size > 0 && (
+        <div
+          data-testid="admin-bulk-bar"
+          className="mb-4 flex items-center gap-3 flex-wrap rounded-lg border border-[#f72585]/40 bg-[#fff5f9] px-4 py-3"
+        >
+          <span className="font-mono text-[11px] tracking-widest uppercase text-[#f72585] font-semibold">
+            {selected.size} selected
+          </span>
+          <span className="font-mono text-[10px] tracking-widest uppercase text-[#6b5b84]">
+            Selections persist across searches
+          </span>
+          <div className="ml-auto flex gap-2">
+            <button
+              onClick={clearSelection}
+              data-testid="admin-bulk-clear"
+              className="border border-[#7209b7]/40 text-[#7209b7] font-mono text-[10px] tracking-widest uppercase px-3 py-1.5 rounded-md hover:bg-[#7209b7]/10"
+            >
+              Clear
+            </button>
+            <button
+              onClick={() => setBulkConfirmOpen(true)}
+              data-testid="admin-bulk-delete-open"
+              className="bg-[#f72585] text-white font-mono text-[10px] tracking-widest uppercase px-3 py-1.5 rounded-md hover:bg-[#d80d6f] inline-flex items-center gap-1"
+            >
+              <Trash2 size={11} /> Delete {selected.size}
+            </button>
+          </div>
+        </div>
+      )}
+
       <div className="overflow-x-auto">
         <table className="w-full text-sm" data-testid="admin-users-table">
           <thead>
             <tr className="text-left font-mono text-[10px] tracking-[0.3em] uppercase text-[#6b5b84] border-b border-[#e7c6ff]">
+              <th className="py-2 pr-3 w-10">
+                <input
+                  type="checkbox"
+                  ref={(el) => { if (el) el.indeterminate = headerState === "some"; }}
+                  checked={headerState === "all"}
+                  onChange={toggleVisible}
+                  disabled={visibleDeletable.length === 0}
+                  data-testid="admin-select-all-visible"
+                  className="accent-[#7209b7] w-4 h-4 cursor-pointer"
+                  title={headerState === "all" ? "Unselect all visible" : "Select all visible"}
+                />
+              </th>
               <th className="py-2 pr-3">Name</th>
               <th className="py-2 pr-3">Email</th>
               <th className="py-2 pr-3">Unique ID</th>
@@ -96,56 +206,157 @@ function UsersTab({ stats }) {
             </tr>
           </thead>
           <tbody>
-            {filtered.map((u) => (
-              <tr key={u.id} className="border-b border-[#e7c6ff]/50" data-testid={`admin-user-row-${u.id}`}>
-                <td className="py-3 pr-3 font-body text-[#1a0b2e]">{u.name}</td>
-                <td className="py-3 pr-3 font-mono text-[11px] text-[#6b5b84]">{u.email}</td>
-                <td className="py-3 pr-3 font-mono text-[11px] text-[#6b5b84] truncate max-w-[220px]">{u.unique_id}</td>
-                <td className="py-3 pr-3 font-mono text-[11px] text-[#6b5b84]">{u.friends_count}</td>
-                <td className="py-3 pr-3">
-                  {u.is_admin ? (
-                    <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-[#7209b7] text-white font-mono text-[10px] tracking-wider uppercase rounded-full">
-                      <Crown size={10} /> Admin
-                    </span>
-                  ) : (
-                    <span className="font-mono text-[10px] text-[#a597c4] uppercase tracking-wider">User</span>
-                  )}
-                </td>
-                <td className="py-3 pr-3">
-                  <div className="flex justify-end gap-2">
-                    {!u.is_admin && (
-                      <button
-                        onClick={() => promote(u)}
-                        data-testid={`admin-promote-${u.id}`}
-                        className="border border-[#7209b7]/40 text-[#7209b7] font-mono text-[10px] tracking-widest uppercase px-2 py-1 rounded hover:bg-[#7209b7] hover:text-white"
-                      >
-                        Promote
-                      </button>
+            {filtered.map((u) => {
+              const deletable = isDeletable(u);
+              const isSelected = selected.has(u.id);
+              return (
+                <tr
+                  key={u.id}
+                  className={
+                    "border-b border-[#e7c6ff]/50 transition-colors " +
+                    (isSelected ? "bg-[#fff5f9]" : "")
+                  }
+                  data-testid={`admin-user-row-${u.id}`}
+                >
+                  <td className="py-3 pr-3">
+                    <input
+                      type="checkbox"
+                      checked={isSelected}
+                      onChange={() => toggleOne(u.id)}
+                      disabled={!deletable}
+                      data-testid={`admin-select-${u.id}`}
+                      title={deletable ? (isSelected ? "Unselect" : "Select") : "Admins / yourself can't be deleted"}
+                      className="accent-[#f72585] w-4 h-4 cursor-pointer disabled:opacity-30 disabled:cursor-not-allowed"
+                    />
+                  </td>
+                  <td className="py-3 pr-3 font-body text-[#1a0b2e]">{u.name}</td>
+                  <td className="py-3 pr-3 font-mono text-[11px] text-[#6b5b84]">{u.email}</td>
+                  <td className="py-3 pr-3 font-mono text-[11px] text-[#6b5b84] truncate max-w-[220px]">{u.unique_id}</td>
+                  <td className="py-3 pr-3 font-mono text-[11px] text-[#6b5b84]">{u.friends_count}</td>
+                  <td className="py-3 pr-3">
+                    {u.is_admin ? (
+                      <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-[#7209b7] text-white font-mono text-[10px] tracking-wider uppercase rounded-full">
+                        <Crown size={10} /> Admin
+                      </span>
+                    ) : (
+                      <span className="font-mono text-[10px] text-[#a597c4] uppercase tracking-wider">User</span>
                     )}
-                    {u.is_admin && u.id !== currentUser.id && (
-                      <button
-                        onClick={() => demote(u)}
-                        data-testid={`admin-demote-${u.id}`}
-                        className="border border-[#6b5b84]/40 text-[#6b5b84] font-mono text-[10px] tracking-widest uppercase px-2 py-1 rounded hover:bg-[#6b5b84] hover:text-white"
-                      >
-                        Demote
-                      </button>
-                    )}
-                    {!u.is_admin && u.id !== currentUser.id && (
-                      <button
-                        onClick={() => del(u)}
-                        data-testid={`admin-delete-user-${u.id}`}
-                        className="border border-[#f72585]/40 text-[#f72585] font-mono text-[10px] tracking-widest uppercase px-2 py-1 rounded hover:bg-[#f72585] hover:text-white inline-flex items-center gap-1"
-                      >
-                        <Trash2 size={10} /> Delete
-                      </button>
-                    )}
-                  </div>
-                </td>
-              </tr>
-            ))}
+                  </td>
+                  <td className="py-3 pr-3">
+                    <div className="flex justify-end gap-2">
+                      {!u.is_admin && (
+                        <button
+                          onClick={() => promote(u)}
+                          data-testid={`admin-promote-${u.id}`}
+                          className="border border-[#7209b7]/40 text-[#7209b7] font-mono text-[10px] tracking-widest uppercase px-2 py-1 rounded hover:bg-[#7209b7] hover:text-white"
+                        >
+                          Promote
+                        </button>
+                      )}
+                      {u.is_admin && u.id !== currentUser.id && (
+                        <button
+                          onClick={() => demote(u)}
+                          data-testid={`admin-demote-${u.id}`}
+                          className="border border-[#6b5b84]/40 text-[#6b5b84] font-mono text-[10px] tracking-widest uppercase px-2 py-1 rounded hover:bg-[#6b5b84] hover:text-white"
+                        >
+                          Demote
+                        </button>
+                      )}
+                      {deletable && (
+                        <button
+                          onClick={() => del(u)}
+                          data-testid={`admin-delete-user-${u.id}`}
+                          className="border border-[#f72585]/40 text-[#f72585] font-mono text-[10px] tracking-widest uppercase px-2 py-1 rounded hover:bg-[#f72585] hover:text-white inline-flex items-center gap-1"
+                        >
+                          <Trash2 size={10} /> Delete
+                        </button>
+                      )}
+                    </div>
+                  </td>
+                </tr>
+              );
+            })}
+            {filtered.length === 0 && (
+              <tr><td colSpan={7} className="py-6 text-center text-[#6b5b84] text-sm">No users match "{q}"</td></tr>
+            )}
           </tbody>
         </table>
+      </div>
+
+      {bulkConfirmOpen && (
+        <BulkDeleteModal
+          count={selected.size}
+          users={selectedUsers}
+          loading={bulkLoading}
+          onCancel={() => setBulkConfirmOpen(false)}
+          onConfirm={bulkDelete}
+        />
+      )}
+    </div>
+  );
+}
+
+function BulkDeleteModal({ count, users, loading, onCancel, onConfirm }) {
+  const [confirm, setConfirm] = useState("");
+  const ok = confirm.trim().toUpperCase() === "DELETE";
+  return (
+    <div
+      data-testid="admin-bulk-delete-modal"
+      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-[#1a0b2e]/70 backdrop-blur-sm"
+      onClick={onCancel}
+    >
+      <div
+        className="w-full max-w-lg rounded-xl bg-white border border-[#f72585]/40 overflow-hidden"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="p-5 bg-gradient-to-r from-[#f72585] to-[#7209b7] text-white">
+          <div className="font-mono text-[10px] tracking-[0.3em] uppercase opacity-80">Destructive action</div>
+          <div className="font-head text-2xl uppercase leading-tight">Delete {count} user{count !== 1 ? "s" : ""}?</div>
+        </div>
+        <div className="p-5">
+          <p className="text-sm text-[#6b5b84] mb-3">
+            Every selected user will be wiped permanently — their rooms, chats, notifications, uploaded photos and friendships will all vanish. This can't be undone.
+          </p>
+          <div className="max-h-40 overflow-y-auto border border-[#e7c6ff] rounded-md divide-y divide-[#e7c6ff]/70">
+            {users.slice(0, 50).map((u) => (
+              <div key={u.id} className="px-3 py-2 text-[12px] flex justify-between gap-2" data-testid={`admin-bulk-preview-${u.id}`}>
+                <span className="truncate">{u.name}</span>
+                <span className="font-mono text-[11px] text-[#6b5b84] truncate">{u.email}</span>
+              </div>
+            ))}
+            {users.length > 50 && (
+              <div className="px-3 py-2 text-[11px] text-[#6b5b84]">…and {users.length - 50} more</div>
+            )}
+          </div>
+          <label className="block mt-4 font-mono text-[10px] tracking-[0.3em] uppercase text-[#6b5b84]">
+            Type <span className="text-[#f72585] font-semibold">DELETE</span> to confirm
+          </label>
+          <input
+            autoFocus
+            value={confirm}
+            onChange={(e) => setConfirm(e.target.value)}
+            data-testid="admin-bulk-confirm-input"
+            className="mt-2 w-full bg-white border border-[#f72585]/40 focus:border-[#f72585] px-3 py-2 rounded-md font-mono uppercase tracking-widest text-sm"
+          />
+          <div className="flex gap-2 mt-4">
+            <button
+              onClick={onConfirm}
+              disabled={!ok || loading}
+              data-testid="admin-bulk-confirm-button"
+              className="flex-1 bg-[#f72585] text-white font-mono tracking-[0.25em] uppercase text-xs px-4 py-3 rounded-md hover:bg-[#d80d6f] disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+            >
+              <Trash2 size={13} /> {loading ? "Deleting…" : `Delete ${count}`}
+            </button>
+            <button
+              onClick={onCancel}
+              disabled={loading}
+              data-testid="admin-bulk-cancel-button"
+              className="flex-1 border border-[#7209b7]/40 text-[#7209b7] font-mono tracking-[0.25em] uppercase text-xs px-4 py-3 rounded-md hover:bg-[#7209b7]/10 disabled:opacity-60"
+            >
+              Cancel
+            </button>
+          </div>
+        </div>
       </div>
     </div>
   );
