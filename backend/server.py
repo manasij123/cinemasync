@@ -169,6 +169,7 @@ class CreateRoomIn(BaseModel):
     name: str = Field(min_length=1, max_length=60)
     password: str = Field(min_length=1, max_length=40)
     platform: str = Field(default="custom")
+    custom_title: Optional[str] = Field(default=None, max_length=80)
 
 
 class JoinRoomIn(BaseModel):
@@ -677,6 +678,7 @@ async def create_room(body: CreateRoomIn, user: dict = Depends(get_current_user)
     doc = {
         "id": room_id,
         "name": body.name.strip(),
+        "custom_title": (body.custom_title or "").strip() or None,
         "password_hash": hash_password(body.password),
         "host_id": user["id"],
         "co_hosts": [],
@@ -694,6 +696,7 @@ def _room_public(room: dict) -> dict:
     return {
         "id": room["id"],
         "name": room["name"],
+        "custom_title": room.get("custom_title"),
         "host_id": room["host_id"],
         "co_hosts": room.get("co_hosts", []),
         "platform": room.get("platform", "custom"),
@@ -825,6 +828,48 @@ async def get_room(room_id: str, user: dict = Depends(get_current_user)):
 async def leave_room(room_id: str, user: dict = Depends(get_current_user)):
     await db.rooms.update_one({"id": room_id.upper()}, {"$pull": {"participants": user["id"]}})
     return {"ok": True}
+
+
+@api_router.delete("/rooms/{room_id}")
+async def terminate_room(room_id: str, user: dict = Depends(get_current_user)):
+    """Host-only: permanently end a room. Kicks all guests via WebSocket and
+    removes the room + chat history from the database."""
+    rid = room_id.upper()
+    room = await db.rooms.find_one({"id": rid}, {"_id": 0})
+    if not room:
+        raise HTTPException(status_code=404, detail="Room not found")
+    if room["host_id"] != user["id"]:
+        raise HTTPException(status_code=403, detail="Only host can end the room")
+
+    # 1. Tell all connected sockets the room is over
+    try:
+        await hub.broadcast(rid, {
+            "type": "room-ended",
+            "by": user["id"],
+            "by_name": user.get("name", "Host"),
+            "room_id": rid,
+            "ended_at": datetime.now(timezone.utc).isoformat(),
+        })
+    except Exception:
+        pass
+
+    # 2. Close all sockets for that room
+    try:
+        for sock in list(hub.rooms.get(rid, [])):
+            try:
+                await sock.close(code=1000)
+            except Exception:
+                pass
+        hub.rooms.pop(rid, None)
+    except Exception:
+        pass
+
+    # 3. Purge from DB (room + chat messages). Keep room_history for personal records.
+    await db.rooms.delete_one({"id": rid})
+    await db.messages.delete_many({"room_id": rid})
+    # Clear pending room-invite notifications for this room
+    await db.notifications.delete_many({"type": "room-invite", "room_id": rid})
+    return {"ok": True, "room_id": rid}
 
 
 @api_router.get("/rooms/{room_id}/messages")

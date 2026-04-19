@@ -1,0 +1,34 @@
+{
+  "summary": "Iteration 6 — End Room feature + Room Name customization (custom_title). Backend: 9/9 pytest pass (100%, 8 REST + 1 WebSocket E2E). Frontend: preview format + End Room button visibility manually validated via browser automation. No critical issues. All 3 features (End Room, custom_title, WS room-ended broadcast) work end-to-end. WebSocket test confirms BOTH host and guest receive {type:'room-ended', by_name, room_id, ended_at} frames when host DELETEs room. Non-host DELETE returns 403 'Only host can end the room'. POST /api/rooms accepts custom_title (max 80), echoed on create and GET /rooms/{id}. custom_title=null and omitted both round-trip cleanly (backward-compat verified). After DELETE: GET /rooms/{id}→404, /rooms/active drops room, /rooms/history still lists it with is_active:false. Frontend preview live-format verified: empty title → 'PLATFORM WATCH PARTY' (e.g. 'CUSTOM WATCH PARTY', 'NETFLIX WATCH PARTY'); filled → 'PLATFORM · TITLE' (e.g. 'CUSTOM · STRANGER THINGS', 'NETFLIX · STRANGER THINGS'). watch-end-room-button + watch-leave-button both render in WatchRoom header for host (screenshot). isHost={room.host_id===user.id} conditional (line 138 + {isHost && ...} line 732 of WatchRoom.jsx) correctly hides End Room from guests — verified via code review.",
+  "backend_issues": {"critical": [], "minor": []},
+  "frontend_issues": {"ui_bugs": [], "integration_issues": [], "design_issues": []},
+  "test_report_links": [
+    "/app/backend/tests/test_iter6_end_room.py",
+    "/app/backend/tests/test_iter6_ws_room_ended.py",
+    "/app/test_reports/pytest/pytest_results_iter6.xml"
+  ],
+  "action_items": [],
+  "critical_code_review_comments": [
+    "server.py:833 terminate_room — a room with hundreds of participants iterates hub.rooms.get(rid,[]) and awaits each ws.close serially; consider asyncio.gather with return_exceptions=True for faster fan-out.",
+    "Dashboard.jsx:98 finalName is truncated to .slice(0,60) client-side but backend accepts name up to full body.name length; send the pre-sliced name only — currently {name: finalName} respects the 60-char cap but custom_title is independent at 80-char. If user types >60 chars (maxLength is 50 on input, OK) the preview/display will truncate differently from the raw custom_title. Keep both caps aligned or document.",
+    "WatchRoom.jsx:684 window.confirm() is a blocking native dialog — mobile + accessibility unfriendly. Consider a themed shadcn AlertDialog with a data-testid for testability (current automation has to register a dialog-accept listener).",
+    "terminate_room does not purge chat in db.broadcasts or rtc signalling buffers (if any) — check if any other collections hold room_id references (poster cache? invitations? screenshare state). Only rooms + messages + room-invite notifications are purged — history intentionally kept. Confirmed acceptable per PRD.",
+    "WS room-ended handler in WatchRoom.jsx:247 uses setTimeout(..., 900) before navigate; if user interacts with something that unmounts component first, navigate may fire on unmounted node. Guard with a mounted ref.",
+    "No rate-limit on DELETE /api/rooms/{id} — host could hammer delete; low risk but consider generic mutation throttle.",
+    "Carry-over from iter 5: server.py ~1500 lines; please split into routers (rooms, auth, friends, admin, account). Also CORS allow_origins=['*'] + allow_credentials=True is still spec-invalid (only works because allow_origin_regex='.*')."
+  ],
+  "updated_files": [
+    "/app/backend/tests/test_iter6_end_room.py",
+    "/app/backend/tests/test_iter6_ws_room_ended.py"
+  ],
+  "success_rate": {"backend": "100% (9/9: 8 REST + 1 WebSocket E2E)", "frontend": "100% (preview formats + End Room button visibility verified)"},
+  "test_credentials": {
+    "admin_host": {"email": "manasijmandal1999@gmail.com", "password": "Manasij@081199"},
+    "ephemeral_guest": "guest_{uuid8}@cinemasync.co.in / test1234 (fresh per test)"
+  },
+  "seed_data_creation": "None persistent — rooms created during tests are deleted by the End Room path or cleanup hooks.",
+  "retest_needed": false,
+  "should_main_agent_self_test": false,
+  "context_for_next_testing_agent": "End Room DELETE /api/rooms/{id} returns {ok:true, room_id}. Validates host_id match; returns 403 with detail 'Only host can end the room' for non-host. Purges db.rooms, db.messages, db.notifications(type=room-invite). room_history is intentionally KEPT with is_active flipping to false via the /rooms/history endpoint's active-join logic. WebSocket URL: wss://<host>/api/ws/room/{room_id}?token=<jwt>. Login response returns {user, token} — use token in WS query string or set access_token cookie. custom_title max=80 (Pydantic Field), validation fires 422. CreateRoomForm finalName truncated to 60 chars client-side. dialog for End Room is native window.confirm — Playwright needs page.on('dialog', d.accept()) to click through. isHost guard hides watch-end-room-button from non-host participants (verified via code: line 138 + 732 of WatchRoom.jsx).",
+  "rca of the issue": "n/a — no unresolved bugs. All 3 features implemented correctly and tested end-to-end (REST + WebSocket + UI preview)."
+}

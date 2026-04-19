@@ -238,6 +238,13 @@ export default function WatchRoom() {
         setRemoteSharerName("");
         setVideoMuted(true);
         if (videoRef.current) videoRef.current.srcObject = null;
+      } else if (msg.type === "room-ended") {
+        const byName = msg.by_name || "Host";
+        toast(`${byName} ended the watch party`, { description: "Returning you to the dashboard…" });
+        try { wsRef.current?.close(); } catch {}
+        // Exit fullscreen if currently active so the user lands cleanly
+        try { if (document.fullscreenElement) document.exitFullscreen(); } catch {}
+        setTimeout(() => navigate("/dashboard"), 900);
       } else if (msg.type === "webrtc-signal") {
         await handleSignal(msg);
       }
@@ -672,6 +679,22 @@ export default function WatchRoom() {
     navigate("/dashboard");
   };
 
+  const endRoom = async () => {
+    if (!room || room.host_id !== user.id) return;
+    const ok = window.confirm("End the watch party for everyone? This will kick all guests and delete the room.");
+    if (!ok) return;
+    try {
+      await api.delete(`/rooms/${roomId}`);
+      toast.success("Watch party ended");
+    } catch (e) {
+      toast.error(formatApiError(e.response?.data?.detail) || e.message);
+      return;
+    }
+    try { wsRef.current?.close(); } catch {}
+    try { if (document.fullscreenElement) await document.exitFullscreen(); } catch {}
+    navigate("/dashboard");
+  };
+
   const memberMap = useMemo(() => {
     const m = {};
     for (const u of members) m[u.id] = u;
@@ -706,6 +729,16 @@ export default function WatchRoom() {
             <div className="font-mono text-[10px] tracking-widest uppercase text-[#6b5b84] px-3 py-2 border border-[#7209b7]/30 bg-white">
               Room: <span className="text-[#7209b7]">{roomId}</span>
             </div>
+            {isHost && (
+              <button
+                onClick={endRoom}
+                data-testid="watch-end-room-button"
+                className="border border-[#f72585]/60 text-[#f72585] font-mono text-xs tracking-widest uppercase px-4 py-2 hover:bg-[#f72585] hover:text-white transition-colors"
+                title="Permanently end this watch party for everyone"
+              >
+                End Room
+              </button>
+            )}
             <button
               onClick={leave}
               data-testid="watch-leave-button"

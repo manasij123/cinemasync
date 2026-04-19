@@ -85,17 +85,29 @@ function Legend({ items }) {
 }
 
 function CreateRoomForm({ onCreated, friendCount }) {
-  const [name, setName] = useState("Friday Night Reel");
+  const [customTitle, setCustomTitle] = useState("");
   const [password, setPassword] = useState("");
   const [platform, setPlatform] = useState("custom");
   const [notifyFriends, setNotifyFriends] = useState(true);
   const [loading, setLoading] = useState(false);
   const { formatApiError } = useAuth();
+
+  // Final room name = "PlatformLabel - Custom Title" (or just PlatformLabel)
+  const platformPretty = platformLabel(platform);
+  const finalName = customTitle.trim()
+    ? `${platformPretty} · ${customTitle.trim()}`.slice(0, 60)
+    : `${platformPretty} Watch Party`;
+
   const submit = async (e) => {
     e.preventDefault();
     setLoading(true);
     try {
-      const { data } = await api.post("/rooms", { name, password, platform });
+      const { data } = await api.post("/rooms", {
+        name: finalName,
+        password,
+        platform,
+        custom_title: customTitle.trim() || null,
+      });
       toast.success(`Room ${data.room.id} created`);
       if (notifyFriends && friendCount > 0) {
         try {
@@ -113,14 +125,20 @@ function CreateRoomForm({ onCreated, friendCount }) {
   };
   return (
     <form onSubmit={submit} className="space-y-3" data-testid="create-room-card">
-      <input
-        value={name}
-        required
-        onChange={(e) => setName(e.target.value)}
-        data-testid="create-room-name-input"
-        placeholder="Room name"
-        className="w-full bg-[#fdf4ff] border border-[#e7c6ff] focus:border-[#7209b7] px-3 py-2 rounded-lg text-sm"
-      />
+      <div className="relative">
+        <input
+          value={customTitle}
+          onChange={(e) => setCustomTitle(e.target.value)}
+          data-testid="create-room-custom-title-input"
+          placeholder="What are you watching? (e.g. Stranger Things)"
+          maxLength={50}
+          className="w-full bg-[#fdf4ff] border border-[#e7c6ff] focus:border-[#7209b7] px-3 py-2 rounded-lg text-sm"
+        />
+        <div className="mt-1 flex items-center gap-2 text-[10px] font-mono tracking-[0.22em] uppercase text-[#6b5b84]">
+          <span>Room name</span>
+          <span className="text-[#7209b7] truncate" data-testid="create-room-final-name">{finalName}</span>
+        </div>
+      </div>
       <input
         type="text"
         required
