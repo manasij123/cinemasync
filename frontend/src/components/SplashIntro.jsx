@@ -89,10 +89,14 @@ export default function SplashIntro({ onDone }) {
 
   // ---- S stroke path — ONE continuous path, drawn as a hand writes S ----
   //   top-right  →  (anti-cw top curl)  →  middle  →  (cw bottom curl)  →  bottom-left
-  const S_R = 130;
-  const sStart = { x: 380, y: 120 };
+  //
+  // S reaches further out than the C (C_RADIUS = 230) so the arrow tails
+  // of the background artwork peek out beyond the film-reel on both sides,
+  // making it obvious there is an S sitting behind the C.
+  const S_R = 185;
+  const sStart = { x: 440, y: 50 };
   const sMid   = { x: 250, y: 250 };
-  const sEnd   = { x: 120, y: 380 };
+  const sEnd   = { x: 60,  y: 450 };
   const sPath =
     `M ${sStart.x} ${sStart.y} ` +
     `A ${S_R} ${S_R} 0 1 0 ${sMid.x} ${sMid.y} ` +
@@ -114,11 +118,12 @@ export default function SplashIntro({ onDone }) {
         }}
       />
 
-      <div className="relative" style={{ width: 560, height: 560 }}>
+      <div className="relative" style={{ width: 700, height: 700 }}>
         <svg
           viewBox="0 0 500 500"
           className="absolute inset-0 w-full h-full"
           shapeRendering="geometricPrecision"
+          style={{ overflow: "visible" }}
         >
           <defs>
             {/* Mask for the C — anti-clockwise stroke */}
@@ -135,14 +140,21 @@ export default function SplashIntro({ onDone }) {
               />
             </mask>
 
-            {/* Mask for the S — single continuous stroke */}
-            <mask id="maskS" maskUnits="userSpaceOnUse">
-              <rect width="500" height="500" fill="black" />
+            {/* Mask for the S — single continuous stroke (larger than C) */}
+            <mask
+              id="maskS"
+              maskUnits="userSpaceOnUse"
+              x="-150"
+              y="-150"
+              width="800"
+              height="800"
+            >
+              <rect x="-150" y="-150" width="800" height="800" fill="black" />
               <path
                 ref={sPathRef}
                 d={sPath}
                 stroke="white"
-                strokeWidth={S_R * 2.2}
+                strokeWidth={S_R * 2.6}
                 strokeLinecap="round"
                 strokeLinejoin="round"
                 fill="none"
@@ -150,16 +162,16 @@ export default function SplashIntro({ onDone }) {
             </mask>
           </defs>
 
-          {/* BACKGROUND — S arrows artwork */}
+          {/* BACKGROUND — S arrows artwork (larger than C so tails peek out) */}
           <image
             href="/cinemasync-s-arrows.png"
-            x="-10"
-            y="-10"
-            width="520"
-            height="520"
+            x="-110"
+            y="-110"
+            width="720"
+            height="720"
             preserveAspectRatio="xMidYMid meet"
             mask="url(#maskS)"
-            style={{ opacity: 0.9 }}
+            style={{ opacity: 0.92 }}
           />
 
           {/* FOREGROUND — C film-reel logo */}
