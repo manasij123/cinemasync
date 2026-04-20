@@ -90,7 +90,7 @@ const frameAt = (cx, cy, r, deg, size = 22, accent = false) => {
 
 export default function SplashIntro({ onDone }) {
   const rootRef = useRef(null);
-  const tileRef = useRef(null);
+  const stageRef = useRef(null);
   const svgRef = useRef(null);
   const mountedAt = useRef(Date.now());
   const morphStarted = useRef(false);
@@ -110,29 +110,61 @@ export default function SplashIntro({ onDone }) {
       return;
     }
     morphStarted.current = true;
-    gsap.to(svgRef.current, { opacity: 0, scale: 0.94, duration: 0.35, ease: "power2.out" });
-    gsap.fromTo(tileRef.current, { opacity: 0, scale: 0.94 }, { opacity: 1, scale: 1, duration: 0.35, ease: "power2.out" });
+
+    // FLIP the ANIMATED SVG itself (not a separate raster tile) toward the
+    // header logo slot. As it flies, it blurs + fades out — the real logo
+    // already sitting in the header is revealed beneath. No jarring crossfade.
+    const target = measureFinalSlot();
+    if (!target) {
+      gsap.to(rootRef.current, { opacity: 0, duration: 0.4, delay: 0.3, onComplete: () => onDone?.() });
+      return;
+    }
+    const stage = stageRef.current;
+    if (!stage) {
+      gsap.to(rootRef.current, { opacity: 0, duration: 0.4, onComplete: () => onDone?.() });
+      return;
+    }
+
+    // Tighten the composition — remove the background arrows first so the
+    // flying shape reads as the logo silhouette, not a full splash scene.
+    gsap.to(['[data-draw="arrow-top"]', '[data-pop="arrow-top-head"]', '[data-draw="arrow-bot"]', '[data-pop="arrow-bot-head"]'], {
+      opacity: 0, scale: 0.6, duration: 0.35, ease: "power2.in", transformOrigin: "center",
+    });
 
     requestAnimationFrame(() => {
-      const target = measureFinalSlot();
-      if (!target) {
-        gsap.to(rootRef.current, { opacity: 0, duration: 0.4, delay: 0.5, onComplete: () => onDone?.() });
-        return;
-      }
-      const box = tileRef.current.getBoundingClientRect();
+      const box = stage.getBoundingClientRect();
       const dx = target.x + target.w / 2 - (box.x + box.width / 2);
       const dy = target.y + target.h / 2 - (box.y + box.height / 2);
-      const scale = target.w / box.width;
-      gsap.to(tileRef.current, {
-        x: dx, y: dy, scale,
-        boxShadow: "0 0 0 rgba(255,209,0,0)",
-        borderColor: "rgba(255,255,255,0.15)",
-        duration: 0.65, ease: "power3.inOut", delay: 0.25,
-      });
-      gsap.to(rootRef.current, {
-        opacity: 0, duration: 0.3, delay: 0.85, ease: "power1.in",
+      const scale = (target.w * 1.15) / box.width;
+      const tl = gsap.timeline({
         onComplete: () => onDone?.(),
       });
+      // The stage (our animated composition) flies to the header slot
+      tl.to(stage, {
+        x: dx,
+        y: dy,
+        scale,
+        duration: 0.9,
+        ease: "power3.inOut",
+        delay: 0.4,
+      }, 0)
+        // Partway through the flight, begin blurring + fading so the real
+        // raster logo in the header appears to take over seamlessly.
+        .to(stage, {
+          filter: "blur(6px) saturate(1.3)",
+          duration: 0.45,
+          ease: "power2.in",
+        }, 0.7)
+        .to(stage, {
+          opacity: 0,
+          duration: 0.35,
+          ease: "power1.in",
+        }, 1.0)
+        .to(rootRef.current, {
+          opacity: 0,
+          duration: 0.3,
+          ease: "power1.in",
+        }, 1.2);
     });
   };
 
@@ -241,7 +273,7 @@ export default function SplashIntro({ onDone }) {
         style={{ background: "radial-gradient(ellipse at center, rgba(0,0,0,0) 45%, rgba(0,0,0,0.92) 100%)" }}
       />
 
-      <div className="relative" style={{ width: 480, height: 480 }}>
+      <div ref={stageRef} className="relative" style={{ width: 480, height: 480, willChange: "transform, opacity, filter" }}>
         <svg ref={svgRef} viewBox="0 0 400 400" className="absolute inset-0 w-full h-full">
           <g id="cs-splash-group">
             {/* ===== BACKGROUND ARROWS (drawn first so they sit behind) ===== */}
@@ -347,28 +379,6 @@ export default function SplashIntro({ onDone }) {
             </g>
           </g>
         </svg>
-
-        {/* FLIP target — the real product logo tile */}
-        <div
-          ref={tileRef}
-          className="absolute rounded-md overflow-hidden flex items-center justify-center"
-          style={{
-            top: "50%",
-            left: "50%",
-            width: 260,
-            height: 260,
-            transform: "translate(-50%, -50%)",
-            background: "#ffffff",
-            border: "2px solid rgba(255,209,0,0.6)",
-            boxShadow: "0 0 40px rgba(255,209,0,0.35), 0 0 100px rgba(106,20,255,0.25)",
-            opacity: 0,
-            transformOrigin: "center",
-            willChange: "transform, opacity",
-          }}
-          data-testid="splash-logo-tile"
-        >
-          <img src="/cinemasync-logo.svg" alt="" className="w-[88%] h-[88%] object-contain" draggable={false} />
-        </div>
       </div>
     </div>
   );
