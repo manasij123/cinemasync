@@ -4,25 +4,28 @@ import { gsap } from "gsap";
 /**
  * CinemaSync splash intro.
  *
- *   Beat 1 — C (film reel logo) draws itself in the centre the way a
- *            hand writes "C": from the top-right corner, anti-clockwise
- *            around to the bottom-right.
- *   Beat 2 — S (pair of circular arrows) draws itself BEHIND the C the
- *            way a hand writes "S": the top curl first (top-right,
- *            anti-clockwise to middle), then the bottom curl (middle,
- *            clockwise to bottom-left).
+ *   Beat 1 — C (film-reel logo) writes itself in the centre the way a
+ *            hand draws a "C": starts top-right and sweeps
+ *            anti-clockwise around to bottom-right.
  *
- * Runs on every page load.  Smooth easing (`sine.inOut`) throughout so
- * there is no visible pulsing on the drawing progress.
+ *   Beat 2 — S (pair of circular arrows) writes itself BEHIND the C in
+ *            a single, continuous hand-written "S" motion:
+ *                top-right → top curl (anti-cw) → middle →
+ *                bottom curl (cw) → bottom-left.
+ *            Drawn with ONE path so there is no seam mid-stroke.
+ *
+ * Linear easing (`ease: "none"`) on every reveal keeps the pen speed
+ * constant so the stroke looks smooth and never pulses.
+ *
+ * Plays on every page load.
  */
 
-const TOTAL_HOLD_MS = 5200;
+const TOTAL_HOLD_MS = 5400;
 
 export default function SplashIntro({ onDone }) {
   const rootRef = useRef(null);
   const cPathRef = useRef(null);
-  const sTopRef = useRef(null);
-  const sBotRef = useRef(null);
+  const sPathRef = useRef(null);
 
   useLayoutEffect(() => {
     gsap.fromTo(rootRef.current, { opacity: 0 }, { opacity: 1, duration: 0.4 });
@@ -35,28 +38,25 @@ export default function SplashIntro({ onDone }) {
       return len;
     };
     seed(cPathRef.current);
-    seed(sTopRef.current);
-    seed(sBotRef.current);
+    seed(sPathRef.current);
 
-    // sine.inOut is the smoothest "writing" ease — no visible stutter.
-    const tl = gsap.timeline({ defaults: { ease: "sine.inOut" } });
+    // Linear easing — pen moves at a constant speed, no pulsing.
+    const tl = gsap.timeline({ defaults: { ease: "none" } });
 
-    // Beat 1 — C (foreground) writes in
-    tl.to(cPathRef.current, {
-      attr: { "stroke-dashoffset": 0 },
-      duration: 2.0,
-    }, 0.35);
+    // Beat 1 — C (foreground) writes in anti-clockwise
+    tl.to(
+      cPathRef.current,
+      { attr: { "stroke-dashoffset": 0 }, duration: 2.0 },
+      0.35
+    );
 
-    // Tiny pause so C feels "complete" before S starts behind it
-    // Beat 2 — S (background) writes in, top curl then bottom curl
-    tl.to(sTopRef.current, {
-      attr: { "stroke-dashoffset": 0 },
-      duration: 1.1,
-    }, 2.6);
-    tl.to(sBotRef.current, {
-      attr: { "stroke-dashoffset": 0 },
-      duration: 1.1,
-    }, 3.55);
+    // Small beat so C feels "complete" before S begins behind it
+    // Beat 2 — S (background) writes in as one continuous stroke
+    tl.to(
+      sPathRef.current,
+      { attr: { "stroke-dashoffset": 0 }, duration: 2.2 },
+      2.75
+    );
 
     // Overall stage hold + exit
     const t = setTimeout(() => {
@@ -84,23 +84,19 @@ export default function SplashIntro({ onDone }) {
   });
   const cStart = toPt(C_CX, C_CY, C_RADIUS, -55);
   const cEnd = toPt(C_CX, C_CY, C_RADIUS, 55);
+  // large-arc-flag=1, sweep-flag=0 → anti-clockwise the long way round
   const cPath = `M ${cStart.x} ${cStart.y} A ${C_RADIUS} ${C_RADIUS} 0 1 0 ${cEnd.x} ${cEnd.y}`;
 
-  // ---- S stroke paths (two arcs drawn the way we hand-write an S) ----
-  // Top curl  : centre upper-right → anti-clockwise up and left → middle
-  // Bottom curl: middle → clockwise down and right → bottom-left
-  //
-  // Arcs share a mid-point at the centre of the composition so the two
-  // halves join seamlessly to form a continuous S silhouette.
-  const S_TOP_R = 140;
-  const S_BOT_R = 140;
-  const MID_X = 250;
-  const MID_Y = 250;
-  const sTopStart = { x: 380, y: 110 };   // top-right head of S
-  const sTopMid   = { x: MID_X, y: MID_Y };
-  const sBotEnd   = { x: 120, y: 390 };   // bottom-left tail of S
-  const sTopPath = `M ${sTopStart.x} ${sTopStart.y} A ${S_TOP_R} ${S_TOP_R} 0 1 0 ${sTopMid.x} ${sTopMid.y}`;
-  const sBotPath = `M ${sTopMid.x} ${sTopMid.y} A ${S_BOT_R} ${S_BOT_R} 0 1 0 ${sBotEnd.x} ${sBotEnd.y}`;
+  // ---- S stroke path — ONE continuous path, drawn as a hand writes S ----
+  //   top-right  →  (anti-cw top curl)  →  middle  →  (cw bottom curl)  →  bottom-left
+  const S_R = 130;
+  const sStart = { x: 380, y: 120 };
+  const sMid   = { x: 250, y: 250 };
+  const sEnd   = { x: 120, y: 380 };
+  const sPath =
+    `M ${sStart.x} ${sStart.y} ` +
+    `A ${S_R} ${S_R} 0 1 0 ${sMid.x} ${sMid.y} ` +
+    `A ${S_R} ${S_R} 0 1 1 ${sEnd.x} ${sEnd.y}`;
 
   return (
     <div
@@ -112,11 +108,18 @@ export default function SplashIntro({ onDone }) {
     >
       <div
         className="pointer-events-none absolute inset-0"
-        style={{ background: "radial-gradient(ellipse at center, rgba(0,0,0,0) 45%, rgba(0,0,0,0.92) 100%)" }}
+        style={{
+          background:
+            "radial-gradient(ellipse at center, rgba(0,0,0,0) 45%, rgba(0,0,0,0.92) 100%)",
+        }}
       />
 
       <div className="relative" style={{ width: 560, height: 560 }}>
-        <svg viewBox="0 0 500 500" className="absolute inset-0 w-full h-full" shapeRendering="geometricPrecision">
+        <svg
+          viewBox="0 0 500 500"
+          className="absolute inset-0 w-full h-full"
+          shapeRendering="geometricPrecision"
+        >
           <defs>
             {/* Mask for the C — anti-clockwise stroke */}
             <mask id="maskC" maskUnits="userSpaceOnUse">
@@ -125,29 +128,23 @@ export default function SplashIntro({ onDone }) {
                 ref={cPathRef}
                 d={cPath}
                 stroke="white"
-                strokeWidth={C_RADIUS * 1.4}
+                strokeWidth={C_RADIUS * 1.45}
                 strokeLinecap="round"
+                strokeLinejoin="round"
                 fill="none"
               />
             </mask>
 
-            {/* Mask for the S — two sequential strokes */}
+            {/* Mask for the S — single continuous stroke */}
             <mask id="maskS" maskUnits="userSpaceOnUse">
               <rect width="500" height="500" fill="black" />
               <path
-                ref={sTopRef}
-                d={sTopPath}
+                ref={sPathRef}
+                d={sPath}
                 stroke="white"
-                strokeWidth={S_TOP_R * 1.9}
+                strokeWidth={S_R * 2.2}
                 strokeLinecap="round"
-                fill="none"
-              />
-              <path
-                ref={sBotRef}
-                d={sBotPath}
-                stroke="white"
-                strokeWidth={S_BOT_R * 1.9}
-                strokeLinecap="round"
+                strokeLinejoin="round"
                 fill="none"
               />
             </mask>
@@ -162,7 +159,7 @@ export default function SplashIntro({ onDone }) {
             height="520"
             preserveAspectRatio="xMidYMid meet"
             mask="url(#maskS)"
-            style={{ opacity: 0.88 }}
+            style={{ opacity: 0.9 }}
           />
 
           {/* FOREGROUND — C film-reel logo */}
