@@ -26,7 +26,7 @@ import { gsap } from "gsap";
  * Runs on every page load.
  */
 
-const STAGE_PX = 360;
+const STAGE_PX = 300;
 
 export default function SplashIntro({ onDone }) {
   const rootRef = useRef(null);
@@ -43,7 +43,7 @@ export default function SplashIntro({ onDone }) {
   // Pre-compute particle positions once so re-renders don't jitter them
   const particles = useMemo(
     () =>
-      Array.from({ length: 22 }).map((_, i) => ({
+      Array.from({ length: 10 }).map((_, i) => ({
         id: i,
         left: `${Math.random() * 100}%`,
         top: `${Math.random() * 100}%`,
@@ -122,10 +122,11 @@ export default function SplashIntro({ onDone }) {
     if (raysRef.current) {
       gsap.to(raysRef.current, {
         rotation: 360,
-        duration: 40,
+        duration: 60,
         ease: "none",
         repeat: -1,
         transformOrigin: "50% 50%",
+        force3D: true,
       });
     }
 
@@ -142,15 +143,10 @@ export default function SplashIntro({ onDone }) {
       });
     });
 
-    // Subtle 3D tilt — whole stage parallaxes very slightly
-    gsap.to(stageRef.current, {
-      rotationY: 6,
-      rotationX: -4,
-      duration: 3.4,
-      ease: "sine.inOut",
-      yoyo: true,
-      repeat: -1,
-    });
+    // Note: no continuous 3D tilt on the stage — it conflicts with the
+    // fly-to-header tween and increases per-frame cost.  The ambient
+    // particles + rings + rays + glow already give the composition a
+    // lively, cinema-like feel.
 
     const seed = (el) => {
       if (!el) return 0;
@@ -300,9 +296,7 @@ export default function SplashIntro({ onDone }) {
         className="absolute inset-0"
         style={{
           background:
-            "radial-gradient(ellipse at center, rgba(10,10,10,0.72) 0%, rgba(5,5,5,0.86) 55%, rgba(0,0,0,0.94) 100%)",
-          backdropFilter: "blur(18px) saturate(115%)",
-          WebkitBackdropFilter: "blur(18px) saturate(115%)",
+            "radial-gradient(ellipse at center, rgba(10,10,10,0.78) 0%, rgba(5,5,5,0.90) 55%, rgba(0,0,0,0.96) 100%)",
         }}
       />
 
@@ -332,25 +326,26 @@ export default function SplashIntro({ onDone }) {
         }}
       />
 
-      {/* Rotating light rays — projector beam feel */}
+      {/* Soft rotating light rays — projector beam feel, low cost */}
       <div
         ref={raysRef}
         className="pointer-events-none absolute left-1/2 top-1/2"
         style={{
-          width: "160vmax",
-          height: "160vmax",
-          marginLeft: "-80vmax",
-          marginTop: "-80vmax",
-          opacity: 0.22,
+          width: "140vmax",
+          height: "140vmax",
+          marginLeft: "-70vmax",
+          marginTop: "-70vmax",
+          opacity: 0.18,
           background:
-            "conic-gradient(from 0deg, rgba(255,209,0,0) 0deg, rgba(255,209,0,0.16) 12deg, rgba(255,209,0,0) 28deg, rgba(106,20,255,0) 90deg, rgba(106,20,255,0.14) 110deg, rgba(106,20,255,0) 128deg, rgba(57,255,20,0) 220deg, rgba(57,255,20,0.10) 238deg, rgba(57,255,20,0) 256deg, rgba(255,209,0,0) 360deg)",
-          filter: "blur(40px)",
+            "conic-gradient(from 0deg, rgba(255,209,0,0) 0deg, rgba(255,209,0,0.18) 14deg, rgba(255,209,0,0) 30deg, rgba(106,20,255,0) 140deg, rgba(106,20,255,0.14) 160deg, rgba(106,20,255,0) 180deg, rgba(255,209,0,0) 360deg)",
+          filter: "blur(22px)",
           mixBlendMode: "screen",
+          willChange: "transform",
         }}
       />
 
-      {/* Concentric projector rings — pulse outward from the stage centre */}
-      {[0, 1, 2].map((i) => (
+      {/* Concentric projector rings — pulse outward from stage centre */}
+      {[0, 1].map((i) => (
         <div
           key={`ring-${i}`}
           ref={(el) => (ringsRef.current[i] = el)}
@@ -448,7 +443,7 @@ export default function SplashIntro({ onDone }) {
                 ref={cPathRef}
                 d={cPath}
                 stroke="white"
-                strokeWidth={C_RADIUS * 1.45}
+                strokeWidth={C_RADIUS * 0.95}
                 strokeLinecap="round"
                 strokeLinejoin="round"
                 fill="none"
@@ -468,7 +463,7 @@ export default function SplashIntro({ onDone }) {
                 ref={sPathRef}
                 d={sPath}
                 stroke="white"
-                strokeWidth={S_R * 2.6}
+                strokeWidth={S_R * 1.5}
                 strokeLinecap="round"
                 strokeLinejoin="round"
                 fill="none"
