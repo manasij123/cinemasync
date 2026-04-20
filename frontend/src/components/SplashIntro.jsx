@@ -45,19 +45,28 @@ export default function SplashIntro({ onDone }) {
     return () => clearTimeout(t);
   }, []);
 
-  // Circular reveal path — a near-full circle centred on the film reel,
-  // starting at ~12 o'clock, sweeping clockwise all the way around. When
-  // swept by a fat stroke inside a <mask>, it "paints" the whole bitmap.
-  // Path is drawn as TWO 180° arcs (SVG's arc command can't draw 360°).
-  const RADIUS = 240;
+  // Anti-clockwise sweep path — the way one actually writes a "C" by hand.
+  //
+  //   • start : top-right corner of the C  (≈ 1 o'clock position)
+  //   • sweep : large-arc, counter-clockwise (up → left → down → right)
+  //   • end   : bottom-right corner of the C (≈ 5 o'clock position)
+  //
+  // The ~300° arc traces exactly the C silhouette; its ~280° gap on the
+  // right side becomes the opening of the letter — no part of the C is
+  // revealed outside the stroke's sweep.
+  const RADIUS = 230;
   const CX = 250;
   const CY = 250;
-  // Start at top, sweep clockwise 180° to bottom, then another 180° back.
-  // Small offset so start ≠ end (otherwise path length rolls back to zero).
-  const circlePath =
-    `M ${CX} ${CY - RADIUS} ` +
-    `A ${RADIUS} ${RADIUS} 0 1 1 ${CX} ${CY + RADIUS} ` +
-    `A ${RADIUS} ${RADIUS} 0 1 1 ${CX - 0.01} ${CY - RADIUS}`;
+  const START_DEG = -55;  // top-right
+  const END_DEG = 55;     // bottom-right (wraps the long way around)
+  const toPt = (deg) => ({
+    x: CX + RADIUS * Math.cos((deg * Math.PI) / 180),
+    y: CY + RADIUS * Math.sin((deg * Math.PI) / 180),
+  });
+  const startPt = toPt(START_DEG);
+  const endPt = toPt(END_DEG);
+  // large-arc-flag=1 → take the long way · sweep-flag=0 → counter-clockwise
+  const writePath = `M ${startPt.x} ${startPt.y} A ${RADIUS} ${RADIUS} 0 1 0 ${endPt.x} ${endPt.y}`;
 
   return (
     <div
@@ -78,12 +87,13 @@ export default function SplashIntro({ onDone }) {
           <defs>
             <mask id="cCircleMask" maskUnits="userSpaceOnUse">
               <rect width="500" height="500" fill="black" />
-              {/* The stroke is huge so its path-sweep covers the full C bitmap */}
+              {/* Fat stroke whose path traces the hand-written C stroke
+                  (anti-clockwise from top-right down to bottom-right). */}
               <path
                 ref={maskArcRef}
-                d={circlePath}
+                d={writePath}
                 stroke="white"
-                strokeWidth={RADIUS * 2}
+                strokeWidth={RADIUS * 1.4}
                 strokeLinecap="round"
                 fill="none"
               />
