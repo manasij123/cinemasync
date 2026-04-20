@@ -127,8 +127,12 @@ export default function SplashIntro({ onDone }) {
 
     // Tighten the composition — remove the background arrows first so the
     // flying shape reads as the logo silhouette, not a full splash scene.
-    gsap.to(['[data-draw="arrow-top"]', '[data-pop="arrow-top-head"]', '[data-draw="arrow-bot"]', '[data-pop="arrow-bot-head"]'], {
-      opacity: 0, scale: 0.6, duration: 0.35, ease: "power2.in", transformOrigin: "center",
+    gsap.to(['[data-arrow3d]', '[data-arrow-icons]'], {
+      opacity: 0,
+      scale: 0.6,
+      duration: 0.4,
+      ease: "power2.in",
+      transformOrigin: "center",
     });
 
     requestAnimationFrame(() => {
@@ -211,11 +215,42 @@ export default function SplashIntro({ onDone }) {
       .to('[data-pop^="strip-top-frame"]', { scale: 1, opacity: 1, duration: 0.3, stagger: 0.06, ease: "back.out(2)" }, 1.9)
       .to('[data-pop^="strip-bot-frame"]', { scale: 1, opacity: 1, duration: 0.3, stagger: 0.06, ease: "back.out(2)" }, 2.05);
 
-    // -------- BEAT 3 (2.4 – 3.3) : Background arrows sweep from centre --------
-    tl.to('[data-draw="arrow-top"]', { strokeDashoffset: 0, duration: 0.85, ease: "power2.out" }, 2.45)
-      .to('[data-pop="arrow-top-head"]', { scale: 1, opacity: 1, duration: 0.25, ease: "back.out(2)" }, 3.15)
-      .to('[data-draw="arrow-bot"]', { strokeDashoffset: 0, duration: 0.85, ease: "power2.out" }, 2.6)
-      .to('[data-pop="arrow-bot-head"]', { scale: 1, opacity: 1, duration: 0.25, ease: "back.out(2)" }, 3.3);
+    // -------- BEAT 3 (2.4 – 3.3) : 3D tab arrows sweep in from centre --------
+    // Seed 3D-entry state on the arrows
+    gsap.set('[data-arrow3d]', {
+      transformPerspective: 700,
+      scale: 0.35,
+      opacity: 0,
+    });
+    gsap.set('[data-arrow3d="top"]', { rotationX: 75, rotationZ: -25, y: 20 });
+    gsap.set('[data-arrow3d="bot"]', { rotationX: -75, rotationZ: 25, y: -20 });
+    gsap.set('[data-arrow-icons]', { opacity: 0, scale: 0.4, transformOrigin: "center" });
+
+    tl.to('[data-arrow3d="top"]', {
+      rotationX: 0,
+      rotationZ: 0,
+      y: 0,
+      scale: 1,
+      opacity: 1,
+      duration: 0.9,
+      ease: "power3.out",
+    }, 2.45)
+      .to('[data-arrow3d="bot"]', {
+        rotationX: 0,
+        rotationZ: 0,
+        y: 0,
+        scale: 1,
+        opacity: 1,
+        duration: 0.9,
+        ease: "power3.out",
+      }, 2.6)
+      .to('[data-arrow-icons]', {
+        opacity: 1,
+        scale: 1,
+        duration: 0.35,
+        stagger: 0.12,
+        ease: "back.out(2)",
+      }, 3.05);
 
     // -------- BEAT 4 (3.3 – 3.8) : Hold + glow --------
     tl.to('#cs-splash-group', {
@@ -251,13 +286,62 @@ export default function SplashIntro({ onDone }) {
     };
   });
 
-  // Background arrows — both begin at stage centre and curve outward.
-  //  Top (purple)   : centre → up-right → top
-  //  Bottom (yellow): centre → down-left → bottom
-  const arrowTopD = `M ${CENTER_X} ${CENTER_Y} C 300 170, 340 100, 300 40`;
-  const arrowTopTip = { x: 300, y: 40, rot: -30 };
-  const arrowBotD = `M ${CENTER_X} ${CENTER_Y} C 100 230, 60 300, 100 360`;
-  const arrowBotTip = { x: 100, y: 360, rot: 150 };
+  // Background arrows — tab-shaped, like the user's hand-drawn logo.
+  // Each is a thick banana-shape arc with an arrowhead at the tip.
+  // Top arrow (orange): sweeps from left-of-reel up and around to the right.
+  // Bottom arrow (blue): sweeps from right-of-reel down and around to the left.
+  const tabArrow = ({ cx, cy, rIn, rOut, start, end, headLen = 36 }) => {
+    const startOuter = pt(cx, cy, rOut, start);
+    const endOuter = pt(cx, cy, rOut, end);
+    const endInner = pt(cx, cy, rIn, end);
+    const startInner = pt(cx, cy, rIn, start);
+    // Tangent direction at `end` (for placing the arrowhead tip)
+    const tang = {
+      x: -Math.sin((end * Math.PI) / 180),
+      y: Math.cos((end * Math.PI) / 180),
+    };
+    const sweepSign = end > start ? 1 : -1;
+    // Tip = mid-radius, pushed further along tangent
+    const midR = (rIn + rOut) / 2;
+    const base = pt(cx, cy, midR, end);
+    const tip = {
+      x: base.x + tang.x * headLen * sweepSign,
+      y: base.y + tang.y * headLen * sweepSign,
+    };
+    // Arrowhead wings extend perpendicular to the tangent
+    const wingOuter = {
+      x: endOuter.x + tang.x * (headLen * 0.4) * sweepSign,
+      y: endOuter.y + tang.y * (headLen * 0.4) * sweepSign,
+    };
+    const wingInner = {
+      x: endInner.x + tang.x * (headLen * 0.4) * sweepSign,
+      y: endInner.y + tang.y * (headLen * 0.4) * sweepSign,
+    };
+    const large = Math.abs(end - start) > 180 ? 1 : 0;
+    const sweepOut = end > start ? 1 : 0;
+    const d = [
+      `M ${startOuter.x} ${startOuter.y}`,
+      `A ${rOut} ${rOut} 0 ${large} ${sweepOut} ${endOuter.x} ${endOuter.y}`,
+      `L ${wingOuter.x} ${wingOuter.y}`,
+      `L ${tip.x} ${tip.y}`,
+      `L ${wingInner.x} ${wingInner.y}`,
+      `L ${endInner.x} ${endInner.y}`,
+      `A ${rIn} ${rIn} 0 ${large} ${1 - sweepOut} ${startInner.x} ${startInner.y}`,
+      `Z`,
+    ].join(" ");
+    return d;
+  };
+
+  // Top arrow (orange tab): arcs over the top, points up-right
+  const arrowTopD = tabArrow({
+    cx: 200, cy: 200, rIn: 115, rOut: 165,
+    start: 200, end: 335, headLen: 40,
+  });
+  // Bottom arrow (blue tab): arcs under the bottom, points down-left
+  const arrowBotD = tabArrow({
+    cx: 200, cy: 200, rIn: 115, rOut: 165,
+    start: 20, end: 155, headLen: 40,
+  });
 
   return (
     <div
@@ -276,33 +360,67 @@ export default function SplashIntro({ onDone }) {
       <div ref={stageRef} className="relative" style={{ width: 480, height: 480, willChange: "transform, opacity, filter" }}>
         <svg ref={svgRef} viewBox="0 0 400 400" className="absolute inset-0 w-full h-full">
           <g id="cs-splash-group">
-            {/* ===== BACKGROUND ARROWS (drawn first so they sit behind) ===== */}
-            <g style={{ filter: "drop-shadow(0 0 6px rgba(106,20,255,0.45))" }}>
+            {/* ===== BACKGROUND TAB ARROWS (orange top, blue bottom) ===== */}
+            <defs>
+              <linearGradient id="arrowOrangeGrad" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%"  stopColor="#F7B876" />
+                <stop offset="55%" stopColor="#E8A16A" />
+                <stop offset="100%" stopColor="#B5763C" />
+              </linearGradient>
+              <linearGradient id="arrowBlueGrad" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%"  stopColor="#7AA1D8" />
+                <stop offset="55%" stopColor="#4A77B5" />
+                <stop offset="100%" stopColor="#2A4777" />
+              </linearGradient>
+            </defs>
+
+            <g data-arrow3d="top" style={{ transformOrigin: "200px 200px", transformBox: "fill-box" }}>
               <path
-                data-draw="arrow-top"
+                d={arrowTopD}
+                fill="url(#arrowOrangeGrad)"
+                opacity="0.92"
+                style={{ filter: "drop-shadow(0 6px 10px rgba(0,0,0,0.5))" }}
+              />
+              <path
                 d={arrowTopD}
                 fill="none"
-                stroke={ARROW_PURPLE}
-                strokeWidth="10"
+                stroke={NAVY}
+                strokeWidth="4"
+                strokeLinejoin="round"
                 strokeLinecap="round"
-                opacity="0.9"
+                opacity="0.85"
               />
-              <g data-pop="arrow-top-head" transform={`translate(${arrowTopTip.x} ${arrowTopTip.y}) rotate(${arrowTopTip.rot})`}>
-                <polygon points="0,0 -14,10 -14,-10" fill={ARROW_PURPLE} />
+              {/* Mini icon hint — lightbulb + gear dots inside the tab */}
+              <g data-arrow-icons="top">
+                <circle cx="260" cy="85" r="7" fill="#FFE0A8" stroke={NAVY} strokeWidth="2" />
+                <circle cx="295" cy="105" r="9" fill="none" stroke={NAVY} strokeWidth="2.5" />
+                <circle cx="295" cy="105" r="4" fill={NAVY} />
               </g>
             </g>
-            <g style={{ filter: "drop-shadow(0 0 6px rgba(255,209,0,0.5))" }}>
+
+            <g data-arrow3d="bot" style={{ transformOrigin: "200px 200px", transformBox: "fill-box" }}>
               <path
-                data-draw="arrow-bot"
+                d={arrowBotD}
+                fill="url(#arrowBlueGrad)"
+                opacity="0.92"
+                style={{ filter: "drop-shadow(0 6px 10px rgba(0,0,0,0.5))" }}
+              />
+              <path
                 d={arrowBotD}
                 fill="none"
-                stroke={ARROW_YELLOW}
-                strokeWidth="10"
+                stroke={NAVY}
+                strokeWidth="4"
+                strokeLinejoin="round"
                 strokeLinecap="round"
-                opacity="0.9"
+                opacity="0.85"
               />
-              <g data-pop="arrow-bot-head" transform={`translate(${arrowBotTip.x} ${arrowBotTip.y}) rotate(${arrowBotTip.rot})`}>
-                <polygon points="0,0 -14,10 -14,-10" fill={ARROW_YELLOW} />
+              {/* Mini icon hint — calendar + clock inside the tab */}
+              <g data-arrow-icons="bot">
+                <rect x="112" y="275" width="16" height="16" rx="2" fill="#F0F6FF" stroke={NAVY} strokeWidth="2" />
+                <line x1="115" y1="280" x2="125" y2="280" stroke={NAVY} strokeWidth="1.5" />
+                <circle cx="148" cy="300" r="9" fill="#F0F6FF" stroke={NAVY} strokeWidth="2" />
+                <line x1="148" y1="300" x2="148" y2="295" stroke={NAVY} strokeWidth="1.8" />
+                <line x1="148" y1="300" x2="152" y2="303" stroke={NAVY} strokeWidth="1.8" />
               </g>
             </g>
 
