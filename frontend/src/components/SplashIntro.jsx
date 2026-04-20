@@ -1,4 +1,4 @@
-import React, { useLayoutEffect, useRef } from "react";
+import React, { useLayoutEffect, useRef, useMemo } from "react";
 import { gsap } from "gsap";
 
 /**
@@ -35,6 +35,25 @@ export default function SplashIntro({ onDone }) {
   const stageRef = useRef(null);
   const cPathRef = useRef(null);
   const sPathRef = useRef(null);
+  const ringsRef = useRef([]);
+  const particlesRef = useRef([]);
+  const raysRef = useRef(null);
+  const bulbsRef = useRef([]);
+
+  // Pre-compute particle positions once so re-renders don't jitter them
+  const particles = useMemo(
+    () =>
+      Array.from({ length: 22 }).map((_, i) => ({
+        id: i,
+        left: `${Math.random() * 100}%`,
+        top: `${Math.random() * 100}%`,
+        size: 2 + Math.random() * 4,
+        delay: Math.random() * 3,
+        dur: 4 + Math.random() * 4,
+        hue: i % 3, // 0=yellow 1=purple 2=white
+      })),
+    []
+  );
 
   useLayoutEffect(() => {
     const navLogoBox =
@@ -57,6 +76,77 @@ export default function SplashIntro({ onDone }) {
     gsap.to(glowRef.current, {
       opacity: 0.55,
       duration: 1.6,
+      ease: "sine.inOut",
+      yoyo: true,
+      repeat: -1,
+    });
+
+    // Projector rings — three concentric rings pulse outward continuously
+    ringsRef.current.forEach((r, i) => {
+      if (!r) return;
+      gsap.fromTo(
+        r,
+        { scale: 0.6, opacity: 0 },
+        {
+          scale: 1.8,
+          opacity: 0,
+          duration: 3.2,
+          ease: "sine.out",
+          repeat: -1,
+          delay: i * 1.05,
+          keyframes: [
+            { scale: 0.6, opacity: 0, duration: 0 },
+            { opacity: 0.45, duration: 0.4 },
+            { scale: 1.8, opacity: 0, duration: 2.8 },
+          ],
+        }
+      );
+    });
+
+    // Floating cinema particles — gentle drift + twinkle
+    particlesRef.current.forEach((p) => {
+      if (!p) return;
+      const drift = 20 + Math.random() * 40;
+      gsap.to(p, {
+        y: `-=${drift}`,
+        x: `+=${(Math.random() - 0.5) * 30}`,
+        opacity: 0.15 + Math.random() * 0.5,
+        duration: 4 + Math.random() * 3,
+        ease: "sine.inOut",
+        yoyo: true,
+        repeat: -1,
+      });
+    });
+
+    // Light rays — slow rotation for a projector-beam feel
+    if (raysRef.current) {
+      gsap.to(raysRef.current, {
+        rotation: 360,
+        duration: 40,
+        ease: "none",
+        repeat: -1,
+        transformOrigin: "50% 50%",
+      });
+    }
+
+    // Corner marquee bulbs — staggered blink
+    bulbsRef.current.forEach((b, i) => {
+      if (!b) return;
+      gsap.to(b, {
+        opacity: 0.35,
+        duration: 0.9,
+        ease: "sine.inOut",
+        yoyo: true,
+        repeat: -1,
+        delay: i * 0.25,
+      });
+    });
+
+    // Subtle 3D tilt — whole stage parallaxes very slightly
+    gsap.to(stageRef.current, {
+      rotationY: 6,
+      rotationX: -4,
+      duration: 3.4,
       ease: "sine.inOut",
       yoyo: true,
       repeat: -1,
@@ -200,8 +290,8 @@ export default function SplashIntro({ onDone }) {
     <div
       ref={rootRef}
       data-testid="splash-intro"
-      className="fixed inset-0 z-[9998] select-none"
-      style={{ opacity: 0 }}
+      className="fixed inset-0 z-[9998] select-none overflow-hidden"
+      style={{ opacity: 0, perspective: "1200px" }}
       aria-hidden
     >
       {/* Translucent backdrop — Landing bleeds through just enough to feel alive */}
@@ -241,6 +331,93 @@ export default function SplashIntro({ onDone }) {
           filter: "blur(30px)",
         }}
       />
+
+      {/* Rotating light rays — projector beam feel */}
+      <div
+        ref={raysRef}
+        className="pointer-events-none absolute left-1/2 top-1/2"
+        style={{
+          width: "160vmax",
+          height: "160vmax",
+          marginLeft: "-80vmax",
+          marginTop: "-80vmax",
+          opacity: 0.22,
+          background:
+            "conic-gradient(from 0deg, rgba(255,209,0,0) 0deg, rgba(255,209,0,0.16) 12deg, rgba(255,209,0,0) 28deg, rgba(106,20,255,0) 90deg, rgba(106,20,255,0.14) 110deg, rgba(106,20,255,0) 128deg, rgba(57,255,20,0) 220deg, rgba(57,255,20,0.10) 238deg, rgba(57,255,20,0) 256deg, rgba(255,209,0,0) 360deg)",
+          filter: "blur(40px)",
+          mixBlendMode: "screen",
+        }}
+      />
+
+      {/* Concentric projector rings — pulse outward from the stage centre */}
+      {[0, 1, 2].map((i) => (
+        <div
+          key={`ring-${i}`}
+          ref={(el) => (ringsRef.current[i] = el)}
+          className="pointer-events-none absolute left-1/2 top-1/2 rounded-full"
+          style={{
+            width: STAGE_PX * 1.2,
+            height: STAGE_PX * 1.2,
+            marginLeft: -(STAGE_PX * 1.2) / 2,
+            marginTop: -(STAGE_PX * 1.2) / 2,
+            border: "1.5px solid rgba(255,209,0,0.4)",
+            boxShadow:
+              "0 0 40px rgba(255,209,0,0.25), inset 0 0 30px rgba(255,209,0,0.15)",
+            opacity: 0,
+          }}
+        />
+      ))}
+
+      {/* Floating cinema particles (popcorn / film dust bokeh) */}
+      {particles.map((p, idx) => (
+        <div
+          key={p.id}
+          ref={(el) => (particlesRef.current[idx] = el)}
+          className="pointer-events-none absolute rounded-full"
+          style={{
+            left: p.left,
+            top: p.top,
+            width: p.size,
+            height: p.size,
+            opacity: 0.35,
+            background:
+              p.hue === 0
+                ? "rgba(255,209,0,0.85)"
+                : p.hue === 1
+                ? "rgba(168,85,247,0.8)"
+                : "rgba(255,255,255,0.9)",
+            boxShadow:
+              p.hue === 0
+                ? "0 0 12px rgba(255,209,0,0.9)"
+                : p.hue === 1
+                ? "0 0 10px rgba(168,85,247,0.9)"
+                : "0 0 8px rgba(255,255,255,0.9)",
+          }}
+        />
+      ))}
+
+      {/* Corner marquee bulbs — classic theatre border flourish */}
+      {[
+        { top: 32, left: 32 },
+        { top: 32, right: 32 },
+        { bottom: 32, left: 32 },
+        { bottom: 32, right: 32 },
+      ].map((pos, i) => (
+        <div
+          key={`bulb-${i}`}
+          ref={(el) => (bulbsRef.current[i] = el)}
+          className="pointer-events-none absolute rounded-full"
+          style={{
+            ...pos,
+            width: 10,
+            height: 10,
+            background: "#ffd100",
+            boxShadow:
+              "0 0 18px rgba(255,209,0,0.9), 0 0 36px rgba(255,209,0,0.45)",
+            opacity: 1,
+          }}
+        />
+      ))}
 
       {/* Centred composition stage — GSAP tweens this to the header slot */}
       <div
