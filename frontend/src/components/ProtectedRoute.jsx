@@ -6,8 +6,8 @@ export default function ProtectedRoute({ children }) {
   const { user, loading } = useAuth();
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-[#fdf4ff]" data-testid="auth-loading">
-        <div className="font-mono text-xs tracking-[0.3em] uppercase text-[#6b5b84]">Loading reel…</div>
+      <div className="min-h-screen flex items-center justify-center bg-[#2a2a2a]" data-testid="auth-loading">
+        <div className="font-mono text-xs tracking-[0.3em] uppercase text-[#cccccc]">Loading reel…</div>
       </div>
     );
   }

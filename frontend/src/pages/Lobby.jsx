@@ -82,19 +82,19 @@ function PosterCard({ roomId, room }) {
   };
 
   return (
-    <div className="border border-[#7209b7]/30 bg-white p-6" data-testid="poster-card">
+    <div className="border border-[#6a14ff]/30 bg-white p-6" data-testid="poster-card">
       <div className="flex items-center gap-2 mb-3">
-        <Sparkles size={16} className="text-[#f72585]" />
-        <span className="font-mono text-xs tracking-[0.3em] uppercase text-[#f72585]">Share Party</span>
+        <Sparkles size={16} className="text-[#ffd100]" />
+        <span className="font-mono text-xs tracking-[0.3em] uppercase text-[#ffd100]">Share Party</span>
       </div>
       <h3 className="font-head text-2xl uppercase mb-2">Make a poster</h3>
-      <p className="text-[#6b5b84] text-sm mb-4">
+      <p className="text-[#cccccc] text-sm mb-4">
         Generate a one-of-a-kind poster for this room and share it on WhatsApp or Instagram Stories.
       </p>
 
       {blobUrl ? (
         <div className="space-y-3">
-          <div className="relative aspect-square max-w-[360px] mx-auto overflow-hidden rounded-md border border-[#7209b7]/30 bg-[#fdf4ff]">
+          <div className="relative aspect-square max-w-[360px] mx-auto overflow-hidden rounded-md border border-[#6a14ff]/30 bg-[#2a2a2a]">
             <img
               src={blobUrl}
               alt="Watch-party poster"
@@ -106,14 +106,14 @@ function PosterCard({ roomId, room }) {
             <button
               onClick={share}
               data-testid="poster-share-button"
-              className="flex-1 min-w-[140px] bg-gradient-to-r from-[#f72585] to-[#7209b7] text-white font-mono tracking-[0.2em] uppercase text-xs px-4 py-3 rounded-md hover:shadow-[0_8px_20px_rgba(247,37,133,0.35)] flex items-center justify-center gap-2"
+              className="flex-1 min-w-[140px] bg-[#ffd100] text-black font-mono tracking-[0.2em] uppercase text-xs px-4 py-3 rounded-md hover:shadow-[0_8px_20px_rgba(255,209,0,0.35)] flex items-center justify-center gap-2"
             >
               <Share2 size={13} /> Share
             </button>
             <button
               onClick={download}
               data-testid="poster-download-button"
-              className="flex-1 min-w-[140px] border-2 border-[#7209b7] text-[#7209b7] font-mono tracking-[0.2em] uppercase text-xs px-4 py-3 rounded-md hover:bg-[#7209b7] hover:text-white flex items-center justify-center gap-2"
+              className="flex-1 min-w-[140px] border-2 border-[#6a14ff] text-[#6a14ff] font-mono tracking-[0.2em] uppercase text-xs px-4 py-3 rounded-md hover:bg-[#6a14ff] hover:text-white flex items-center justify-center gap-2"
             >
               <Download size={13} /> Download
             </button>
@@ -121,7 +121,7 @@ function PosterCard({ roomId, room }) {
               onClick={generate}
               disabled={loading}
               data-testid="poster-regenerate-button"
-              className="flex-1 min-w-[140px] border border-[#7209b7]/40 text-[#6b5b84] font-mono tracking-[0.2em] uppercase text-xs px-4 py-3 rounded-md hover:border-[#7209b7] hover:text-[#7209b7] disabled:opacity-60 flex items-center justify-center gap-2"
+              className="flex-1 min-w-[140px] border border-[#6a14ff]/40 text-[#cccccc] font-mono tracking-[0.2em] uppercase text-xs px-4 py-3 rounded-md hover:border-[#6a14ff] hover:text-[#6a14ff] disabled:opacity-60 flex items-center justify-center gap-2"
             >
               <Sparkles size={13} /> {loading ? "…" : "Regenerate"}
             </button>
@@ -132,7 +132,7 @@ function PosterCard({ roomId, room }) {
           onClick={generate}
           disabled={loading}
           data-testid="poster-generate-button"
-          className="w-full bg-gradient-to-r from-[#f72585] to-[#7209b7] text-white font-mono tracking-[0.25em] uppercase text-xs px-4 py-4 rounded-md hover:shadow-[0_10px_26px_rgba(247,37,133,0.35)] disabled:opacity-70 flex items-center justify-center gap-2"
+          className="w-full bg-[#ffd100] text-black font-mono tracking-[0.25em] uppercase text-xs px-4 py-4 rounded-md hover:shadow-[0_10px_26px_rgba(255,209,0,0.35)] disabled:opacity-70 flex items-center justify-center gap-2"
         >
           <Sparkles size={14} />
           {loading ? "Rolling the poster…" : "Generate AI poster"}
@@ -146,13 +146,13 @@ function QRCard({ roomId, room }) {
   const [pw, setPw] = useState("");
   const [show, setShow] = useState(false);
   return (
-    <div className="border border-[#7209b7]/30 bg-white p-6" data-testid="qr-panel">
+    <div className="border border-[#6a14ff]/30 bg-white p-6" data-testid="qr-panel">
       <div className="flex items-center gap-2 mb-3">
-        <QrCode size={16} className="text-[#7209b7]" />
-        <span className="font-mono text-xs tracking-[0.3em] uppercase text-[#7209b7]">Scan to join</span>
+        <QrCode size={16} className="text-[#6a14ff]" />
+        <span className="font-mono text-xs tracking-[0.3em] uppercase text-[#6a14ff]">Scan to join</span>
       </div>
       <h3 className="font-head text-2xl uppercase mb-2">Room QR</h3>
-      <p className="text-[#6b5b84] text-sm mb-4">
+      <p className="text-[#cccccc] text-sm mb-4">
         Re-type the room password to regenerate a scannable QR for friends.
       </p>
       {show ? (
@@ -161,7 +161,7 @@ function QRCard({ roomId, room }) {
           <button
             onClick={() => { setShow(false); setPw(""); }}
             data-testid="lobby-qr-hide"
-            className="w-full border border-[#7209b7]/40 text-[#7209b7] font-mono text-xs tracking-widest uppercase px-4 py-2 rounded-md hover:bg-[#7209b7]/10"
+            className="w-full border border-[#6a14ff]/40 text-[#6a14ff] font-mono text-xs tracking-widest uppercase px-4 py-2 rounded-md hover:bg-[#6a14ff]/10"
           >
             Hide QR
           </button>
@@ -174,13 +174,13 @@ function QRCard({ roomId, room }) {
             onChange={(e) => setPw(e.target.value)}
             placeholder="Room password"
             data-testid="lobby-qr-password-input"
-            className="w-full bg-[#fdf4ff] border border-[#7209b7]/30 focus:border-[#7209b7] px-3 py-2 rounded-md text-sm"
+            className="w-full bg-[#2a2a2a] border border-[#6a14ff]/30 focus:border-[#ffd100] px-3 py-2 rounded-md text-sm"
           />
           <button
             type="submit"
             disabled={!pw.trim()}
             data-testid="lobby-qr-generate"
-            className="w-full bg-[#7209b7] text-white font-mono tracking-[0.25em] uppercase text-xs px-4 py-3 rounded-md hover:bg-[#4a0580] disabled:opacity-60"
+            className="w-full bg-[#6a14ff] text-white font-mono tracking-[0.25em] uppercase text-xs px-4 py-3 rounded-md hover:bg-[#5a0fd6] disabled:opacity-60"
           >
             Generate QR
           </button>
@@ -232,29 +232,29 @@ function InvitePanel({ roomId, isHost }) {
   };
 
   return (
-    <div className="border border-[#7209b7]/30 bg-white p-6" data-testid="invite-panel">
+    <div className="border border-[#6a14ff]/30 bg-white p-6" data-testid="invite-panel">
       <div className="flex items-center gap-2 mb-3">
-        <UserPlus size={16} className="text-[#7209b7]" />
-        <span className="font-mono text-xs tracking-[0.3em] uppercase text-[#7209b7]">Invite friends</span>
+        <UserPlus size={16} className="text-[#6a14ff]" />
+        <span className="font-mono text-xs tracking-[0.3em] uppercase text-[#6a14ff]">Invite friends</span>
       </div>
       <h3 className="font-head text-2xl uppercase mb-4">Call the crew</h3>
 
       <div className="space-y-3">
         <div>
-          <label className="font-mono text-[10px] tracking-[0.3em] uppercase text-[#6b5b84] block mb-2">Room password (confirm)</label>
+          <label className="font-mono text-[10px] tracking-[0.3em] uppercase text-[#cccccc] block mb-2">Room password (confirm)</label>
           <input
             type="text"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             placeholder="retype your room password"
             data-testid="invite-password-input"
-            className="w-full bg-[#fdf4ff] border border-[#7209b7]/30 focus:border-[#7209b7] px-3 py-2 font-body text-sm text-[#1a0b2e]"
+            className="w-full bg-[#2a2a2a] border border-[#6a14ff]/30 focus:border-[#ffd100] px-3 py-2 font-body text-sm text-[#ffffff]"
           />
         </div>
 
         {friends.length > 0 ? (
           <div>
-            <label className="font-mono text-[10px] tracking-[0.3em] uppercase text-[#6b5b84] block mb-2">Pick a friend</label>
+            <label className="font-mono text-[10px] tracking-[0.3em] uppercase text-[#cccccc] block mb-2">Pick a friend</label>
             <div className="max-h-40 overflow-y-auto space-y-1">
               {friends.map((f) => (
                 <button
@@ -264,18 +264,18 @@ function InvitePanel({ roomId, isHost }) {
                   data-testid={`invite-friend-${f.id}`}
                   className={`w-full flex items-center gap-2 px-2 py-2 border text-left text-sm ${
                     pickFriend === f.id
-                      ? "border-[#7209b7] bg-[#7209b7]/10"
-                      : "border-[#7209b7]/20 hover:border-[#7209b7]/50"
+                      ? "border-[#6a14ff] bg-[#6a14ff]/10"
+                      : "border-[#6a14ff]/20 hover:border-[#6a14ff]/50"
                   }`}
                 >
-                  <div className="w-7 h-7 bg-[#f0e6ff] border border-[#7209b7]/30 flex items-center justify-center font-head text-xs">
+                  <div className="w-7 h-7 bg-[#f0e6ff] border border-[#6a14ff]/30 flex items-center justify-center font-head text-xs">
                     {f.name?.[0]?.toUpperCase()}
                   </div>
                   <div className="flex-1 min-w-0">
-                    <div className="text-[#1a0b2e] truncate">{f.name}</div>
-                    <div className="font-mono text-[10px] text-[#6b5b84] truncate">{f.unique_id}</div>
+                    <div className="text-[#ffffff] truncate">{f.name}</div>
+                    <div className="font-mono text-[10px] text-[#cccccc] truncate">{f.unique_id}</div>
                   </div>
-                  {pickFriend === f.id && <Check size={14} className="text-[#7209b7]" />}
+                  {pickFriend === f.id && <Check size={14} className="text-[#6a14ff]" />}
                 </button>
               ))}
             </div>
@@ -283,28 +283,28 @@ function InvitePanel({ roomId, isHost }) {
               onClick={sendInvite}
               disabled={sending || !pickFriend || !password}
               data-testid="invite-send-button"
-              className="mt-3 w-full bg-[#7209b7] text-[#1a0b2e] font-mono tracking-[0.2em] uppercase text-xs px-4 py-3 hover:bg-[#4a0580] disabled:opacity-50 flex items-center justify-center gap-2"
+              className="mt-3 w-full bg-[#6a14ff] text-[#ffffff] font-mono tracking-[0.2em] uppercase text-xs px-4 py-3 hover:bg-[#5a0fd6] disabled:opacity-50 flex items-center justify-center gap-2"
             >
               <Send size={13} /> {sending ? "Sending…" : "Send invite"}
             </button>
           </div>
         ) : (
-          <div className="text-xs text-[#6b5b84] font-mono tracking-widest uppercase">
+          <div className="text-xs text-[#cccccc] font-mono tracking-widest uppercase">
             Add friends first to invite them directly.
           </div>
         )}
 
-        <div className="pt-3 border-t border-[#7209b7]/20">
-          <label className="font-mono text-[10px] tracking-[0.3em] uppercase text-[#6b5b84] block mb-2">Or share outside</label>
+        <div className="pt-3 border-t border-[#6a14ff]/20">
+          <label className="font-mono text-[10px] tracking-[0.3em] uppercase text-[#cccccc] block mb-2">Or share outside</label>
           <div className="flex gap-2 items-stretch">
-            <div className="flex-1 font-mono text-xs px-3 py-2 bg-[#fdf4ff] border border-[#7209b7]/30 truncate text-[#1a0b2e]" data-testid="invite-link-display">
+            <div className="flex-1 font-mono text-xs px-3 py-2 bg-[#2a2a2a] border border-[#6a14ff]/30 truncate text-[#ffffff]" data-testid="invite-link-display">
               {inviteUrl}
             </div>
             <button
               onClick={() => copy(inviteUrl, "link")}
               disabled={!password}
               data-testid="invite-copy-link-button"
-              className="border border-[#7209b7]/40 px-3 py-2 font-mono text-xs tracking-widest uppercase hover:border-[#7209b7] hover:bg-[#7209b7]/10 disabled:opacity-50 flex items-center gap-2"
+              className="border border-[#6a14ff]/40 px-3 py-2 font-mono text-xs tracking-widest uppercase hover:border-[#6a14ff] hover:bg-[#6a14ff]/10 disabled:opacity-50 flex items-center gap-2"
             >
               {copied === "link" ? <Check size={13} /> : <Link2 size={13} />}
               Link
@@ -314,7 +314,7 @@ function InvitePanel({ roomId, isHost }) {
             <button
               onClick={() => copy(roomId, "id")}
               data-testid="invite-copy-id-button"
-              className="flex-1 border border-[#7209b7]/40 px-3 py-2 font-mono text-xs tracking-widest uppercase hover:border-[#7209b7] hover:bg-[#7209b7]/10 flex items-center justify-center gap-2"
+              className="flex-1 border border-[#6a14ff]/40 px-3 py-2 font-mono text-xs tracking-widest uppercase hover:border-[#6a14ff] hover:bg-[#6a14ff]/10 flex items-center justify-center gap-2"
             >
               {copied === "id" ? <Check size={13} /> : <Copy size={13} />}
               Copy room ID
@@ -323,7 +323,7 @@ function InvitePanel({ roomId, isHost }) {
               onClick={() => copy(password, "pwd")}
               disabled={!password}
               data-testid="invite-copy-password-button"
-              className="flex-1 border border-[#7209b7]/40 px-3 py-2 font-mono text-xs tracking-widest uppercase hover:border-[#7209b7] hover:bg-[#7209b7]/10 disabled:opacity-50 flex items-center justify-center gap-2"
+              className="flex-1 border border-[#6a14ff]/40 px-3 py-2 font-mono text-xs tracking-widest uppercase hover:border-[#6a14ff] hover:bg-[#6a14ff]/10 disabled:opacity-50 flex items-center justify-center gap-2"
             >
               {copied === "pwd" ? <Check size={13} /> : <Copy size={13} />}
               Copy password
@@ -386,7 +386,7 @@ export default function Lobby() {
     return (
       <div>
         <Navbar />
-        <div className="p-10 font-mono text-xs tracking-[0.3em] uppercase text-[#6b5b84]" data-testid="lobby-loading">
+        <div className="p-10 font-mono text-xs tracking-[0.3em] uppercase text-[#cccccc]" data-testid="lobby-loading">
           Loading room…
         </div>
       </div>
@@ -401,21 +401,21 @@ export default function Lobby() {
       <main className="max-w-[1200px] mx-auto px-6 md:px-10 py-10">
         <div className="flex items-end justify-between flex-wrap gap-4 mb-8">
           <div>
-            <div className="font-mono text-xs tracking-[0.3em] uppercase text-[#7209b7] mb-3">Lobby</div>
+            <div className="font-mono text-xs tracking-[0.3em] uppercase text-[#6a14ff] mb-3">Lobby</div>
             <h1 className="font-head text-4xl sm:text-5xl uppercase" data-testid="lobby-room-name">{room.name}</h1>
           </div>
           <div className="flex flex-wrap gap-2">
             <button
               onClick={copyId}
               data-testid="lobby-copy-room-id"
-              className="inline-flex items-center gap-2 px-3 py-2 bg-[#7209b7]/10 border border-dashed border-[#7209b7]/50 text-[#7209b7] font-mono text-xs tracking-widest hover:bg-[#7209b7]/20"
+              className="inline-flex items-center gap-2 px-3 py-2 bg-[#6a14ff]/10 border border-dashed border-[#6a14ff]/50 text-[#6a14ff] font-mono text-xs tracking-widest hover:bg-[#6a14ff]/20"
             >
               {copied ? <Check size={13} /> : <Copy size={13} />} Room ID: {roomId}
             </button>
             <button
               onClick={leave}
               data-testid="lobby-leave-button"
-              className="border border-[#7209b7]/40 font-mono text-xs tracking-widest uppercase px-4 py-2 hover:border-[#f72585] hover:text-[#f72585]"
+              className="border border-[#6a14ff]/40 font-mono text-xs tracking-widest uppercase px-4 py-2 hover:border-[#ffd100] hover:text-[#ffd100]"
             >
               Leave
             </button>
@@ -424,19 +424,19 @@ export default function Lobby() {
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           <div className="lg:col-span-2 space-y-6">
-            <div className="border border-[#7209b7]/30 bg-white p-8 flex flex-col">
+            <div className="border border-[#6a14ff]/30 bg-white p-8 flex flex-col">
               <div className="flex items-center gap-2 mb-3">
-                <Clapperboard size={16} className="text-[#7209b7]" />
-                <span className="font-mono text-xs tracking-[0.3em] uppercase text-[#7209b7]">Platform</span>
+                <Clapperboard size={16} className="text-[#6a14ff]" />
+                <span className="font-mono text-xs tracking-[0.3em] uppercase text-[#6a14ff]">Platform</span>
               </div>
               <div className="flex items-center gap-5 mb-6">
                 <PlatformLogo platform={room.platform} size={96} rounded="lg" showRing />
                 <div className="min-w-0">
                   <h2 className="font-head text-3xl uppercase leading-none">{PLATFORM_LABEL[room.platform] || "Custom"}</h2>
-                  <div className="font-mono text-[10px] tracking-[0.3em] uppercase text-[#6b5b84] mt-2">Streaming partner</div>
+                  <div className="font-mono text-[10px] tracking-[0.3em] uppercase text-[#cccccc] mt-2">Streaming partner</div>
                 </div>
               </div>
-              <p className="text-[#6b5b84] mb-6">
+              <p className="text-[#cccccc] mb-6">
                 Each viewer must log into their own {PLATFORM_LABEL[room.platform] || "streaming"} account in a
                 separate browser tab, or use host screen-share inside the room.
               </p>
@@ -444,7 +444,7 @@ export default function Lobby() {
                 <button
                   onClick={() => navigate(`/room/${roomId}`)}
                   data-testid="lobby-enter-room-button"
-                  className="bg-[#7209b7] text-[#1a0b2e] font-mono tracking-[0.25em] uppercase text-sm px-6 py-4 hover:bg-[#4a0580]"
+                  className="bg-[#ffd100] text-black font-mono font-semibold tracking-[0.25em] uppercase text-sm px-6 py-4 hover:bg-[#e8bd00]"
                 >
                   {isHost ? "Open the curtain" : "Take your seat"}
                 </button>
@@ -463,7 +463,7 @@ export default function Lobby() {
                       );
                     }}
                     data-testid="lobby-open-platform-link"
-                    className="border border-[#7209b7]/40 font-mono tracking-[0.25em] uppercase text-xs px-6 py-4 hover:border-[#7209b7] hover:text-[#7209b7]"
+                    className="border border-[#6a14ff]/40 font-mono tracking-[0.25em] uppercase text-xs px-6 py-4 hover:border-[#6a14ff] hover:text-[#6a14ff]"
                   >
                     Open {PLATFORM_LABEL[room.platform]} popup ↗
                   </button>
@@ -478,10 +478,10 @@ export default function Lobby() {
             <InvitePanel roomId={roomId} isHost={isHost} />
           </div>
 
-          <aside className="border border-[#7209b7]/30 bg-white p-6">
+          <aside className="border border-[#6a14ff]/30 bg-white p-6">
             <div className="flex items-center gap-2 mb-4">
-              <Users size={14} className="text-[#7209b7]" />
-              <span className="font-mono text-xs tracking-[0.3em] uppercase text-[#7209b7]">Cast · {members.length}</span>
+              <Users size={14} className="text-[#6a14ff]" />
+              <span className="font-mono text-xs tracking-[0.3em] uppercase text-[#6a14ff]">Cast · {members.length}</span>
             </div>
             <ul className="space-y-3" data-testid="lobby-participants">
               {members.map((m) => {
@@ -490,7 +490,7 @@ export default function Lobby() {
                 const meIsHost = room.host_id === user.id;
                 return (
                   <li key={m.id} className="flex items-center gap-3">
-                    <div className="w-9 h-9 bg-[#fdf4ff] border border-[#7209b7]/30 flex items-center justify-center font-head text-sm overflow-hidden shrink-0 rounded-sm">
+                    <div className="w-9 h-9 bg-[#2a2a2a] border border-[#6a14ff]/30 flex items-center justify-center font-head text-sm overflow-hidden shrink-0 rounded-sm">
                       {m.profile_image ? (
                         <img src={m.profile_image} alt="" className="w-full h-full object-cover" />
                       ) : (
@@ -500,17 +500,17 @@ export default function Lobby() {
                     <div className="flex-1 min-w-0">
                       <div className="font-body text-sm truncate flex items-center gap-1.5">
                         <span className="truncate">{m.name}</span>
-                        {mIsHost && <span className="text-[#7209b7] font-mono text-[10px] tracking-widest uppercase shrink-0">Host</span>}
-                        {mIsCoHost && !mIsHost && <span className="text-[#f72585] font-mono text-[10px] tracking-widest uppercase shrink-0">Co-host</span>}
+                        {mIsHost && <span className="text-[#6a14ff] font-mono text-[10px] tracking-widest uppercase shrink-0">Host</span>}
+                        {mIsCoHost && !mIsHost && <span className="text-[#ffd100] font-mono text-[10px] tracking-widest uppercase shrink-0">Co-host</span>}
                       </div>
-                      <div className="font-mono text-[10px] text-[#6b5b84] truncate">{m.unique_id}</div>
+                      <div className="font-mono text-[10px] text-[#cccccc] truncate">{m.unique_id}</div>
                     </div>
                     {meIsHost && !mIsHost && (
                       mIsCoHost ? (
                         <button
                           onClick={() => toggleCohost(m.id, false)}
                           data-testid={`cohost-demote-${m.id}`}
-                          className="text-[9px] font-mono tracking-widest uppercase border border-[#f72585]/40 text-[#f72585] px-2 py-1 rounded-sm hover:bg-[#f72585]/10"
+                          className="text-[9px] font-mono tracking-widest uppercase border border-[#ffd100]/40 text-[#ffd100] px-2 py-1 rounded-sm hover:bg-[#ffd100]/10"
                           title="Remove co-host"
                         >
                           Demote
@@ -519,7 +519,7 @@ export default function Lobby() {
                         <button
                           onClick={() => toggleCohost(m.id, true)}
                           data-testid={`cohost-promote-${m.id}`}
-                          className="text-[9px] font-mono tracking-widest uppercase border border-[#7209b7]/40 text-[#7209b7] px-2 py-1 rounded-sm hover:bg-[#7209b7]/10"
+                          className="text-[9px] font-mono tracking-widest uppercase border border-[#6a14ff]/40 text-[#6a14ff] px-2 py-1 rounded-sm hover:bg-[#6a14ff]/10"
                           title="Promote to co-host"
                         >
                           + Co-host

@@ -41,17 +41,17 @@ export default function Invite() {
     <div>
       <Navbar />
       <main className="max-w-md mx-auto px-6 py-16 text-center" data-testid="invite-page">
-        <TicketCheck size={48} className="text-[#7209b7] mx-auto mb-4" />
+        <TicketCheck size={48} className="text-[#6a14ff] mx-auto mb-4" />
         <h1 className="font-head text-3xl uppercase mb-3">Your seat is reserved</h1>
         {status === "joining" && (
-          <div className="font-mono text-xs tracking-[0.3em] uppercase text-[#6b5b84]">Unrolling the carpet…</div>
+          <div className="font-mono text-xs tracking-[0.3em] uppercase text-[#cccccc]">Unrolling the carpet…</div>
         )}
         {status === "error" && (
           <>
-            <div className="font-mono text-xs tracking-widest text-[#f72585] mb-4" data-testid="invite-error">{error}</div>
+            <div className="font-mono text-xs tracking-widest text-[#ffd100] mb-4" data-testid="invite-error">{error}</div>
             <button
               onClick={() => navigate("/dashboard")}
-              className="bg-[#7209b7] text-[#1a0b2e] font-mono tracking-[0.25em] uppercase text-sm px-6 py-3 hover:bg-[#4a0580]"
+              className="bg-[#6a14ff] text-[#ffffff] font-mono tracking-[0.25em] uppercase text-sm px-6 py-3 hover:bg-[#5a0fd6]"
             >
               Back to dashboard
             </button>

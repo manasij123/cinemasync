@@ -31,35 +31,35 @@ export default function VerifyEmail() {
       <Navbar />
       <div className="min-h-[calc(100vh-4rem)] flex items-center justify-center px-6 py-12">
         <div className="w-full max-w-md">
-          <div className="border border-[#7209b7]/30 bg-white p-8 text-center">
-            <div className="font-mono text-xs tracking-[0.3em] uppercase text-[#7209b7] mb-2">Act I · Confirmation</div>
+          <div className="border border-[#6a14ff]/30 bg-white p-8 text-center">
+            <div className="font-mono text-xs tracking-[0.3em] uppercase text-[#6a14ff] mb-2">Act I · Confirmation</div>
             <h1 className="font-head text-3xl uppercase mb-6">Verify email</h1>
 
             {status === "loading" && (
-              <div data-testid="verify-loading" className="font-mono text-xs tracking-widest uppercase text-[#6b5b84]">Confirming…</div>
+              <div data-testid="verify-loading" className="font-mono text-xs tracking-widest uppercase text-[#cccccc]">Confirming…</div>
             )}
             {status === "no-token" && (
-              <div data-testid="verify-no-token" className="text-[#6b5b84]">
-                <Mail className="mx-auto text-[#7209b7] mb-2" size={28} />
+              <div data-testid="verify-no-token" className="text-[#cccccc]">
+                <Mail className="mx-auto text-[#6a14ff] mb-2" size={28} />
                 <p>Open the verification link from your email to continue.</p>
               </div>
             )}
             {status === "ok" && (
               <div data-testid="verify-ok">
-                <Check className="mx-auto text-[#7209b7] mb-2" size={32} />
+                <Check className="mx-auto text-[#6a14ff] mb-2" size={32} />
                 <div className="font-head text-xl uppercase mb-2">Email confirmed</div>
-                <p className="text-sm text-[#6b5b84] mb-4">Your CinemaSync account is fully activated.</p>
-                <Link to="/dashboard" className="inline-block bg-[#7209b7] text-white font-mono tracking-[0.25em] uppercase text-xs px-6 py-3 hover:bg-[#4a0580]" data-testid="verify-to-dashboard">
+                <p className="text-sm text-[#cccccc] mb-4">Your CinemaSync account is fully activated.</p>
+                <Link to="/dashboard" className="inline-block bg-[#6a14ff] text-white font-mono tracking-[0.25em] uppercase text-xs px-6 py-3 hover:bg-[#5a0fd6]" data-testid="verify-to-dashboard">
                   Enter the theatre
                 </Link>
               </div>
             )}
             {status === "error" && (
               <div data-testid="verify-error">
-                <XCircle className="mx-auto text-[#f72585] mb-2" size={32} />
+                <XCircle className="mx-auto text-[#ffd100] mb-2" size={32} />
                 <div className="font-head text-xl uppercase mb-2">Couldn't verify</div>
-                <p className="text-sm text-[#6b5b84] mb-4">{error}</p>
-                <Link to="/profile" className="inline-block border-2 border-[#7209b7] text-[#7209b7] font-mono tracking-[0.25em] uppercase text-xs px-6 py-3 hover:bg-[#7209b7] hover:text-white" data-testid="verify-resend-from-profile">
+                <p className="text-sm text-[#cccccc] mb-4">{error}</p>
+                <Link to="/profile" className="inline-block border-2 border-[#6a14ff] text-[#6a14ff] font-mono tracking-[0.25em] uppercase text-xs px-6 py-3 hover:bg-[#6a14ff] hover:text-white" data-testid="verify-resend-from-profile">
                   Send new link from Profile
                 </Link>
               </div>

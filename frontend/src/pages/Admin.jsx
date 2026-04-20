@@ -9,15 +9,15 @@ import {
 } from "lucide-react";
 import { Sparkline } from "../components/Charts";
 
-function StatCard({ label, value, hint, icon: Icon, accent = "#7209b7", testid }) {
+function StatCard({ label, value, hint, icon: Icon, accent = "#6a14ff", testid }) {
   return (
     <div className="glass-card rounded-xl p-5" data-testid={testid}>
       <div className="flex items-start justify-between mb-3">
-        <span className="font-mono text-[10px] tracking-[0.3em] uppercase text-[#6b5b84]">{label}</span>
+        <span className="font-mono text-[10px] tracking-[0.3em] uppercase text-[#cccccc]">{label}</span>
         <Icon size={16} style={{ color: accent }} />
       </div>
-      <div className="font-head text-4xl uppercase text-[#1a0b2e] leading-none">{value}</div>
-      {hint != null && <div className="font-mono text-[10px] tracking-widest uppercase text-[#a597c4] mt-2">{hint}</div>}
+      <div className="font-head text-4xl uppercase text-[#ffffff] leading-none">{value}</div>
+      {hint != null && <div className="font-mono text-[10px] tracking-widest uppercase text-[#888888] mt-2">{hint}</div>}
     </div>
   );
 }
@@ -138,7 +138,7 @@ function UsersTab({ stats }) {
     <div className="glass-card rounded-xl p-5">
       <div className="flex items-center justify-between gap-4 mb-4 flex-wrap">
         <div>
-          <div className="font-mono text-[10px] tracking-[0.3em] uppercase text-[#6b5b84]">Directory</div>
+          <div className="font-mono text-[10px] tracking-[0.3em] uppercase text-[#cccccc]">Directory</div>
           <h2 className="font-head text-2xl uppercase">Users · {users.length}</h2>
         </div>
         <input
@@ -146,7 +146,7 @@ function UsersTab({ stats }) {
           onChange={(e) => setQ(e.target.value)}
           placeholder="Search email, name or unique id"
           data-testid="admin-users-search"
-          className="bg-[#fdf4ff] border border-[#e7c6ff] focus:border-[#7209b7] rounded-lg px-3 py-2 text-sm w-80 max-w-full"
+          className="bg-[#2a2a2a] border border-[#3a3a3a] focus:border-[#ffd100] rounded-lg px-3 py-2 text-sm w-80 max-w-full"
         />
       </div>
 
@@ -154,26 +154,26 @@ function UsersTab({ stats }) {
       {selected.size > 0 && (
         <div
           data-testid="admin-bulk-bar"
-          className="mb-4 flex items-center gap-3 flex-wrap rounded-lg border border-[#f72585]/40 bg-[#fff5f9] px-4 py-3"
+          className="mb-4 flex items-center gap-3 flex-wrap rounded-lg border border-[#ffd100]/40 bg-[#fff5f9] px-4 py-3"
         >
-          <span className="font-mono text-[11px] tracking-widest uppercase text-[#f72585] font-semibold">
+          <span className="font-mono text-[11px] tracking-widest uppercase text-[#ffd100] font-semibold">
             {selected.size} selected
           </span>
-          <span className="font-mono text-[10px] tracking-widest uppercase text-[#6b5b84]">
+          <span className="font-mono text-[10px] tracking-widest uppercase text-[#cccccc]">
             Selections persist across searches
           </span>
           <div className="ml-auto flex gap-2">
             <button
               onClick={clearSelection}
               data-testid="admin-bulk-clear"
-              className="border border-[#7209b7]/40 text-[#7209b7] font-mono text-[10px] tracking-widest uppercase px-3 py-1.5 rounded-md hover:bg-[#7209b7]/10"
+              className="border border-[#6a14ff]/40 text-[#6a14ff] font-mono text-[10px] tracking-widest uppercase px-3 py-1.5 rounded-md hover:bg-[#6a14ff]/10"
             >
               Clear
             </button>
             <button
               onClick={() => setBulkConfirmOpen(true)}
               data-testid="admin-bulk-delete-open"
-              className="bg-[#f72585] text-white font-mono text-[10px] tracking-widest uppercase px-3 py-1.5 rounded-md hover:bg-[#d80d6f] inline-flex items-center gap-1"
+              className="bg-[#ffd100] text-black font-mono text-[10px] tracking-widest uppercase px-3 py-1.5 rounded-md hover:bg-[#d80d6f] inline-flex items-center gap-1"
             >
               <Trash2 size={11} /> Delete {selected.size}
             </button>
@@ -184,7 +184,7 @@ function UsersTab({ stats }) {
       <div className="overflow-x-auto">
         <table className="w-full text-sm" data-testid="admin-users-table">
           <thead>
-            <tr className="text-left font-mono text-[10px] tracking-[0.3em] uppercase text-[#6b5b84] border-b border-[#e7c6ff]">
+            <tr className="text-left font-mono text-[10px] tracking-[0.3em] uppercase text-[#cccccc] border-b border-[#3a3a3a]">
               <th className="py-2 pr-3 w-10">
                 <input
                   type="checkbox"
@@ -193,7 +193,7 @@ function UsersTab({ stats }) {
                   onChange={toggleVisible}
                   disabled={visibleDeletable.length === 0}
                   data-testid="admin-select-all-visible"
-                  className="accent-[#7209b7] w-4 h-4 cursor-pointer"
+                  className="accent-[#6a14ff] w-4 h-4 cursor-pointer"
                   title={headerState === "all" ? "Unselect all visible" : "Select all visible"}
                 />
               </th>
@@ -213,7 +213,7 @@ function UsersTab({ stats }) {
                 <tr
                   key={u.id}
                   className={
-                    "border-b border-[#e7c6ff]/50 transition-colors " +
+                    "border-b border-[#3a3a3a]/50 transition-colors " +
                     (isSelected ? "bg-[#fff5f9]" : "")
                   }
                   data-testid={`admin-user-row-${u.id}`}
@@ -226,20 +226,20 @@ function UsersTab({ stats }) {
                       disabled={!deletable}
                       data-testid={`admin-select-${u.id}`}
                       title={deletable ? (isSelected ? "Unselect" : "Select") : "Admins / yourself can't be deleted"}
-                      className="accent-[#f72585] w-4 h-4 cursor-pointer disabled:opacity-30 disabled:cursor-not-allowed"
+                      className="accent-[#ffd100] w-4 h-4 cursor-pointer disabled:opacity-30 disabled:cursor-not-allowed"
                     />
                   </td>
-                  <td className="py-3 pr-3 font-body text-[#1a0b2e]">{u.name}</td>
-                  <td className="py-3 pr-3 font-mono text-[11px] text-[#6b5b84]">{u.email}</td>
-                  <td className="py-3 pr-3 font-mono text-[11px] text-[#6b5b84] truncate max-w-[220px]">{u.unique_id}</td>
-                  <td className="py-3 pr-3 font-mono text-[11px] text-[#6b5b84]">{u.friends_count}</td>
+                  <td className="py-3 pr-3 font-body text-[#ffffff]">{u.name}</td>
+                  <td className="py-3 pr-3 font-mono text-[11px] text-[#cccccc]">{u.email}</td>
+                  <td className="py-3 pr-3 font-mono text-[11px] text-[#cccccc] truncate max-w-[220px]">{u.unique_id}</td>
+                  <td className="py-3 pr-3 font-mono text-[11px] text-[#cccccc]">{u.friends_count}</td>
                   <td className="py-3 pr-3">
                     {u.is_admin ? (
-                      <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-[#7209b7] text-white font-mono text-[10px] tracking-wider uppercase rounded-full">
+                      <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-[#6a14ff] text-white font-mono text-[10px] tracking-wider uppercase rounded-full">
                         <Crown size={10} /> Admin
                       </span>
                     ) : (
-                      <span className="font-mono text-[10px] text-[#a597c4] uppercase tracking-wider">User</span>
+                      <span className="font-mono text-[10px] text-[#888888] uppercase tracking-wider">User</span>
                     )}
                   </td>
                   <td className="py-3 pr-3">
@@ -248,7 +248,7 @@ function UsersTab({ stats }) {
                         <button
                           onClick={() => promote(u)}
                           data-testid={`admin-promote-${u.id}`}
-                          className="border border-[#7209b7]/40 text-[#7209b7] font-mono text-[10px] tracking-widest uppercase px-2 py-1 rounded hover:bg-[#7209b7] hover:text-white"
+                          className="border border-[#6a14ff]/40 text-[#6a14ff] font-mono text-[10px] tracking-widest uppercase px-2 py-1 rounded hover:bg-[#6a14ff] hover:text-white"
                         >
                           Promote
                         </button>
@@ -257,7 +257,7 @@ function UsersTab({ stats }) {
                         <button
                           onClick={() => demote(u)}
                           data-testid={`admin-demote-${u.id}`}
-                          className="border border-[#6b5b84]/40 text-[#6b5b84] font-mono text-[10px] tracking-widest uppercase px-2 py-1 rounded hover:bg-[#6b5b84] hover:text-white"
+                          className="border border-[#cccccc]/40 text-[#cccccc] font-mono text-[10px] tracking-widest uppercase px-2 py-1 rounded hover:bg-[#cccccc] hover:text-white"
                         >
                           Demote
                         </button>
@@ -266,7 +266,7 @@ function UsersTab({ stats }) {
                         <button
                           onClick={() => del(u)}
                           data-testid={`admin-delete-user-${u.id}`}
-                          className="border border-[#f72585]/40 text-[#f72585] font-mono text-[10px] tracking-widest uppercase px-2 py-1 rounded hover:bg-[#f72585] hover:text-white inline-flex items-center gap-1"
+                          className="border border-[#ffd100]/40 text-[#ffd100] font-mono text-[10px] tracking-widest uppercase px-2 py-1 rounded hover:bg-[#ffd100] hover:text-white inline-flex items-center gap-1"
                         >
                           <Trash2 size={10} /> Delete
                         </button>
@@ -277,7 +277,7 @@ function UsersTab({ stats }) {
               );
             })}
             {filtered.length === 0 && (
-              <tr><td colSpan={7} className="py-6 text-center text-[#6b5b84] text-sm">No users match "{q}"</td></tr>
+              <tr><td colSpan={7} className="py-6 text-center text-[#cccccc] text-sm">No users match "{q}"</td></tr>
             )}
           </tbody>
         </table>
@@ -302,48 +302,48 @@ function BulkDeleteModal({ count, users, loading, onCancel, onConfirm }) {
   return (
     <div
       data-testid="admin-bulk-delete-modal"
-      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-[#1a0b2e]/70 backdrop-blur-sm"
+      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-[#ffffff]/70 backdrop-blur-sm"
       onClick={onCancel}
     >
       <div
-        className="w-full max-w-lg rounded-xl bg-white border border-[#f72585]/40 overflow-hidden"
+        className="w-full max-w-lg rounded-xl bg-white border border-[#ffd100]/40 overflow-hidden"
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="p-5 bg-gradient-to-r from-[#f72585] to-[#7209b7] text-white">
+        <div className="p-5 bg-[#ffd100] text-black">
           <div className="font-mono text-[10px] tracking-[0.3em] uppercase opacity-80">Destructive action</div>
           <div className="font-head text-2xl uppercase leading-tight">Delete {count} user{count !== 1 ? "s" : ""}?</div>
         </div>
         <div className="p-5">
-          <p className="text-sm text-[#6b5b84] mb-3">
+          <p className="text-sm text-[#cccccc] mb-3">
             Every selected user will be wiped permanently — their rooms, chats, notifications, uploaded photos and friendships will all vanish. This can't be undone.
           </p>
-          <div className="max-h-40 overflow-y-auto border border-[#e7c6ff] rounded-md divide-y divide-[#e7c6ff]/70">
+          <div className="max-h-40 overflow-y-auto border border-[#3a3a3a] rounded-md divide-y divide-[#3a3a3a]/70">
             {users.slice(0, 50).map((u) => (
               <div key={u.id} className="px-3 py-2 text-[12px] flex justify-between gap-2" data-testid={`admin-bulk-preview-${u.id}`}>
                 <span className="truncate">{u.name}</span>
-                <span className="font-mono text-[11px] text-[#6b5b84] truncate">{u.email}</span>
+                <span className="font-mono text-[11px] text-[#cccccc] truncate">{u.email}</span>
               </div>
             ))}
             {users.length > 50 && (
-              <div className="px-3 py-2 text-[11px] text-[#6b5b84]">…and {users.length - 50} more</div>
+              <div className="px-3 py-2 text-[11px] text-[#cccccc]">…and {users.length - 50} more</div>
             )}
           </div>
-          <label className="block mt-4 font-mono text-[10px] tracking-[0.3em] uppercase text-[#6b5b84]">
-            Type <span className="text-[#f72585] font-semibold">DELETE</span> to confirm
+          <label className="block mt-4 font-mono text-[10px] tracking-[0.3em] uppercase text-[#cccccc]">
+            Type <span className="text-[#ffd100] font-semibold">DELETE</span> to confirm
           </label>
           <input
             autoFocus
             value={confirm}
             onChange={(e) => setConfirm(e.target.value)}
             data-testid="admin-bulk-confirm-input"
-            className="mt-2 w-full bg-white border border-[#f72585]/40 focus:border-[#f72585] px-3 py-2 rounded-md font-mono uppercase tracking-widest text-sm"
+            className="mt-2 w-full bg-white border border-[#ffd100]/40 focus:border-[#ffd100] px-3 py-2 rounded-md font-mono uppercase tracking-widest text-sm"
           />
           <div className="flex gap-2 mt-4">
             <button
               onClick={onConfirm}
               disabled={!ok || loading}
               data-testid="admin-bulk-confirm-button"
-              className="flex-1 bg-[#f72585] text-white font-mono tracking-[0.25em] uppercase text-xs px-4 py-3 rounded-md hover:bg-[#d80d6f] disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+              className="flex-1 bg-[#ffd100] text-black font-mono tracking-[0.25em] uppercase text-xs px-4 py-3 rounded-md hover:bg-[#d80d6f] disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
             >
               <Trash2 size={13} /> {loading ? "Deleting…" : `Delete ${count}`}
             </button>
@@ -351,7 +351,7 @@ function BulkDeleteModal({ count, users, loading, onCancel, onConfirm }) {
               onClick={onCancel}
               disabled={loading}
               data-testid="admin-bulk-cancel-button"
-              className="flex-1 border border-[#7209b7]/40 text-[#7209b7] font-mono tracking-[0.25em] uppercase text-xs px-4 py-3 rounded-md hover:bg-[#7209b7]/10 disabled:opacity-60"
+              className="flex-1 border border-[#6a14ff]/40 text-[#6a14ff] font-mono tracking-[0.25em] uppercase text-xs px-4 py-3 rounded-md hover:bg-[#6a14ff]/10 disabled:opacity-60"
             >
               Cancel
             </button>
@@ -384,13 +384,13 @@ function RoomsTab() {
   return (
     <div className="glass-card rounded-xl p-5">
       <div className="mb-4">
-        <div className="font-mono text-[10px] tracking-[0.3em] uppercase text-[#6b5b84]">Active & Past</div>
+        <div className="font-mono text-[10px] tracking-[0.3em] uppercase text-[#cccccc]">Active & Past</div>
         <h2 className="font-head text-2xl uppercase">Rooms · {rooms.length}</h2>
       </div>
       <div className="overflow-x-auto">
         <table className="w-full text-sm" data-testid="admin-rooms-table">
           <thead>
-            <tr className="text-left font-mono text-[10px] tracking-[0.3em] uppercase text-[#6b5b84] border-b border-[#e7c6ff]">
+            <tr className="text-left font-mono text-[10px] tracking-[0.3em] uppercase text-[#cccccc] border-b border-[#3a3a3a]">
               <th className="py-2 pr-3">Room ID</th>
               <th className="py-2 pr-3">Name</th>
               <th className="py-2 pr-3">Platform</th>
@@ -401,19 +401,19 @@ function RoomsTab() {
           </thead>
           <tbody>
             {rooms.map((r) => (
-              <tr key={r.id} className="border-b border-[#e7c6ff]/50" data-testid={`admin-room-row-${r.id}`}>
-                <td className="py-3 pr-3 font-mono text-[11px] text-[#1a0b2e]">{r.id}</td>
-                <td className="py-3 pr-3 font-body text-[#1a0b2e]">{r.name}</td>
-                <td className="py-3 pr-3 font-mono text-[11px] text-[#6b5b84] uppercase">{r.platform}</td>
+              <tr key={r.id} className="border-b border-[#3a3a3a]/50" data-testid={`admin-room-row-${r.id}`}>
+                <td className="py-3 pr-3 font-mono text-[11px] text-[#ffffff]">{r.id}</td>
+                <td className="py-3 pr-3 font-body text-[#ffffff]">{r.name}</td>
+                <td className="py-3 pr-3 font-mono text-[11px] text-[#cccccc] uppercase">{r.platform}</td>
                 <td className="py-3 pr-3 font-mono text-[11px]">{r.participants?.length || 0}</td>
-                <td className="py-3 pr-3 font-mono text-[10px] text-[#a597c4]">
+                <td className="py-3 pr-3 font-mono text-[10px] text-[#888888]">
                   {r.created_at ? new Date(r.created_at).toLocaleString() : "—"}
                 </td>
                 <td className="py-3 pr-3 text-right">
                   <button
                     onClick={() => kill(r)}
                     data-testid={`admin-kill-room-${r.id}`}
-                    className="border border-[#f72585]/40 text-[#f72585] font-mono text-[10px] tracking-widest uppercase px-2 py-1 rounded hover:bg-[#f72585] hover:text-white inline-flex items-center gap-1"
+                    className="border border-[#ffd100]/40 text-[#ffd100] font-mono text-[10px] tracking-widest uppercase px-2 py-1 rounded hover:bg-[#ffd100] hover:text-white inline-flex items-center gap-1"
                   >
                     <Trash2 size={10} /> Kill
                   </button>
@@ -451,8 +451,8 @@ function BroadcastTab() {
   return (
     <form onSubmit={send} className="glass-card rounded-xl p-5 max-w-xl">
       <div className="flex items-center gap-2 mb-4">
-        <Megaphone size={16} className="text-[#f72585]" />
-        <span className="font-mono text-[10px] tracking-[0.3em] uppercase text-[#f72585]">Announcement</span>
+        <Megaphone size={16} className="text-[#ffd100]" />
+        <span className="font-mono text-[10px] tracking-[0.3em] uppercase text-[#ffd100]">Announcement</span>
       </div>
       <h2 className="font-head text-2xl uppercase mb-4">Broadcast to all users</h2>
       <div className="space-y-3">
@@ -461,7 +461,7 @@ function BroadcastTab() {
           onChange={(e) => setTitle(e.target.value)}
           placeholder="Title (e.g. Scheduled maintenance)"
           data-testid="admin-broadcast-title"
-          className="w-full bg-[#fdf4ff] border border-[#e7c6ff] focus:border-[#7209b7] rounded-lg px-3 py-2 text-sm"
+          className="w-full bg-[#2a2a2a] border border-[#3a3a3a] focus:border-[#ffd100] rounded-lg px-3 py-2 text-sm"
         />
         <textarea
           value={body}
@@ -469,18 +469,18 @@ function BroadcastTab() {
           placeholder="Message body…"
           rows={4}
           data-testid="admin-broadcast-body"
-          className="w-full bg-[#fdf4ff] border border-[#e7c6ff] focus:border-[#7209b7] rounded-lg px-3 py-2 text-sm"
+          className="w-full bg-[#2a2a2a] border border-[#3a3a3a] focus:border-[#ffd100] rounded-lg px-3 py-2 text-sm"
         />
         <button
           type="submit"
           disabled={loading}
           data-testid="admin-broadcast-send"
-          className="w-full bg-gradient-to-r from-[#f72585] to-[#7209b7] text-white font-mono tracking-[0.2em] uppercase text-xs px-4 py-3 rounded-lg hover:shadow-[0_8px_20px_rgba(247,37,133,0.35)] disabled:opacity-60"
+          className="w-full bg-[#ffd100] text-black font-mono tracking-[0.2em] uppercase text-xs px-4 py-3 rounded-lg hover:shadow-[0_8px_20px_rgba(255,209,0,0.35)] disabled:opacity-60"
         >
           {loading ? "Sending…" : "Send broadcast"}
         </button>
       </div>
-      <p className="font-mono text-[10px] tracking-widest uppercase text-[#a597c4] mt-4">
+      <p className="font-mono text-[10px] tracking-widest uppercase text-[#888888] mt-4">
         Creates a notification in every user's inbox. They can dismiss or read.
       </p>
     </form>
@@ -527,13 +527,13 @@ function AlertsTab() {
   return (
     <div className="glass-card rounded-xl p-5">
       <div className="flex items-center gap-2 mb-2">
-        <Bell size={16} className="text-[#f72585]" />
-        <span className="font-mono text-[10px] tracking-[0.3em] uppercase text-[#f72585]">System alerts</span>
+        <Bell size={16} className="text-[#ffd100]" />
+        <span className="font-mono text-[10px] tracking-[0.3em] uppercase text-[#ffd100]">System alerts</span>
         {alerts.length > 0 && (
           <button
             onClick={dismissAll}
             data-testid="admin-alerts-dismiss-all"
-            className="ml-auto border border-[#e7c6ff] font-mono text-[10px] tracking-widest uppercase px-3 py-1.5 rounded-md hover:border-[#f72585] hover:text-[#f72585]"
+            className="ml-auto border border-[#3a3a3a] font-mono text-[10px] tracking-widest uppercase px-3 py-1.5 rounded-md hover:border-[#ffd100] hover:text-[#ffd100]"
           >
             Dismiss all
           </button>
@@ -541,10 +541,10 @@ function AlertsTab() {
       </div>
       <h2 className="font-head text-2xl uppercase mb-4">Alerts · {alerts.length}</h2>
       {loading && alerts.length === 0 && (
-        <div className="font-mono text-[10px] tracking-widest uppercase text-[#6b5b84]">Loading…</div>
+        <div className="font-mono text-[10px] tracking-widest uppercase text-[#cccccc]">Loading…</div>
       )}
       {!loading && alerts.length === 0 && (
-        <div className="font-mono text-[10px] tracking-widest uppercase text-[#6b5b84]" data-testid="admin-alerts-empty">
+        <div className="font-mono text-[10px] tracking-widest uppercase text-[#cccccc]" data-testid="admin-alerts-empty">
           Nothing to review. All quiet on the host front.
         </div>
       )}
@@ -555,26 +555,26 @@ function AlertsTab() {
           return (
             <div
               key={a.id}
-              className="border border-[#e7c6ff] bg-[#fdf4ff] rounded-lg p-4 flex items-start gap-3"
+              className="border border-[#3a3a3a] bg-[#2a2a2a] rounded-lg p-4 flex items-start gap-3"
               data-testid={`admin-alert-${a.id}`}
             >
-              <div className="w-9 h-9 rounded-full bg-[#f72585]/15 text-[#f72585] flex items-center justify-center shrink-0">
+              <div className="w-9 h-9 rounded-full bg-[#ffd100]/15 text-[#ffd100] flex items-center justify-center shrink-0">
                 <Trash2 size={16} />
               </div>
               <div className="min-w-0 flex-1">
-                <div className="font-mono text-[10px] tracking-widest uppercase text-[#6b5b84] mb-1">
+                <div className="font-mono text-[10px] tracking-widest uppercase text-[#cccccc] mb-1">
                   Room killed · {whenLabel}
                 </div>
-                <div className="font-body text-sm text-[#1a0b2e]">
-                  Host <span className="text-[#7209b7] font-semibold">{a.from_name || "Unknown"}</span> killed room{" "}
+                <div className="font-body text-sm text-[#ffffff]">
+                  Host <span className="text-[#6a14ff] font-semibold">{a.from_name || "Unknown"}</span> killed room{" "}
                   <span className="font-head uppercase">{a.room_name || a.room_id}</span>
-                  {a.room_id && <span className="font-mono text-[11px] text-[#6b5b84]"> · {a.room_id}</span>}
+                  {a.room_id && <span className="font-mono text-[11px] text-[#cccccc]"> · {a.room_id}</span>}
                 </div>
               </div>
               <button
                 onClick={() => dismiss(a.id)}
                 data-testid={`admin-alert-ok-${a.id}`}
-                className="bg-[#7209b7] text-white font-mono text-[10px] tracking-widest uppercase px-3 py-1.5 rounded-md hover:bg-[#4a0580]"
+                className="bg-[#6a14ff] text-white font-mono text-[10px] tracking-widest uppercase px-3 py-1.5 rounded-md hover:bg-[#5a0fd6]"
               >
                 OK
               </button>
@@ -607,9 +607,9 @@ export default function Admin() {
     return (
       <AppShell subtitle="Forbidden" title="Admin Panel">
         <div className="glass-card rounded-xl p-10 text-center" data-testid="admin-forbidden">
-          <ShieldCheck size={32} className="text-[#f72585] mx-auto mb-4" />
+          <ShieldCheck size={32} className="text-[#ffd100] mx-auto mb-4" />
           <h2 className="font-head text-3xl uppercase mb-2">No entry</h2>
-          <p className="text-[#6b5b84]">You need admin privileges to view this page.</p>
+          <p className="text-[#cccccc]">You need admin privileges to view this page.</p>
         </div>
       </AppShell>
     );
@@ -634,8 +634,8 @@ export default function Admin() {
             data-testid={`admin-tab-${t.id}`}
             className={`px-4 py-2 font-mono tracking-[0.2em] uppercase text-xs rounded-lg border transition-all ${
               tab === t.id
-                ? "border-[#7209b7] bg-[#7209b7] text-white"
-                : "border-[#e7c6ff] text-[#6b5b84] hover:border-[#7209b7]/60"
+                ? "border-[#6a14ff] bg-[#6a14ff] text-white"
+                : "border-[#3a3a3a] text-[#cccccc] hover:border-[#6a14ff]/60"
             }`}
           >
             {t.label}
@@ -647,14 +647,14 @@ export default function Admin() {
       {tab === "overview" && (
         <div className="space-y-6">
           <section className="grid grid-cols-2 lg:grid-cols-4 gap-4" data-testid="admin-overview">
-            <StatCard testid="admin-stat-users" label="Total Users" value={stats?.total_users ?? "—"} hint={`+${stats?.new_users_7d ?? 0} this week`} icon={Users} accent="#7209b7" />
-            <StatCard testid="admin-stat-rooms" label="Total Rooms" value={stats?.total_rooms ?? "—"} hint={`+${stats?.new_rooms_7d ?? 0} this week`} icon={Film} accent="#f72585" />
+            <StatCard testid="admin-stat-users" label="Total Users" value={stats?.total_users ?? "—"} hint={`+${stats?.new_users_7d ?? 0} this week`} icon={Users} accent="#6a14ff" />
+            <StatCard testid="admin-stat-rooms" label="Total Rooms" value={stats?.total_rooms ?? "—"} hint={`+${stats?.new_rooms_7d ?? 0} this week`} icon={Film} accent="#ffd100" />
             <StatCard testid="admin-stat-messages" label="Total Messages" value={stats?.total_messages ?? "—"} icon={MessageCircle} accent="#4cc9f0" />
             <StatCard testid="admin-stat-notifs" label="Notifications" value={stats?.total_notifications ?? "—"} icon={Bell} accent="#4361ee" />
           </section>
           <div className="glass-card rounded-xl p-5">
             <h3 className="font-head text-xl uppercase mb-3">Welcome, {user.name}</h3>
-            <p className="text-[#6b5b84] text-sm leading-relaxed">
+            <p className="text-[#cccccc] text-sm leading-relaxed">
               This is the control tower. Use the tabs above to browse users, kill runaway rooms, promote other admins,
               or broadcast an announcement to every signed-in member.
             </p>

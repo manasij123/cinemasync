@@ -8,10 +8,10 @@ export const PLATFORMS = {
   netflix:   { label: "Netflix",     short: "Netflix",  logo: "/ott-logos/netflix.svg",    bg: "#ffffff", fg: "#E50914", pad: "18%" },
   prime:     { label: "Prime Video", short: "Prime",    logo: "/ott-logos/prime.svg",      bg: "#ffffff", fg: "#00A8E1", pad: "16%" },
   hotstar:   { label: "JioHotstar",  short: "Hotstar",  logo: "/ott-logos/jiohotstar.png", bg: "#ffffff", fg: "#1a6aff", pad: "8%"  },
-  hoichoi:   { label: "Hoichoi",     short: "Hoichoi",  logo: "/ott-logos/hoichoi.png",    bg: "#1a0b2e", fg: "#ffffff", pad: "12%" },
+  hoichoi:   { label: "Hoichoi",     short: "Hoichoi",  logo: "/ott-logos/hoichoi.png",    bg: "#ffffff", fg: "#ffffff", pad: "12%" },
   addatimes: { label: "Addatimes",   short: "Adda",     logo: "/ott-logos/addatimes.jpg",  bg: "#ffffff", fg: "#e11d48", pad: "4%"  },
-  zee5:      { label: "ZEE5",        short: "ZEE5",     logo: "/ott-logos/zee5.svg",       bg: "#ffffff", fg: "#7209b7", pad: "18%" },
-  custom:    { label: "Custom",      short: "Custom",   logo: null,                        bg: "#fdf4ff", fg: "#7209b7", pad: "0%"  },
+  zee5:      { label: "ZEE5",        short: "ZEE5",     logo: "/ott-logos/zee5.svg",       bg: "#ffffff", fg: "#6a14ff", pad: "18%" },
+  custom:    { label: "Custom",      short: "Custom",   logo: null,                        bg: "#2a2a2a", fg: "#6a14ff", pad: "0%"  },
 };
 
 export const PLATFORM_LIST = Object.entries(PLATFORMS).map(([id, meta]) => ({ id, ...meta }));
@@ -38,7 +38,7 @@ export default function PlatformLogo({ platform = "custom", size = "md", rounded
         height: px,
         background: meta.bg,
         borderRadius: radius,
-        boxShadow: showRing ? `0 0 0 1px rgba(114,9,183,0.25), 0 4px 12px rgba(26,11,46,0.15)` : undefined,
+        boxShadow: showRing ? `0 0 0 1px rgba(106,20,255,0.25), 0 4px 12px rgba(0,0,0,0.15)` : undefined,
       }}
       title={meta.label}
     >
@@ -55,7 +55,7 @@ export default function PlatformLogo({ platform = "custom", size = "md", rounded
         />
       ) : (
         <span
-          className="font-head uppercase text-[#7209b7] leading-none px-1 text-center"
+          className="font-head uppercase text-[#6a14ff] leading-none px-1 text-center"
           style={{ fontSize: Math.max(10, Math.min(px * 0.22, 18)) }}
         >
           {meta.short}
@@ -71,7 +71,7 @@ export function PlatformChip({ platform = "custom", size = 20, className = "", t
   return (
     <span className={`inline-flex items-center gap-2 ${className}`} data-testid={testid}>
       <PlatformLogo platform={platform} size={size} rounded="sm" />
-      <span className="font-mono text-[10px] tracking-[0.25em] uppercase text-[#1a0b2e]">{meta.label}</span>
+      <span className="font-mono text-[10px] tracking-[0.25em] uppercase text-[#ffffff]">{meta.label}</span>
     </span>
   );
 }

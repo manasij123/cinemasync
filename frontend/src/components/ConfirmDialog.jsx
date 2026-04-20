@@ -41,24 +41,24 @@ export default function ConfirmDialog({
 }) {
   const actionClass =
     tone === "danger"
-      ? "bg-[#f72585] text-white hover:bg-[#d81674] focus-visible:ring-[#f72585]"
-      : "bg-[#7209b7] text-white hover:bg-[#4a0580] focus-visible:ring-[#7209b7]";
+      ? "bg-[#ffd100] text-black hover:bg-[#e8bd00] focus-visible:ring-[#ffd100]"
+      : "bg-[#6a14ff] text-white hover:bg-[#5a0fd6] focus-visible:ring-[#6a14ff]";
   return (
     <AlertDialog open={open} onOpenChange={onOpenChange}>
       <AlertDialogContent
         data-testid={testid}
-        className="bg-white border border-[#7209b7]/30 rounded-xl shadow-[0_30px_80px_rgba(26,11,46,0.4)] max-w-md"
+        className="bg-white border border-[#6a14ff]/30 rounded-xl shadow-[0_30px_80px_rgba(0,0,0,0.65)] max-w-md"
       >
         <AlertDialogHeader>
           <AlertDialogTitle
-            className="font-head text-2xl uppercase text-[#1a0b2e]"
+            className="font-head text-2xl uppercase text-[#ffffff]"
             data-testid={`${testid}-title`}
           >
             {title}
           </AlertDialogTitle>
           {description && (
             <AlertDialogDescription
-              className="text-[#6b5b84] text-sm leading-relaxed mt-2"
+              className="text-[#cccccc] text-sm leading-relaxed mt-2"
               data-testid={`${testid}-description`}
             >
               {description}
@@ -68,7 +68,7 @@ export default function ConfirmDialog({
         <AlertDialogFooter className="mt-4 gap-2">
           <AlertDialogCancel
             data-testid={`${testid}-cancel`}
-            className="border border-[#e7c6ff] font-mono text-xs tracking-[0.2em] uppercase px-4 py-2 rounded-md hover:border-[#7209b7]/60 hover:text-[#1a0b2e]"
+            className="border border-[#3a3a3a] font-mono text-xs tracking-[0.2em] uppercase px-4 py-2 rounded-md hover:border-[#6a14ff]/60 hover:text-[#ffffff]"
           >
             {cancelLabel}
           </AlertDialogCancel>

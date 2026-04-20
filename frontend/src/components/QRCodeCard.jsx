@@ -34,14 +34,14 @@ export default function QRCodeCard({ roomId, password, roomName, size = 220, tes
           await QRCode.toCanvas(canvasRef.current, payload, {
             width: size,
             margin: 1,
-            color: { dark: "#1a0b2e", light: "#fdf4ff" },
+            color: { dark: "#ffffff", light: "#2a2a2a" },
             errorCorrectionLevel: "M",
           });
         }
         const url = await QRCode.toDataURL(payload, {
           width: size * 2,
           margin: 2,
-          color: { dark: "#1a0b2e", light: "#ffffff" },
+          color: { dark: "#ffffff", light: "#ffffff" },
           errorCorrectionLevel: "M",
         });
         if (!cancelled) setDataUrl(url);
@@ -74,23 +74,23 @@ export default function QRCodeCard({ roomId, password, roomName, size = 220, tes
   return (
     <div
       data-testid={testid}
-      className="flex flex-col items-center gap-3 p-4 rounded-xl bg-[#fdf4ff] border border-[#7209b7]/25"
+      className="flex flex-col items-center gap-3 p-4 rounded-xl bg-[#2a2a2a] border border-[#6a14ff]/25"
     >
-      <div className="rounded-lg p-2 bg-[#fdf4ff] shadow-[0_6px_18px_rgba(114,9,183,0.12)]">
+      <div className="rounded-lg p-2 bg-[#2a2a2a] shadow-[0_6px_18px_rgba(255,209,0,0.12)]">
         <canvas ref={canvasRef} data-testid={`${testid}-canvas`} />
       </div>
       <div className="text-center">
-        <div className="font-mono text-[10px] tracking-[0.3em] uppercase text-[#6b5b84]">Scan to join</div>
-        <div className="font-head text-lg uppercase text-[#1a0b2e] tracking-wide mt-0.5">{roomId}</div>
+        <div className="font-mono text-[10px] tracking-[0.3em] uppercase text-[#cccccc]">Scan to join</div>
+        <div className="font-head text-lg uppercase text-[#ffffff] tracking-wide mt-0.5">{roomId}</div>
         {password && (
-          <div className="font-mono text-[10px] tracking-[0.2em] uppercase text-[#7209b7]">pass: {password}</div>
+          <div className="font-mono text-[10px] tracking-[0.2em] uppercase text-[#6a14ff]">pass: {password}</div>
         )}
       </div>
       <div className="flex gap-2 w-full">
         <button
           onClick={copyText}
           data-testid={`${testid}-copy`}
-          className="flex-1 flex items-center justify-center gap-1.5 border border-[#7209b7]/35 text-[#7209b7] font-mono text-[10px] tracking-widest uppercase px-3 py-2 rounded-md hover:bg-[#7209b7]/10"
+          className="flex-1 flex items-center justify-center gap-1.5 border border-[#6a14ff]/35 text-[#6a14ff] font-mono text-[10px] tracking-widest uppercase px-3 py-2 rounded-md hover:bg-[#6a14ff]/10"
         >
           {copied ? <Check size={12} /> : <Copy size={12} />}
           {copied ? "Copied" : "Copy"}
@@ -98,7 +98,7 @@ export default function QRCodeCard({ roomId, password, roomName, size = 220, tes
         <button
           onClick={download}
           data-testid={`${testid}-download`}
-          className="flex-1 flex items-center justify-center gap-1.5 bg-[#7209b7] text-white font-mono text-[10px] tracking-widest uppercase px-3 py-2 rounded-md hover:bg-[#4a0580]"
+          className="flex-1 flex items-center justify-center gap-1.5 bg-[#6a14ff] text-white font-mono text-[10px] tracking-widest uppercase px-3 py-2 rounded-md hover:bg-[#5a0fd6]"
         >
           <Download size={12} /> PNG
         </button>

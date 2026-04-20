@@ -1,25 +1,33 @@
-@import url('https://fonts.bunny.net/css?family=allerta-stencil:400');
+@import url(https://fonts.bunny.net/css?family=poppins:100,100i,200,200i,300,300i,400,400i,500,500i,600,600i,700,700i,800,800i,900,900i);
 
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
 :root {
-    --petal: #ffd6ff;
-    --blush: #fdf4ff;
-    --mauve-light: #e7c6ff;
-    --mauve: #c8b6ff;
-    --periwinkle: #b8c0ff;
-    --periwinkle-2: #bbd0ff;
-    --pink: #f72585;
-    --indigo: #7209b7;
-    --royal: #3a0ca3;
-    --sapphire: #4361ee;
-    --aqua: #4cc9f0;
-    --text-primary: #1a0b2e;
-    --text-secondary: #6b5b84;
-    --text-muted: #a597c4;
-    --border-subtle: rgba(114, 9, 183, 0.15);
+    /* New CinemaSync palette — dark + yellow + neon glow */
+    --bg-main:       #202020;
+    --bg-card:       #2a2a2a;
+    --bg-card-soft:  #262626;
+    --bg-elev:       #1a1a1a;
+    --btn-yellow:    #ffd100;
+    --btn-yellow-2:  #e8bd00;
+    --ink-white:     #ffffff;
+    --ink-black:     #000000;
+    --ink-yellow:    #ffd100;
+    --ink-muted:     #cccccc;
+    --ink-dim:       #888888;
+    --border-subtle: rgba(255, 255, 255, 0.12);
+    --border-soft:   #3a3a3a;
+    --glow-green:    #39ff14;
+    --glow-yellow:   #ffff00;
+    --glow-purple:   #6a14ff;
+    /* Back-compat aliases so legacy var consumers still work */
+    --text-primary:   var(--ink-white);
+    --text-secondary: var(--ink-muted);
+    --text-muted:     var(--ink-dim);
+    --pink:           var(--btn-yellow);
+    --indigo:         var(--glow-purple);
 }
 
 html, body, #root {
@@ -28,77 +36,69 @@ html, body, #root {
 
 body {
     margin: 0;
-    background: linear-gradient(135deg, #ffd6ff 0%, #e7c6ff 25%, #c8b6ff 50%, #b8c0ff 75%, #bbd0ff 100%);
+    background: var(--bg-main);
     background-attachment: fixed;
-    color: var(--text-primary);
-    font-family: 'Allerta Stencil', 'Impact', 'Arial Narrow', sans-serif;
-    letter-spacing: 0.02em;
+    color: var(--ink-white);
+    font-family: 'Poppins', 'Helvetica Neue', Arial, sans-serif;
+    font-weight: 400;
+    letter-spacing: 0.01em;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
     overflow-x: hidden;
 }
 
 ::selection {
-    background: var(--pink);
-    color: #ffffff;
+    background: var(--btn-yellow);
+    color: var(--ink-black);
 }
 
 /* Scrollbar */
-::-webkit-scrollbar {
-    width: 8px;
-    height: 8px;
-}
-::-webkit-scrollbar-track {
-    background: transparent;
-}
-::-webkit-scrollbar-thumb {
-    background: rgba(114, 9, 183, 0.35);
-    border-radius: 8px;
-}
-::-webkit-scrollbar-thumb:hover {
-    background: rgba(114, 9, 183, 0.65);
-}
+::-webkit-scrollbar { width: 8px; height: 8px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: rgba(255, 209, 0, 0.35); border-radius: 8px; }
+::-webkit-scrollbar-thumb:hover { background: rgba(255, 209, 0, 0.65); }
 
 @layer base {
     :root {
-        /* Shadcn HSL — pastel purple light theme */
-        --background: 300 100% 92%;
-        --foreground: 265 61% 11%;
-        --card: 0 0% 100%;
-        --card-foreground: 265 61% 11%;
-        --popover: 0 0% 100%;
-        --popover-foreground: 265 61% 11%;
-        --primary: 277 90% 38%;
-        --primary-foreground: 0 0% 100%;
-        --secondary: 278 100% 89%;
-        --secondary-foreground: 265 61% 11%;
-        --muted: 278 100% 89%;
-        --muted-foreground: 270 18% 45%;
-        --accent: 327 92% 56%;
+        /* Shadcn HSL — dark theme mapped to new palette */
+        --background: 0 0% 13%;              /* #202020 */
+        --foreground: 0 0% 100%;             /* white */
+        --card: 0 0% 16%;                    /* #2a2a2a */
+        --card-foreground: 0 0% 100%;
+        --popover: 0 0% 16%;
+        --popover-foreground: 0 0% 100%;
+        --primary: 49 100% 50%;              /* #ffd100 yellow */
+        --primary-foreground: 0 0% 0%;       /* black text on yellow */
+        --secondary: 0 0% 16%;
+        --secondary-foreground: 0 0% 100%;
+        --muted: 0 0% 16%;
+        --muted-foreground: 0 0% 80%;
+        --accent: 259 100% 54%;              /* #6A14FF glow purple */
         --accent-foreground: 0 0% 100%;
-        --destructive: 327 92% 56%;
+        --destructive: 0 84% 60%;
         --destructive-foreground: 0 0% 100%;
-        --border: 277 90% 80%;
-        --input: 0 0% 100%;
-        --ring: 277 90% 38%;
+        --border: 0 0% 20%;                  /* #333 */
+        --input: 0 0% 16%;
+        --ring: 49 100% 50%;
         --radius: 0.5rem;
     }
 }
 
 @layer base {
-    body {
-        @apply text-[var(--text-primary)];
-    }
+    body { @apply text-[var(--ink-white)]; }
 }
+
+/* Font utilities — powered by Poppins */
+.font-head { font-family: 'Poppins', sans-serif; font-weight: 900; letter-spacing: 0.04em; }
+.font-body { font-family: 'Poppins', sans-serif; font-weight: 400; letter-spacing: 0.005em; }
+.font-mono { font-family: 'Poppins', 'Courier New', monospace; font-weight: 500; letter-spacing: 0.18em; }
 
 /* Marquee animation */
 @keyframes marquee {
     from { transform: translateX(0); }
-    to { transform: translateX(-50%); }
+    to   { transform: translateX(-50%); }
 }
-.marquee-track {
-    animation: marquee 40s linear infinite;
-}
+.marquee-track { animation: marquee 40s linear infinite; }
 
 @keyframes flicker {
     0%, 100% { opacity: 1; }
@@ -115,35 +115,55 @@ body {
 .reveal { animation: reveal 0.8s cubic-bezier(0.22, 1, 0.36, 1) forwards; }
 
 @keyframes pulse-glow {
-    0%, 100% { box-shadow: 0 0 0 0 rgba(247, 37, 133, 0.6); }
-    50% { box-shadow: 0 0 0 8px rgba(247, 37, 133, 0); }
+    0%, 100% { box-shadow: 0 0 0 0 rgba(57, 255, 20, 0.6); }
+    50%      { box-shadow: 0 0 0 8px rgba(57, 255, 20, 0); }
 }
 .pulse-live { animation: pulse-glow 1.5s infinite; }
 
 @keyframes dash-draw {
     from { stroke-dashoffset: 1000; }
-    to { stroke-dashoffset: 0; }
+    to   { stroke-dashoffset: 0; }
 }
 .draw-path {
     stroke-dasharray: 1000;
     animation: dash-draw 2.5s cubic-bezier(0.22, 1, 0.36, 1) forwards;
 }
 
-input:focus, textarea:focus {
-    outline: none;
+input:focus, textarea:focus { outline: none; }
+
+/* Input & textarea default look in dark theme */
+input, textarea, select {
+    color-scheme: dark;
 }
 
-.font-head { font-family: 'Allerta Stencil', 'Impact', 'Arial Narrow', sans-serif; letter-spacing: 0.04em; }
-.font-body { font-family: 'Allerta Stencil', 'Impact', 'Arial Narrow', sans-serif; letter-spacing: 0.02em; }
-.font-mono { font-family: 'Allerta Stencil', 'Courier New', monospace; letter-spacing: 0.08em; }
-
-/* Card glass */
+/* Card glass — dark edition */
 .glass-card {
-    background: rgba(255, 255, 255, 0.75);
+    background: rgba(42, 42, 42, 0.85);
     backdrop-filter: blur(12px);
-    border: 1px solid rgba(114, 9, 183, 0.15);
-    box-shadow: 0 4px 24px rgba(114, 9, 183, 0.08);
+    border: 1px solid var(--border-subtle);
+    box-shadow: 0 4px 24px rgba(0, 0, 0, 0.35);
 }
 .glass-card:hover {
-    box-shadow: 0 8px 32px rgba(114, 9, 183, 0.14);
+    border-color: rgba(255, 209, 0, 0.35);
+    box-shadow: 0 8px 32px rgba(255, 209, 0, 0.10);
 }
+
+/* CTA — yellow button glow */
+.btn-yellow {
+    background: var(--btn-yellow);
+    color: var(--ink-black);
+    font-weight: 700;
+    transition: box-shadow 180ms ease, background 180ms ease, transform 180ms ease;
+}
+.btn-yellow:hover {
+    background: var(--btn-yellow-2);
+    box-shadow: 0 0 0 2px rgba(255, 255, 0, 0.12), 0 10px 24px rgba(255, 209, 0, 0.35);
+}
+
+/* Glow utilities */
+.glow-green  { text-shadow: 0 0 12px rgba(57, 255, 20, 0.6), 0 0 22px rgba(57, 255, 20, 0.35); }
+.glow-yellow { text-shadow: 0 0 12px rgba(255, 255, 0, 0.6), 0 0 22px rgba(255, 255, 0, 0.35); }
+.glow-purple { text-shadow: 0 0 14px rgba(106, 20, 255, 0.65), 0 0 26px rgba(106, 20, 255, 0.4); }
+.ring-glow-green  { box-shadow: 0 0 0 1px rgba(57, 255, 20, 0.6), 0 0 18px rgba(57, 255, 20, 0.35); }
+.ring-glow-yellow { box-shadow: 0 0 0 1px rgba(255, 255, 0, 0.6), 0 0 18px rgba(255, 255, 0, 0.35); }
+.ring-glow-purple { box-shadow: 0 0 0 1px rgba(106, 20, 255, 0.6), 0 0 18px rgba(106, 20, 255, 0.35); }

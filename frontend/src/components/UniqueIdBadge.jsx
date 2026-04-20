@@ -51,7 +51,7 @@ export default function UniqueIdBadge({
         title="Click to copy unique ID"
         className={
           pillClass +
-          " items-start gap-2 px-3 py-1.5 bg-[#7209b7]/10 border border-dashed border-[#7209b7]/50 text-[#7209b7] font-mono text-xs tracking-widest rounded-sm hover:bg-[#7209b7]/20 transition-colors text-left " +
+          " items-start gap-2 px-3 py-1.5 bg-[#6a14ff]/10 border border-dashed border-[#6a14ff]/50 text-[#6a14ff] font-mono text-xs tracking-widest rounded-sm hover:bg-[#6a14ff]/20 transition-colors text-left " +
           (multiline ? "max-w-full whitespace-normal break-all leading-relaxed" : "")
         }
       >
@@ -66,7 +66,7 @@ export default function UniqueIdBadge({
         title={copied ? "Copied!" : `Copy ${value}`}
         className={
           avatarClass +
-          " relative items-center justify-center w-10 h-10 rounded-full overflow-hidden border border-[#7209b7]/40 bg-[#7209b7]/10 text-[#7209b7] font-head text-sm shrink-0 hover:bg-[#7209b7]/20 transition-colors"
+          " relative items-center justify-center w-10 h-10 rounded-full overflow-hidden border border-[#6a14ff]/40 bg-[#6a14ff]/10 text-[#6a14ff] font-head text-sm shrink-0 hover:bg-[#6a14ff]/20 transition-colors"
         }
       >
         {avatarImg ? (
@@ -75,7 +75,7 @@ export default function UniqueIdBadge({
           <span className="tracking-wide">{initials}</span>
         )}
         {copied && (
-          <span className="absolute inset-0 flex items-center justify-center bg-[#7209b7] text-white">
+          <span className="absolute inset-0 flex items-center justify-center bg-[#6a14ff] text-white">
             <Check size={16} />
           </span>
         )}

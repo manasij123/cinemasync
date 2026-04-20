@@ -1,7 +1,7 @@
 import React from "react";
 
 // --- Sparkline ---
-export function Sparkline({ data, color = "#7209b7", width = 120, height = 36 }) {
+export function Sparkline({ data, color = "#6a14ff", width = 120, height = 36 }) {
   if (!data || data.length === 0) return null;
   const max = Math.max(...data, 1);
   const min = Math.min(...data, 0);
@@ -28,7 +28,7 @@ export function Sparkline({ data, color = "#7209b7", width = 120, height = 36 })
 }
 
 // --- Line Chart (two series) ---
-export function LineChart({ seriesA, seriesB, labels, colorA = "#7209b7", colorB = "#4cc9f0", height = 200 }) {
+export function LineChart({ seriesA, seriesB, labels, colorA = "#6a14ff", colorB = "#4cc9f0", height = 200 }) {
   const width = 800;
   const pad = { t: 20, r: 16, b: 30, l: 36 };
   const n = labels.length;
@@ -51,8 +51,8 @@ export function LineChart({ seriesA, seriesB, labels, colorA = "#7209b7", colorB
         const val = Math.round(maxVal - (i / gridLines) * maxVal);
         return (
           <g key={i}>
-            <line x1={pad.l} y1={y} x2={width - pad.r} y2={y} stroke="#e7c6ff" strokeDasharray="4 4" />
-            <text x={pad.l - 8} y={y + 4} textAnchor="end" fontSize="10" fill="#6b5b84" fontFamily="IBM Plex Mono">{val}</text>
+            <line x1={pad.l} y1={y} x2={width - pad.r} y2={y} stroke="#3a3a3a" strokeDasharray="4 4" />
+            <text x={pad.l - 8} y={y + 4} textAnchor="end" fontSize="10" fill="#cccccc" fontFamily="IBM Plex Mono">{val}</text>
           </g>
         );
       })}
@@ -71,7 +71,7 @@ export function LineChart({ seriesA, seriesB, labels, colorA = "#7209b7", colorB
       ))}
       {/* X labels */}
       {labels.map((l, i) => (
-        <text key={i} x={pad.l + i * xStep} y={height - 8} textAnchor="middle" fontSize="10" fill="#6b5b84" fontFamily="IBM Plex Mono">{l}</text>
+        <text key={i} x={pad.l + i * xStep} y={height - 8} textAnchor="middle" fontSize="10" fill="#cccccc" fontFamily="IBM Plex Mono">{l}</text>
       ))}
     </svg>
   );
@@ -106,10 +106,10 @@ export function Doughnut({ segments, size = 160, strokeWidth = 28 }) {
         offset += len;
         return circle;
       })}
-      <text x={size / 2} y={size / 2 - 2} textAnchor="middle" fontSize="28" fontWeight="700" fill="#1a0b2e" fontFamily="Anton">
+      <text x={size / 2} y={size / 2 - 2} textAnchor="middle" fontSize="28" fontWeight="700" fill="#ffffff" fontFamily="Anton">
         {total}
       </text>
-      <text x={size / 2} y={size / 2 + 16} textAnchor="middle" fontSize="10" fill="#6b5b84" fontFamily="IBM Plex Mono" letterSpacing="1.5">
+      <text x={size / 2} y={size / 2 + 16} textAnchor="middle" fontSize="10" fill="#cccccc" fontFamily="IBM Plex Mono" letterSpacing="1.5">
         TOTAL
       </text>
     </svg>
@@ -117,7 +117,7 @@ export function Doughnut({ segments, size = 160, strokeWidth = 28 }) {
 }
 
 // --- BarChart ---
-export function BarChart({ bars, height = 180, accent = "#f72585", secondary = "#4361ee" }) {
+export function BarChart({ bars, height = 180, accent = "#ffd100", secondary = "#4361ee" }) {
   const width = 400;
   const pad = { t: 20, r: 12, b: 30, l: 30 };
   const maxVal = Math.max(...bars.map((b) => b.value), 5);
@@ -135,7 +135,7 @@ export function BarChart({ bars, height = 180, accent = "#f72585", secondary = "
       </defs>
       {[0, 0.5, 1].map((t, i) => {
         const y = pad.t + t * innerH;
-        return <line key={i} x1={pad.l} y1={y} x2={width - pad.r} y2={y} stroke="#e7c6ff" strokeDasharray="3 4" />;
+        return <line key={i} x1={pad.l} y1={y} x2={width - pad.r} y2={y} stroke="#3a3a3a" strokeDasharray="3 4" />;
       })}
       {bars.map((b, i) => {
         const x = pad.l + i * (barW + gap) + gap / 2;
@@ -144,8 +144,8 @@ export function BarChart({ bars, height = 180, accent = "#f72585", secondary = "
         return (
           <g key={i}>
             <rect x={x} y={y} width={barW} height={h} fill="url(#bg-pink)" rx="4" />
-            <text x={x + barW / 2} y={y - 5} textAnchor="middle" fontSize="10" fill="#1a0b2e" fontFamily="IBM Plex Mono" fontWeight="600">{b.value}</text>
-            <text x={x + barW / 2} y={height - 10} textAnchor="middle" fontSize="9" fill="#6b5b84" fontFamily="IBM Plex Mono">{b.label}</text>
+            <text x={x + barW / 2} y={y - 5} textAnchor="middle" fontSize="10" fill="#ffffff" fontFamily="IBM Plex Mono" fontWeight="600">{b.value}</text>
+            <text x={x + barW / 2} y={height - 10} textAnchor="middle" fontSize="9" fill="#cccccc" fontFamily="IBM Plex Mono">{b.label}</text>
           </g>
         );
       })}

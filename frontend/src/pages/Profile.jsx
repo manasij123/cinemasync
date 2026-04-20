@@ -81,12 +81,12 @@ export default function Profile() {
     <AppShell subtitle="Your Ticket Stub" title="Profile">
       <div className="max-w-[1000px]">
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          <div className="md:col-span-1 border border-[#7209b7]/30 bg-white p-6 flex flex-col items-center text-center">
-            <div className="relative w-32 h-32 bg-[#fdf4ff] border border-[#7209b7]/30 overflow-hidden mb-4 flex items-center justify-center rounded-md">
+          <div className="md:col-span-1 border border-[#6a14ff]/30 bg-white p-6 flex flex-col items-center text-center">
+            <div className="relative w-32 h-32 bg-[#2a2a2a] border border-[#6a14ff]/30 overflow-hidden mb-4 flex items-center justify-center rounded-md">
               {img ? (
                 <img src={img} alt="avatar" className="w-full h-full object-cover" data-testid="profile-avatar-image" />
               ) : (
-                <span className="font-head text-6xl text-[#7209b7]">{user.name?.[0]?.toUpperCase()}</span>
+                <span className="font-head text-6xl text-[#6a14ff]">{user.name?.[0]?.toUpperCase()}</span>
               )}
               {uploading && (
                 <div className="absolute inset-0 bg-black/60 flex flex-col items-center justify-center">
@@ -95,7 +95,7 @@ export default function Profile() {
                 </div>
               )}
             </div>
-            <label className="font-mono text-[10px] tracking-[0.3em] uppercase text-[#7209b7] cursor-pointer hover:text-[#4a0580]">
+            <label className="font-mono text-[10px] tracking-[0.3em] uppercase text-[#6a14ff] cursor-pointer hover:text-[#5a0fd6]">
               {uploading ? "Uploading…" : img ? "Change frame" : "Upload frame"}
               <input
                 ref={inputRef}
@@ -107,11 +107,11 @@ export default function Profile() {
                 data-testid="profile-upload-input"
               />
             </label>
-            <p className="font-mono text-[9px] tracking-widest uppercase text-[#a597c4] mt-2">Max 10 MB · JPG / PNG / WEBP</p>
+            <p className="font-mono text-[9px] tracking-widest uppercase text-[#888888] mt-2">Max 10 MB · JPG / PNG / WEBP</p>
             <div className="mt-6 w-full">
               <UniqueIdBadge value={user.unique_id} testid="profile-unique-id" multiline />
             </div>
-            <div className="font-mono text-[10px] tracking-[0.3em] uppercase text-[#6b5b84] mt-3">{user.email}</div>
+            <div className="font-mono text-[10px] tracking-[0.3em] uppercase text-[#cccccc] mt-3">{user.email}</div>
             {user.email_verified ? (
               <div
                 data-testid="profile-email-verified"
@@ -124,21 +124,21 @@ export default function Profile() {
                 type="button"
                 onClick={sendVerify}
                 data-testid="profile-send-verify-button"
-                className="mt-2 inline-flex items-center gap-1 text-[10px] font-mono tracking-[0.25em] uppercase text-[#f72585] bg-[#f72585]/10 border border-[#f72585]/30 px-2 py-1 rounded-full hover:bg-[#f72585]/20"
+                className="mt-2 inline-flex items-center gap-1 text-[10px] font-mono tracking-[0.25em] uppercase text-[#ffd100] bg-[#ffd100]/10 border border-[#ffd100]/30 px-2 py-1 rounded-full hover:bg-[#ffd100]/20"
               >
                 <Mail size={11} /> Verify email
               </button>
             )}
             {verifyLink && !user.email_verified && (
               <div className="mt-3 w-full text-center" data-testid="profile-verify-fallback">
-                <p className="text-[10px] font-mono tracking-widest uppercase text-[#6b5b84] mb-1">
+                <p className="text-[10px] font-mono tracking-widest uppercase text-[#cccccc] mb-1">
                   Click to verify now
                 </p>
                 <a
                   href={verifyLink}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="inline-flex items-center gap-1 text-[10px] font-mono tracking-widest uppercase text-[#7209b7] underline break-all px-2"
+                  className="inline-flex items-center gap-1 text-[10px] font-mono tracking-widest uppercase text-[#6a14ff] underline break-all px-2"
                 >
                   <ExternalLink size={10} /> Open verification link
                 </a>
@@ -146,17 +146,17 @@ export default function Profile() {
             )}
           </div>
 
-          <form onSubmit={save} className="md:col-span-2 border border-[#7209b7]/30 bg-white p-6 space-y-4">
+          <form onSubmit={save} className="md:col-span-2 border border-[#6a14ff]/30 bg-white p-6 space-y-4">
             <div>
-              <label className="font-mono text-[10px] tracking-[0.3em] uppercase text-[#6b5b84] block mb-2">Display name</label>
+              <label className="font-mono text-[10px] tracking-[0.3em] uppercase text-[#cccccc] block mb-2">Display name</label>
               <input
                 required
                 value={name}
                 onChange={(e) => setName(e.target.value)}
                 data-testid="profile-name-input"
-                className="w-full bg-[#fdf4ff] border border-[#7209b7]/30 focus:border-[#7209b7] px-4 py-3 font-body"
+                className="w-full bg-[#2a2a2a] border border-[#6a14ff]/30 focus:border-[#ffd100] px-4 py-3 font-body"
               />
-              <p className="font-mono text-[10px] tracking-widest uppercase text-[#a597c4] mt-2">
+              <p className="font-mono text-[10px] tracking-widest uppercase text-[#888888] mt-2">
                 Changing your name will regenerate your unique ID.
               </p>
             </div>
@@ -164,7 +164,7 @@ export default function Profile() {
               disabled={loading}
               type="submit"
               data-testid="profile-save-button"
-              className="bg-[#7209b7] text-white font-mono tracking-[0.25em] uppercase text-sm px-6 py-4 hover:bg-[#4a0580] disabled:opacity-60"
+              className="bg-[#ffd100] text-black font-mono font-semibold tracking-[0.25em] uppercase text-sm px-6 py-4 hover:bg-[#e8bd00] disabled:opacity-60"
             >
               {loading ? "Developing film…" : "Save changes"}
             </button>
@@ -202,17 +202,17 @@ function DeleteAccountSection() {
 
   return (
     <section className="max-w-[1000px] mt-8" data-testid="danger-zone">
-      <div className="border border-[#f72585]/40 bg-[#fff5f9] rounded-md p-6">
+      <div className="border border-[#ffd100]/40 bg-[#fff5f9] rounded-md p-6">
         <div className="flex items-center gap-2 mb-2">
-          <ShieldAlert size={16} className="text-[#f72585]" />
-          <span className="font-mono text-xs tracking-[0.3em] uppercase text-[#f72585]">Danger zone</span>
+          <ShieldAlert size={16} className="text-[#ffd100]" />
+          <span className="font-mono text-xs tracking-[0.3em] uppercase text-[#ffd100]">Danger zone</span>
         </div>
         <h2 className="font-head text-2xl uppercase mb-2">Permanently delete account</h2>
-        <p className="text-sm text-[#6b5b84] mb-4">
+        <p className="text-sm text-[#cccccc] mb-4">
           Removes your profile, friends, rooms, chats, notifications, uploaded photos and watch history from our servers.
           This action is irreversible.
         </p>
-        <p className="text-[11px] font-mono tracking-widest uppercase text-[#6b5b84] mb-4">
+        <p className="text-[11px] font-mono tracking-widest uppercase text-[#cccccc] mb-4">
           Heads up · Inactive accounts are also auto-deleted after <strong>30 days</strong> of not logging in.
         </p>
 
@@ -221,14 +221,14 @@ function DeleteAccountSection() {
             type="button"
             onClick={() => setOpen(true)}
             data-testid="delete-account-open-button"
-            className="inline-flex items-center gap-2 border-2 border-[#f72585] text-[#f72585] font-mono tracking-[0.25em] uppercase text-xs px-4 py-3 rounded-md hover:bg-[#f72585] hover:text-white"
+            className="inline-flex items-center gap-2 border-2 border-[#ffd100] text-[#ffd100] font-mono tracking-[0.25em] uppercase text-xs px-4 py-3 rounded-md hover:bg-[#ffd100] hover:text-white"
           >
             <Trash2 size={14} /> Delete my account
           </button>
         ) : (
           <form onSubmit={submit} className="space-y-3" data-testid="delete-account-form">
             <div>
-              <label className="font-mono text-[10px] tracking-[0.3em] uppercase text-[#6b5b84] block mb-1">
+              <label className="font-mono text-[10px] tracking-[0.3em] uppercase text-[#cccccc] block mb-1">
                 Confirm your password
               </label>
               <input
@@ -238,12 +238,12 @@ function DeleteAccountSection() {
                 value={pw}
                 onChange={(e) => setPw(e.target.value)}
                 data-testid="delete-account-password"
-                className="w-full bg-white border border-[#f72585]/40 focus:border-[#f72585] px-3 py-2 rounded-md font-body"
+                className="w-full bg-white border border-[#ffd100]/40 focus:border-[#ffd100] px-3 py-2 rounded-md font-body"
               />
             </div>
             <div>
-              <label className="font-mono text-[10px] tracking-[0.3em] uppercase text-[#6b5b84] block mb-1">
-                Type <span className="text-[#f72585] font-semibold">DELETE MY ACCOUNT</span> to proceed
+              <label className="font-mono text-[10px] tracking-[0.3em] uppercase text-[#cccccc] block mb-1">
+                Type <span className="text-[#ffd100] font-semibold">DELETE MY ACCOUNT</span> to proceed
               </label>
               <input
                 type="text"
@@ -252,7 +252,7 @@ function DeleteAccountSection() {
                 onChange={(e) => setConfirmText(e.target.value)}
                 data-testid="delete-account-confirm"
                 placeholder="DELETE MY ACCOUNT"
-                className="w-full bg-white border border-[#f72585]/40 focus:border-[#f72585] px-3 py-2 rounded-md font-mono uppercase tracking-widest text-sm"
+                className="w-full bg-white border border-[#ffd100]/40 focus:border-[#ffd100] px-3 py-2 rounded-md font-mono uppercase tracking-widest text-sm"
               />
             </div>
             <div className="flex flex-wrap gap-2">
@@ -260,7 +260,7 @@ function DeleteAccountSection() {
                 type="submit"
                 disabled={!canSubmit || loading}
                 data-testid="delete-account-submit"
-                className="flex-1 min-w-[160px] bg-[#f72585] text-white font-mono tracking-[0.25em] uppercase text-xs px-4 py-3 rounded-md hover:bg-[#d80d6f] disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                className="flex-1 min-w-[160px] bg-[#ffd100] text-black font-mono tracking-[0.25em] uppercase text-xs px-4 py-3 rounded-md hover:bg-[#d80d6f] disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
               >
                 <Trash2 size={13} /> {loading ? "Deleting…" : "Delete forever"}
               </button>
@@ -269,7 +269,7 @@ function DeleteAccountSection() {
                 onClick={() => { setOpen(false); setPw(""); setConfirmText(""); }}
                 disabled={loading}
                 data-testid="delete-account-cancel"
-                className="flex-1 min-w-[160px] border border-[#7209b7]/40 text-[#7209b7] font-mono tracking-[0.25em] uppercase text-xs px-4 py-3 rounded-md hover:bg-[#7209b7]/10 disabled:opacity-60"
+                className="flex-1 min-w-[160px] border border-[#6a14ff]/40 text-[#6a14ff] font-mono tracking-[0.25em] uppercase text-xs px-4 py-3 rounded-md hover:bg-[#6a14ff]/10 disabled:opacity-60"
               >
                 Cancel
               </button>

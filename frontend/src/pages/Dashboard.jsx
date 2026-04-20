@@ -18,10 +18,10 @@ import ConfirmDialog from "../components/ConfirmDialog";
 // Chart colour accents per platform (purely for charts/doughnut)
 const PLATFORM_CHART_COLOR = {
   netflix: "#E50914", prime: "#00A8E1", hotstar: "#1A6AFF",
-  hoichoi: "#f72585", addatimes: "#ffcc00", zee5: "#9333ea", custom: "#b8c0ff",
+  hoichoi: "#ffd100", addatimes: "#ffcc00", zee5: "#9333ea", custom: "#3a3a3a",
 };
 const PLATFORMS = PLATFORM_LIST.map((p) => ({
-  id: p.id, label: p.short, color: PLATFORM_CHART_COLOR[p.id] || "#7209b7",
+  id: p.id, label: p.short, color: PLATFORM_CHART_COLOR[p.id] || "#6a14ff",
 }));
 const PLATFORM_LABEL = Object.fromEntries(PLATFORMS.map((p) => [p.id, platformLabel(p.id)]));
 const PLATFORM_COLOR = Object.fromEntries(PLATFORMS.map((p) => [p.id, p.color]));
@@ -53,12 +53,12 @@ function KPI({ label, value, delta, up = true, sparkData, sparkColor, testid }) 
     <div className="glass-card rounded-xl p-5 flex flex-col gap-3" data-testid={testid}>
       <div className="flex items-start justify-between gap-3">
         <div>
-          <div className="font-mono text-[10px] tracking-[0.3em] uppercase text-[#6b5b84] mb-2">{label}</div>
-          <div className="font-head text-3xl lg:text-4xl uppercase text-[#1a0b2e] leading-none">{value}</div>
+          <div className="font-mono text-[10px] tracking-[0.3em] uppercase text-[#cccccc] mb-2">{label}</div>
+          <div className="font-head text-3xl lg:text-4xl uppercase text-[#ffffff] leading-none">{value}</div>
         </div>
         {delta != null && (
           <div className={`inline-flex items-center gap-1 font-mono text-[10px] tracking-wider px-2 py-1 rounded-full ${
-            up ? "bg-[#4cc9f0]/20 text-[#075985]" : "bg-[#f72585]/15 text-[#9d174d]"
+            up ? "bg-[#4cc9f0]/20 text-[#075985]" : "bg-[#ffd100]/15 text-[#9d174d]"
           }`}>
             <DeltaIcon size={11} /> {up ? "+" : ""}{delta}%
           </div>
@@ -77,8 +77,8 @@ function Legend({ items }) {
       {items.map((it) => (
         <li key={it.label} className="flex items-center gap-2 text-xs">
           <span className="w-2.5 h-2.5 rounded-sm" style={{ background: it.color }} />
-          <span className="text-[#1a0b2e] font-mono uppercase tracking-wider">{it.label}</span>
-          <span className="ml-auto text-[#6b5b84] font-mono">{it.value}</span>
+          <span className="text-[#ffffff] font-mono uppercase tracking-wider">{it.label}</span>
+          <span className="ml-auto text-[#cccccc] font-mono">{it.value}</span>
         </li>
       ))}
     </ul>
@@ -133,11 +133,11 @@ function CreateRoomForm({ onCreated, friendCount }) {
           data-testid="create-room-custom-title-input"
           placeholder="What are you watching? (e.g. Stranger Things)"
           maxLength={50}
-          className="w-full bg-[#fdf4ff] border border-[#e7c6ff] focus:border-[#7209b7] px-3 py-2 rounded-lg text-sm"
+          className="w-full bg-[#2a2a2a] border border-[#3a3a3a] focus:border-[#ffd100] px-3 py-2 rounded-lg text-sm"
         />
-        <div className="mt-1 flex items-center gap-2 text-[10px] font-mono tracking-[0.22em] uppercase text-[#6b5b84]">
+        <div className="mt-1 flex items-center gap-2 text-[10px] font-mono tracking-[0.22em] uppercase text-[#cccccc]">
           <span>Room name</span>
-          <span className="text-[#7209b7] truncate" data-testid="create-room-final-name">{finalName}</span>
+          <span className="text-[#6a14ff] truncate" data-testid="create-room-final-name">{finalName}</span>
         </div>
       </div>
       <input
@@ -147,7 +147,7 @@ function CreateRoomForm({ onCreated, friendCount }) {
         onChange={(e) => setPassword(e.target.value)}
         data-testid="create-room-password-input"
         placeholder="Password"
-        className="w-full bg-[#fdf4ff] border border-[#e7c6ff] focus:border-[#7209b7] px-3 py-2 rounded-lg text-sm"
+        className="w-full bg-[#2a2a2a] border border-[#3a3a3a] focus:border-[#ffd100] px-3 py-2 rounded-lg text-sm"
       />
       <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-7 gap-3">
         {PLATFORMS.map((p) => {
@@ -161,8 +161,8 @@ function CreateRoomForm({ onCreated, friendCount }) {
               title={p.label}
               className={`group relative flex flex-col items-center gap-2 p-3 rounded-xl border transition-all ${
                 active
-                  ? "border-[#7209b7] bg-gradient-to-br from-[#fdf4ff] to-[#f0e5ff] shadow-[0_10px_28px_rgba(114,9,183,0.28)] -translate-y-1"
-                  : "border-[#e7c6ff] hover:border-[#7209b7]/60 hover:bg-[#fdf4ff] hover:-translate-y-0.5 hover:shadow-[0_6px_16px_rgba(114,9,183,0.12)]"
+                  ? "border-[#6a14ff] bg-gradient-to-br from-[#2a2a2a] to-[#2a2a2a] shadow-[0_10px_28px_rgba(255,209,0,0.28)] -translate-y-1"
+                  : "border-[#3a3a3a] hover:border-[#6a14ff]/60 hover:bg-[#2a2a2a] hover:-translate-y-0.5 hover:shadow-[0_6px_16px_rgba(255,209,0,0.12)]"
               }`}
             >
               <PlatformLogo
@@ -173,12 +173,12 @@ function CreateRoomForm({ onCreated, friendCount }) {
                 className={active ? "" : "group-hover:scale-105 transition-transform"}
               />
               <span className={`font-mono text-[10px] tracking-[0.2em] uppercase truncate w-full text-center ${
-                active ? "text-[#7209b7] font-semibold" : "text-[#6b5b84]"
+                active ? "text-[#6a14ff] font-semibold" : "text-[#cccccc]"
               }`}>
                 {p.label}
               </span>
               {active && (
-                <span className="absolute -top-1.5 -right-1.5 w-4 h-4 rounded-full bg-[#f72585] shadow-[0_0_0_3px_#fff] flex items-center justify-center">
+                <span className="absolute -top-1.5 -right-1.5 w-4 h-4 rounded-full bg-[#ffd100] shadow-[0_0_0_3px_#fff] flex items-center justify-center">
                   <span className="w-1.5 h-1.5 rounded-full bg-white" />
                 </span>
               )}
@@ -192,16 +192,16 @@ function CreateRoomForm({ onCreated, friendCount }) {
           checked={notifyFriends}
           onChange={(e) => setNotifyFriends(e.target.checked)}
           data-testid="create-room-notify-friends"
-          className="accent-[#7209b7] w-4 h-4"
+          className="accent-[#6a14ff] w-4 h-4"
         />
-        <span className="font-mono text-[10px] tracking-[0.25em] uppercase text-[#6b5b84]">
+        <span className="font-mono text-[10px] tracking-[0.25em] uppercase text-[#cccccc]">
           Notify my friends{friendCount > 0 ? ` · ${friendCount}` : ""}
         </span>
       </label>
       <button
         disabled={loading}
         data-testid="create-room-submit-button"
-        className="w-full bg-gradient-to-r from-[#f72585] to-[#7209b7] text-white font-mono tracking-[0.2em] uppercase text-xs px-4 py-3 rounded-lg hover:shadow-[0_8px_20px_rgba(247,37,133,0.35)] disabled:opacity-60 transition-shadow"
+        className="w-full bg-[#ffd100] text-black font-mono tracking-[0.2em] uppercase text-xs px-4 py-3 rounded-lg hover:shadow-[0_8px_20px_rgba(255,209,0,0.35)] disabled:opacity-60 transition-shadow"
       >
         {loading ? "Rolling film…" : "Reserve the screen"}
       </button>
@@ -235,7 +235,7 @@ function JoinRoomForm({ onJoined }) {
         onChange={(e) => setRoomId(e.target.value.toUpperCase())}
         data-testid="join-room-id-input"
         placeholder="Room ID"
-        className="w-full bg-[#fdf4ff] border border-[#e7c6ff] focus:border-[#7209b7] px-3 py-2 rounded-lg font-mono tracking-widest uppercase text-sm"
+        className="w-full bg-[#2a2a2a] border border-[#3a3a3a] focus:border-[#ffd100] px-3 py-2 rounded-lg font-mono tracking-widest uppercase text-sm"
       />
       <input
         type="text"
@@ -244,12 +244,12 @@ function JoinRoomForm({ onJoined }) {
         onChange={(e) => setPassword(e.target.value)}
         data-testid="join-room-password-input"
         placeholder="Password"
-        className="w-full bg-[#fdf4ff] border border-[#e7c6ff] focus:border-[#7209b7] px-3 py-2 rounded-lg text-sm"
+        className="w-full bg-[#2a2a2a] border border-[#3a3a3a] focus:border-[#ffd100] px-3 py-2 rounded-lg text-sm"
       />
       <button
         disabled={loading}
         data-testid="join-room-submit-button"
-        className="w-full border-2 border-[#7209b7] text-[#7209b7] font-mono tracking-[0.2em] uppercase text-xs px-4 py-3 rounded-lg hover:bg-[#7209b7] hover:text-white disabled:opacity-60 transition-colors"
+        className="w-full border-2 border-[#6a14ff] text-[#6a14ff] font-mono tracking-[0.2em] uppercase text-xs px-4 py-3 rounded-lg hover:bg-[#6a14ff] hover:text-white disabled:opacity-60 transition-colors"
       >
         {loading ? "Tearing ticket…" : "Sneak in"}
       </button>
@@ -259,7 +259,7 @@ function JoinRoomForm({ onJoined }) {
 
 function LiveRoomCard({ room, currentUserId, onClick }) {
   const isHost = room.host_id === currentUserId;
-  const color = PLATFORM_COLOR[room.platform] || "#7209b7";
+  const color = PLATFORM_COLOR[room.platform] || "#6a14ff";
   return (
     <button
       onClick={onClick}
@@ -270,23 +270,23 @@ function LiveRoomCard({ room, currentUserId, onClick }) {
         <PlatformLogo platform={room.platform} size={44} rounded="md" showRing />
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 mb-1">
-            <span className="w-2 h-2 rounded-full bg-[#f72585] pulse-live" />
-            <span className="font-mono text-[10px] tracking-[0.3em] uppercase text-[#f72585]">Live</span>
+            <span className="w-2 h-2 rounded-full bg-[#ffd100] pulse-live" />
+            <span className="font-mono text-[10px] tracking-[0.3em] uppercase text-[#ffd100]">Live</span>
             {isHost && (
-              <span className="font-mono text-[10px] tracking-[0.3em] uppercase text-[#7209b7] ml-auto">You host</span>
+              <span className="font-mono text-[10px] tracking-[0.3em] uppercase text-[#6a14ff] ml-auto">You host</span>
             )}
           </div>
-          <div className="font-head text-lg uppercase text-[#1a0b2e] truncate">{room.name}</div>
+          <div className="font-head text-lg uppercase text-[#ffffff] truncate">{room.name}</div>
         </div>
       </div>
-      <div className="font-mono text-[10px] tracking-widest uppercase text-[#6b5b84] flex justify-between items-center">
+      <div className="font-mono text-[10px] tracking-widest uppercase text-[#cccccc] flex justify-between items-center">
         <span className="flex items-center gap-2">
           <span className="w-2 h-2 rounded-full" style={{ background: color }} />
           {PLATFORM_LABEL[room.platform] || "Custom"} · {room.id}
         </span>
         <span className="inline-flex items-center gap-1"><Users size={11} /> {room.participants?.length || 0}</span>
       </div>
-      <div className="mt-3 flex items-center gap-1 font-mono text-[10px] tracking-widest uppercase text-[#f72585] group-hover:translate-x-1 transition-transform">
+      <div className="mt-3 flex items-center gap-1 font-mono text-[10px] tracking-widest uppercase text-[#ffd100] group-hover:translate-x-1 transition-transform">
         Rejoin <ArrowRight size={12} />
       </div>
     </button>
@@ -295,22 +295,22 @@ function LiveRoomCard({ room, currentUserId, onClick }) {
 
 function InviteRow({ n, onAccept, onDismiss }) {
   return (
-    <div className="border border-[#e7c6ff] bg-[#fdf4ff] rounded-lg p-3" data-testid={`invite-notif-${n.id}`}>
+    <div className="border border-[#3a3a3a] bg-[#2a2a2a] rounded-lg p-3" data-testid={`invite-notif-${n.id}`}>
       <div className="flex items-start gap-2">
-        <TicketCheck size={16} className="text-[#7209b7] mt-0.5 shrink-0" />
+        <TicketCheck size={16} className="text-[#6a14ff] mt-0.5 shrink-0" />
         <div className="min-w-0 flex-1">
           <div className="font-body text-sm">
-            <span className="text-[#7209b7] font-semibold">{n.from_name}</span> invited you
+            <span className="text-[#6a14ff] font-semibold">{n.from_name}</span> invited you
           </div>
           <div className="font-head text-sm uppercase truncate">{n.room_name}</div>
-          <div className="font-mono text-[10px] text-[#6b5b84] mt-1 truncate">
-            {n.room_id} · <span className="text-[#1a0b2e]">{n.password}</span>
+          <div className="font-mono text-[10px] text-[#cccccc] mt-1 truncate">
+            {n.room_id} · <span className="text-[#ffffff]">{n.password}</span>
           </div>
         </div>
       </div>
       <div className="flex gap-2 mt-2">
-        <button onClick={() => onAccept(n)} data-testid={`invite-accept-${n.id}`} className="flex-1 bg-[#7209b7] text-white font-mono text-[10px] tracking-widest uppercase px-3 py-1.5 rounded-md hover:bg-[#4a0580]">Accept</button>
-        <button onClick={() => onDismiss(n.id)} data-testid={`invite-dismiss-${n.id}`} className="border border-[#e7c6ff] font-mono text-[10px] tracking-widest uppercase px-3 py-1.5 rounded-md hover:border-[#f72585] hover:text-[#f72585]">✕</button>
+        <button onClick={() => onAccept(n)} data-testid={`invite-accept-${n.id}`} className="flex-1 bg-[#6a14ff] text-white font-mono text-[10px] tracking-widest uppercase px-3 py-1.5 rounded-md hover:bg-[#5a0fd6]">Accept</button>
+        <button onClick={() => onDismiss(n.id)} data-testid={`invite-dismiss-${n.id}`} className="border border-[#3a3a3a] font-mono text-[10px] tracking-widest uppercase px-3 py-1.5 rounded-md hover:border-[#ffd100] hover:text-[#ffd100]">✕</button>
       </div>
     </div>
   );
@@ -318,8 +318,8 @@ function InviteRow({ n, onAccept, onDismiss }) {
 
 function FolderTile({ testid, tone, icon: Icon, label, count, subtitle, previewRooms = [], active, disabled, onClick }) {
   const palette = tone === "pink"
-    ? { accent: "#f72585", soft: "#fde5f1", ring: "rgba(247,37,133,0.30)", badge: "#f72585" }
-    : { accent: "#7209b7", soft: "#f0e5ff", ring: "rgba(114,9,183,0.30)", badge: "#7209b7" };
+    ? { accent: "#ffd100", soft: "#2a2a2a", ring: "rgba(255,209,0,0.30)", badge: "#ffd100" }
+    : { accent: "#6a14ff", soft: "#2a2a2a", ring: "rgba(106,20,255,0.3)", badge: "#6a14ff" };
   return (
     <button
       type="button"
@@ -329,10 +329,10 @@ function FolderTile({ testid, tone, icon: Icon, label, count, subtitle, previewR
       aria-expanded={!!active}
       className={`relative overflow-hidden text-left rounded-xl p-4 sm:p-5 border transition-all group h-full
         ${disabled
-          ? "border-[#e7c6ff]/60 bg-[#fdf4ff]/40 cursor-not-allowed opacity-70"
+          ? "border-[#3a3a3a]/60 bg-[#2a2a2a]/40 cursor-not-allowed opacity-70"
           : active
-            ? "border-transparent shadow-[0_14px_34px_rgba(26,11,46,0.18)] -translate-y-0.5"
-            : "border-[#e7c6ff] bg-white hover:-translate-y-0.5 hover:shadow-[0_10px_28px_rgba(26,11,46,0.10)]"}
+            ? "border-transparent shadow-[0_14px_34px_rgba(0,0,0,0.45)] -translate-y-0.5"
+            : "border-[#3a3a3a] bg-white hover:-translate-y-0.5 hover:shadow-[0_10px_28px_rgba(0,0,0,0.35)]"}
       `}
       style={active ? { borderColor: palette.accent, background: palette.soft } : {}}
     >
@@ -353,8 +353,8 @@ function FolderTile({ testid, tone, icon: Icon, label, count, subtitle, previewR
           <div className="font-mono text-[10px] tracking-[0.3em] uppercase" style={{ color: palette.accent }}>
             {label}
           </div>
-          <div className="font-head text-3xl sm:text-4xl uppercase text-[#1a0b2e] leading-none mt-1">{count}</div>
-          <div className="font-mono text-[10px] tracking-widest uppercase text-[#6b5b84] mt-1 truncate">
+          <div className="font-head text-3xl sm:text-4xl uppercase text-[#ffffff] leading-none mt-1">{count}</div>
+          <div className="font-mono text-[10px] tracking-widest uppercase text-[#cccccc] mt-1 truncate">
             {subtitle}
           </div>
         </div>
@@ -362,7 +362,7 @@ function FolderTile({ testid, tone, icon: Icon, label, count, subtitle, previewR
       {/* Preview logos strip */}
       <div className="mt-3 flex items-center gap-1.5">
         {previewRooms.length === 0 ? (
-          <span className="font-mono text-[9px] tracking-widest uppercase text-[#a597c4]">—</span>
+          <span className="font-mono text-[9px] tracking-widest uppercase text-[#888888]">—</span>
         ) : (
           <>
             {previewRooms.map((r, i) => (
@@ -375,7 +375,7 @@ function FolderTile({ testid, tone, icon: Icon, label, count, subtitle, previewR
               </div>
             ))}
             {count > previewRooms.length && (
-              <span className="ml-1 font-mono text-[9px] tracking-widest uppercase text-[#6b5b84]">
+              <span className="ml-1 font-mono text-[9px] tracking-widest uppercase text-[#cccccc]">
                 +{count - previewRooms.length}
               </span>
             )}
@@ -384,7 +384,7 @@ function FolderTile({ testid, tone, icon: Icon, label, count, subtitle, previewR
         {!disabled && (
           <span
             className="ml-auto font-mono text-[9px] tracking-[0.2em] uppercase transition-colors"
-            style={{ color: active ? palette.accent : "#a597c4" }}
+            style={{ color: active ? palette.accent : "#888888" }}
           >
             {active ? "Opened" : "Open"}
           </span>
@@ -408,7 +408,7 @@ function HistoryCard({ row, onClick, selectable, selected, onToggleSelect }) {
   return (
     <div
       className={`relative w-full text-left glass-card rounded-xl p-4 transition-all group ${
-        selected ? "ring-2 ring-[#f72585] shadow-[0_10px_28px_rgba(247,37,133,0.25)]" : "hover:-translate-y-0.5"
+        selected ? "ring-2 ring-[#ffd100] shadow-[0_10px_28px_rgba(255,209,0,0.25)]" : "hover:-translate-y-0.5"
       }`}
       data-testid={`history-card-${row.room_id}`}
     >
@@ -423,7 +423,7 @@ function HistoryCard({ row, onClick, selectable, selected, onToggleSelect }) {
             checked={!!selected}
             onChange={() => onToggleSelect && onToggleSelect(row.room_id)}
             data-testid={`history-select-${row.room_id}`}
-            className="accent-[#f72585] w-4 h-4"
+            className="accent-[#ffd100] w-4 h-4"
           />
         </label>
       )}
@@ -438,23 +438,23 @@ function HistoryCard({ row, onClick, selectable, selected, onToggleSelect }) {
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2">
               {row.is_active ? (
-                <span className="font-mono text-[10px] tracking-[0.3em] uppercase text-[#f72585] flex items-center gap-1">
-                  <span className="w-2 h-2 rounded-full bg-[#f72585] pulse-live" /> Live
+                <span className="font-mono text-[10px] tracking-[0.3em] uppercase text-[#ffd100] flex items-center gap-1">
+                  <span className="w-2 h-2 rounded-full bg-[#ffd100] pulse-live" /> Live
                 </span>
               ) : (
-                <span className="font-mono text-[10px] tracking-[0.3em] uppercase text-[#6b5b84]">Ended</span>
+                <span className="font-mono text-[10px] tracking-[0.3em] uppercase text-[#cccccc]">Ended</span>
               )}
               {isHost && (
-                <span className="font-mono text-[9px] tracking-widest uppercase text-[#7209b7] flex items-center gap-1">
+                <span className="font-mono text-[9px] tracking-widest uppercase text-[#6a14ff] flex items-center gap-1">
                   <Crown size={10} /> Host
                 </span>
               )}
-              <span className="ml-auto font-mono text-[9px] tracking-widest uppercase text-[#6b5b84]">{whenLabel}</span>
+              <span className="ml-auto font-mono text-[9px] tracking-widest uppercase text-[#cccccc]">{whenLabel}</span>
             </div>
-            <div className="font-head text-base uppercase text-[#1a0b2e] truncate">{row.room_name}</div>
+            <div className="font-head text-base uppercase text-[#ffffff] truncate">{row.room_name}</div>
           </div>
         </div>
-        <div className="font-mono text-[10px] tracking-widest uppercase text-[#6b5b84] flex justify-between">
+        <div className="font-mono text-[10px] tracking-widest uppercase text-[#cccccc] flex justify-between">
           <span className="truncate">{PLATFORM_LABEL[row.platform] || "Custom"} · {row.room_id}</span>
           <span>{row.visit_count}× visited</span>
         </div>
@@ -467,15 +467,15 @@ function InvitationsInbox({ notifs, onAccept, onDismiss }) {
   return (
     <div className="glass-card rounded-xl p-5 flex flex-col" data-testid="invitations-inbox-card">
       <div className="flex items-center gap-2 mb-4">
-        <Bell size={14} className="text-[#7209b7]" />
-        <span className="font-mono text-[10px] tracking-[0.3em] uppercase text-[#6b5b84]">Inbox</span>
+        <Bell size={14} className="text-[#6a14ff]" />
+        <span className="font-mono text-[10px] tracking-[0.3em] uppercase text-[#cccccc]">Inbox</span>
         {notifs.length > 0 && (
-          <span className="ml-auto bg-[#f72585] text-white font-mono text-[10px] px-2 py-0.5 rounded-full" data-testid="invite-count">{notifs.length}</span>
+          <span className="ml-auto bg-[#ffd100] text-black font-mono text-[10px] px-2 py-0.5 rounded-full" data-testid="invite-count">{notifs.length}</span>
         )}
       </div>
-      <div className="font-head text-2xl uppercase text-[#1a0b2e] mb-3">Invitations</div>
+      <div className="font-head text-2xl uppercase text-[#ffffff] mb-3">Invitations</div>
       {notifs.length === 0 ? (
-        <div className="text-xs font-mono tracking-widest uppercase text-[#6b5b84]">No invitations waiting.</div>
+        <div className="text-xs font-mono tracking-widest uppercase text-[#cccccc]">No invitations waiting.</div>
       ) : (
         <div className="space-y-3 max-h-[260px] overflow-y-auto pr-1" data-testid="invite-inbox">
           {notifs.map((n) => <InviteRow key={n.id} n={n} onAccept={onAccept} onDismiss={onDismiss} />)}
@@ -485,7 +485,7 @@ function InvitationsInbox({ notifs, onAccept, onDismiss }) {
   );
 }
 
-function UserStat({ label, value, icon: Icon, accent = "#7209b7", testid }) {
+function UserStat({ label, value, icon: Icon, accent = "#6a14ff", testid }) {
   return (
     <div
       className="glass-card rounded-xl p-5 flex items-center gap-4"
@@ -499,8 +499,8 @@ function UserStat({ label, value, icon: Icon, accent = "#7209b7", testid }) {
         <Icon size={22} />
       </div>
       <div className="min-w-0">
-        <div className="font-head text-3xl uppercase text-[#1a0b2e] leading-none">{value}</div>
-        <div className="font-mono text-[10px] tracking-[0.25em] uppercase text-[#6b5b84] mt-1 truncate">{label}</div>
+        <div className="font-head text-3xl uppercase text-[#ffffff] leading-none">{value}</div>
+        <div className="font-mono text-[10px] tracking-[0.25em] uppercase text-[#cccccc] mt-1 truncate">{label}</div>
       </div>
     </div>
   );
@@ -510,17 +510,17 @@ function UserSummary({ user, friendCount, invitationCount, liveRoomCount, histor
   return (
     <section className="mb-6" data-testid="dashboard-user-summary">
       <div className="glass-card rounded-xl p-5 md:p-6 mb-4 relative overflow-hidden">
-        <div className="absolute -right-10 -top-10 w-48 h-48 bg-[#f72585]/10 rounded-full blur-3xl pointer-events-none" />
-        <div className="absolute -left-10 -bottom-10 w-48 h-48 bg-[#7209b7]/10 rounded-full blur-3xl pointer-events-none" />
+        <div className="absolute -right-10 -top-10 w-48 h-48 bg-[#ffd100]/10 rounded-full blur-3xl pointer-events-none" />
+        <div className="absolute -left-10 -bottom-10 w-48 h-48 bg-[#6a14ff]/10 rounded-full blur-3xl pointer-events-none" />
         <div className="relative">
           <div className="flex items-center gap-2 mb-2">
-            <Film size={14} className="text-[#7209b7]" />
-            <span className="font-mono text-[10px] tracking-[0.3em] uppercase text-[#7209b7]">Your CineStub</span>
+            <Film size={14} className="text-[#6a14ff]" />
+            <span className="font-mono text-[10px] tracking-[0.3em] uppercase text-[#6a14ff]">Your CineStub</span>
           </div>
           <h3 className="font-head text-2xl md:text-3xl uppercase leading-none">
             {greetLine(user, friendCount, invitationCount, liveRoomCount, historyCount)}
           </h3>
-          <p className="text-sm text-[#6b5b84] mt-2 max-w-2xl">
+          <p className="text-sm text-[#cccccc] mt-2 max-w-2xl">
             {invitationCount > 0
               ? `${invitationCount} fresh invite${invitationCount > 1 ? "s" : ""} below — tap accept to join the party.`
               : liveRoomCount > 0
@@ -531,8 +531,8 @@ function UserSummary({ user, friendCount, invitationCount, liveRoomCount, histor
       </div>
 
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3" data-testid="dashboard-user-stats">
-        <UserStat testid="user-stat-invites" label="New invitations" value={invitationCount} icon={Bell} accent="#f72585" />
-        <UserStat testid="user-stat-live" label="Live rooms" value={liveRoomCount} icon={Film} accent="#7209b7" />
+        <UserStat testid="user-stat-invites" label="New invitations" value={invitationCount} icon={Bell} accent="#ffd100" />
+        <UserStat testid="user-stat-live" label="Live rooms" value={liveRoomCount} icon={Film} accent="#6a14ff" />
         <UserStat testid="user-stat-friends" label="Friends" value={friendCount} icon={Users} accent="#4361ee" />
         <UserStat testid="user-stat-history" label="Past rooms" value={historyCount} icon={Clock} accent="#4cc9f0" />
       </div>
@@ -552,14 +552,14 @@ function RoomCreatedModal({ room, password, friendCount, onClose }) {
   return (
     <div
       data-testid="room-created-modal"
-      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-[#1a0b2e]/70 backdrop-blur-sm"
+      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-[#ffffff]/70 backdrop-blur-sm"
       onClick={onClose}
     >
       <div
-        className="w-full max-w-md rounded-xl bg-white border border-[#7209b7]/30 overflow-hidden shadow-[0_30px_80px_rgba(26,11,46,0.4)]"
+        className="w-full max-w-md rounded-xl bg-white border border-[#6a14ff]/30 overflow-hidden shadow-[0_30px_80px_rgba(0,0,0,0.65)]"
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="p-5 bg-gradient-to-r from-[#7209b7] to-[#f72585] text-white">
+        <div className="p-5 bg-[#ffd100] text-black">
           <div className="font-mono text-[10px] tracking-[0.3em] uppercase opacity-80">Room created</div>
           <div className="font-head text-2xl uppercase leading-tight truncate">{room.name}</div>
           <div className="font-mono text-[11px] tracking-widest mt-1 opacity-90">
@@ -568,13 +568,13 @@ function RoomCreatedModal({ room, password, friendCount, onClose }) {
         </div>
         <div className="p-5">
           <QRCodeCard roomId={room.id} password={password} roomName={room.name} size={200} testid="room-created-qr" />
-          <p className="text-xs text-[#6b5b84] mt-3 text-center">
+          <p className="text-xs text-[#cccccc] mt-3 text-center">
             Your friends can point Google Lens or any QR app at this code — it will reveal the Room ID and Password instantly.
           </p>
           <button
             onClick={onClose}
             data-testid="room-created-enter-button"
-            className="mt-4 w-full bg-[#7209b7] text-white font-mono tracking-[0.25em] uppercase text-xs px-4 py-3 rounded-lg hover:bg-[#4a0580]"
+            className="mt-4 w-full bg-[#6a14ff] text-white font-mono tracking-[0.25em] uppercase text-xs px-4 py-3 rounded-lg hover:bg-[#5a0fd6]"
           >
             Enter the lobby
           </button>
@@ -633,10 +633,10 @@ export default function Dashboard() {
     const segs = Object.entries(counts).map(([id, value]) => ({
       label: PLATFORM_LABEL[id] || id,
       value,
-      color: PLATFORM_COLOR[id] || "#7209b7",
+      color: PLATFORM_COLOR[id] || "#6a14ff",
     }));
     if (!segs.length) {
-      return [{ label: "No rooms yet", value: 1, color: "#e7c6ff" }];
+      return [{ label: "No rooms yet", value: 1, color: "#3a3a3a" }];
     }
     return segs;
   }, [activeRooms]);
@@ -745,9 +745,9 @@ export default function Dashboard() {
       {user.is_admin && (
         <>
           <section className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6" data-testid="dashboard-stats">
-            <KPI testid="stat-live" label="Live Rooms" value={liveCount} delta={12} up sparkData={sparkA} sparkColor="#f72585" />
+            <KPI testid="stat-live" label="Live Rooms" value={liveCount} delta={12} up sparkData={sparkA} sparkColor="#ffd100" />
             <KPI testid="stat-invites" label="Invitations" value={notifs.length} delta={5} up={notifs.length > 0} sparkData={sparkC} sparkColor="#4cc9f0" />
-            <KPI testid="stat-friends" label="Regulars" value={friends.length} delta={8} up sparkData={sparkB} sparkColor="#7209b7" />
+            <KPI testid="stat-friends" label="Regulars" value={friends.length} delta={8} up sparkData={sparkB} sparkColor="#6a14ff" />
             <KPI testid="stat-minutes" label="Minutes Watched" value={watchMinutes} delta={24} up sparkData={sparkD} sparkColor="#4361ee" />
           </section>
 
@@ -755,11 +755,11 @@ export default function Dashboard() {
             <div className="lg:col-span-2 glass-card rounded-xl p-5">
               <div className="flex items-start justify-between mb-4">
                 <div>
-                  <div className="font-mono text-[10px] tracking-[0.3em] uppercase text-[#6b5b84]">Activity · 7 days</div>
-                  <div className="font-head text-2xl uppercase text-[#1a0b2e]">Parties & Guests</div>
+                  <div className="font-mono text-[10px] tracking-[0.3em] uppercase text-[#cccccc]">Activity · 7 days</div>
+                  <div className="font-head text-2xl uppercase text-[#ffffff]">Parties & Guests</div>
                 </div>
                 <div className="flex gap-3 text-[10px] font-mono uppercase tracking-wider">
-                  <span className="flex items-center gap-1.5"><span className="w-3 h-1.5 bg-[#7209b7] rounded-sm" /> Parties</span>
+                  <span className="flex items-center gap-1.5"><span className="w-3 h-1.5 bg-[#6a14ff] rounded-sm" /> Parties</span>
                   <span className="flex items-center gap-1.5"><span className="w-3 h-1.5 bg-[#4cc9f0] rounded-sm" style={{ backgroundImage: "repeating-linear-gradient(90deg,#4cc9f0 0 4px,transparent 4px 6px)" }} /> Guests</span>
                 </div>
               </div>
@@ -768,8 +768,8 @@ export default function Dashboard() {
 
             <div className="glass-card rounded-xl p-5 flex flex-col">
               <div className="mb-2">
-                <div className="font-mono text-[10px] tracking-[0.3em] uppercase text-[#6b5b84]">Platform split</div>
-                <div className="font-head text-2xl uppercase text-[#1a0b2e]">OTT Mix</div>
+                <div className="font-mono text-[10px] tracking-[0.3em] uppercase text-[#cccccc]">Platform split</div>
+                <div className="font-head text-2xl uppercase text-[#ffffff]">OTT Mix</div>
               </div>
               <div className="flex items-center gap-4 flex-1">
                 <div className="shrink-0"><Doughnut segments={platformSegments} /></div>
@@ -784,10 +784,10 @@ export default function Dashboard() {
             <div className="lg:col-span-2 glass-card rounded-xl p-5">
               <div className="flex items-start justify-between mb-4">
                 <div>
-                  <div className="font-mono text-[10px] tracking-[0.3em] uppercase text-[#6b5b84]">Peak hours</div>
-                  <div className="font-head text-2xl uppercase text-[#1a0b2e]">When you watch</div>
+                  <div className="font-mono text-[10px] tracking-[0.3em] uppercase text-[#cccccc]">Peak hours</div>
+                  <div className="font-head text-2xl uppercase text-[#ffffff]">When you watch</div>
                 </div>
-                <Clock size={18} className="text-[#7209b7]" />
+                <Clock size={18} className="text-[#6a14ff]" />
               </div>
               <BarChart bars={hoursBars} />
             </div>
@@ -849,17 +849,17 @@ export default function Dashboard() {
           {/* Live folder — opened drawer */}
           {openFolder === "live" && activeRooms.length > 0 && (
             <div
-              className="mt-4 glass-card rounded-xl p-4 sm:p-5 border border-[#f72585]/25"
+              className="mt-4 glass-card rounded-xl p-4 sm:p-5 border border-[#ffd100]/25"
               data-testid="dashboard-live-section"
             >
               <div className="flex items-center gap-3 mb-3">
-                <Radio size={16} className="text-[#f72585]" />
-                <span className="font-mono text-xs tracking-[0.3em] uppercase text-[#f72585]">Live now · {activeRooms.length}</span>
+                <Radio size={16} className="text-[#ffd100]" />
+                <span className="font-mono text-xs tracking-[0.3em] uppercase text-[#ffd100]">Live now · {activeRooms.length}</span>
                 <button
                   type="button"
                   onClick={() => setOpenFolder(null)}
                   data-testid="folder-close-live"
-                  className="ml-auto border border-[#e7c6ff] font-mono text-[10px] tracking-widest uppercase px-3 py-1.5 rounded-md hover:border-[#7209b7]/60"
+                  className="ml-auto border border-[#3a3a3a] font-mono text-[10px] tracking-widest uppercase px-3 py-1.5 rounded-md hover:border-[#6a14ff]/60"
                 >
                   Close
                 </button>
@@ -875,17 +875,17 @@ export default function Dashboard() {
           {/* Recent folder — opened drawer */}
           {openFolder === "recent" && history.length > 0 && (
             <div
-              className="mt-4 glass-card rounded-xl p-4 sm:p-5 border border-[#7209b7]/25"
+              className="mt-4 glass-card rounded-xl p-4 sm:p-5 border border-[#6a14ff]/25"
               data-testid="dashboard-history-section"
             >
               <div className="flex items-center gap-3 mb-3 flex-wrap">
-                <Film size={16} className="text-[#7209b7]" />
-                <span className="font-mono text-xs tracking-[0.3em] uppercase text-[#7209b7]">Recent rooms · {history.length}</span>
+                <Film size={16} className="text-[#6a14ff]" />
+                <span className="font-mono text-xs tracking-[0.3em] uppercase text-[#6a14ff]">Recent rooms · {history.length}</span>
                 <div className="ml-auto flex items-center gap-2">
                   {manageMode ? (
                     <>
                       <span
-                        className="font-mono text-[10px] tracking-widest uppercase text-[#6b5b84]"
+                        className="font-mono text-[10px] tracking-widest uppercase text-[#cccccc]"
                         data-testid="history-selection-count"
                       >
                         {selectedHistory.size} selected
@@ -895,7 +895,7 @@ export default function Dashboard() {
                         onClick={bulkKillSelected}
                         disabled={bulkDeleting || selectedHistory.size === 0}
                         data-testid="history-bulk-delete-button"
-                        className="flex items-center gap-1.5 bg-[#f72585] text-white font-mono text-[10px] tracking-widest uppercase px-3 py-1.5 rounded-md hover:bg-[#d81674] disabled:opacity-40 transition-colors"
+                        className="flex items-center gap-1.5 bg-[#ffd100] text-black font-mono text-[10px] tracking-widest uppercase px-3 py-1.5 rounded-md hover:bg-[#e8bd00] disabled:opacity-40 transition-colors"
                       >
                         <Trash2 size={12} />
                         {bulkDeleting ? "Killing…" : "Delete"}
@@ -904,7 +904,7 @@ export default function Dashboard() {
                         type="button"
                         onClick={exitManageMode}
                         data-testid="history-manage-cancel"
-                        className="border border-[#e7c6ff] font-mono text-[10px] tracking-widest uppercase px-3 py-1.5 rounded-md hover:border-[#7209b7]/60"
+                        className="border border-[#3a3a3a] font-mono text-[10px] tracking-widest uppercase px-3 py-1.5 rounded-md hover:border-[#6a14ff]/60"
                       >
                         Done
                       </button>
@@ -915,7 +915,7 @@ export default function Dashboard() {
                         type="button"
                         onClick={() => setManageMode(true)}
                         data-testid="history-manage-button"
-                        className="flex items-center gap-1.5 border border-[#e7c6ff] font-mono text-[10px] tracking-widest uppercase px-3 py-1.5 rounded-md hover:border-[#f72585] hover:text-[#f72585] transition-colors"
+                        className="flex items-center gap-1.5 border border-[#3a3a3a] font-mono text-[10px] tracking-widest uppercase px-3 py-1.5 rounded-md hover:border-[#ffd100] hover:text-[#ffd100] transition-colors"
                       >
                         <Trash2 size={12} /> Manage
                       </button>
@@ -923,7 +923,7 @@ export default function Dashboard() {
                         type="button"
                         onClick={closeOpenFolder}
                         data-testid="folder-close-recent"
-                        className="border border-[#e7c6ff] font-mono text-[10px] tracking-widest uppercase px-3 py-1.5 rounded-md hover:border-[#7209b7]/60"
+                        className="border border-[#3a3a3a] font-mono text-[10px] tracking-widest uppercase px-3 py-1.5 rounded-md hover:border-[#6a14ff]/60"
                       >
                         Close
                       </button>
@@ -959,8 +959,8 @@ export default function Dashboard() {
       <section className="space-y-4">
         <div id="create-room" className="glass-card rounded-xl p-5 md:p-6">
           <div className="flex items-center gap-2 mb-3">
-            <Plus size={16} className="text-[#f72585]" />
-            <span className="font-mono text-xs tracking-[0.3em] uppercase text-[#f72585]">Host</span>
+            <Plus size={16} className="text-[#ffd100]" />
+            <span className="font-mono text-xs tracking-[0.3em] uppercase text-[#ffd100]">Host</span>
           </div>
           <h2 className="font-head text-2xl md:text-3xl uppercase mb-5">Create room</h2>
           <CreateRoomForm onCreated={onEnterRoom} friendCount={friends.length} />
@@ -968,8 +968,8 @@ export default function Dashboard() {
 
         <div className="glass-card rounded-xl p-5 md:p-6">
           <div className="flex items-center gap-2 mb-3">
-            <DoorOpen size={16} className="text-[#7209b7]" />
-            <span className="font-mono text-xs tracking-[0.3em] uppercase text-[#7209b7]">Crash a screening</span>
+            <DoorOpen size={16} className="text-[#6a14ff]" />
+            <span className="font-mono text-xs tracking-[0.3em] uppercase text-[#6a14ff]">Crash a screening</span>
           </div>
           <h2 className="font-head text-2xl md:text-3xl uppercase mb-5">Join room</h2>
           <div className="max-w-xl">

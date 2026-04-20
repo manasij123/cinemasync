@@ -11,7 +11,7 @@ const NavLink = ({ to, children, testid, mobileIcon }) => {
       to={to}
       data-testid={testid}
       className={`font-mono text-xs tracking-[0.2em] uppercase px-2 sm:px-3 py-2 transition-colors ${
-        active ? "text-[#7209b7]" : "text-[#6b5b84] hover:text-[#1a0b2e]"
+        active ? "text-[#ffd100]" : "text-[#cccccc] hover:text-[#ffffff]"
       }`}
     >
       <span className="hidden md:inline">{children}</span>
@@ -26,17 +26,17 @@ export default function Navbar() {
 
   return (
     <header
-      className="sticky top-0 z-40 border-b border-[#7209b7]/20 bg-[#ffffff]/85 backdrop-blur-xl"
+      className="sticky top-0 z-40 border-b border-white/10 bg-[#202020]/85 backdrop-blur-xl"
       data-testid="top-navbar"
     >
       <div className="max-w-[1400px] mx-auto px-4 sm:px-6 md:px-10 h-16 flex items-center justify-between gap-2">
         <Link to={user ? "/dashboard" : "/"} className="flex items-center gap-2 sm:gap-3 group shrink-0" data-testid="logo-home-link">
-          <div className="w-12 h-12 shrink-0 rounded-md bg-white border border-[#7209b7]/30 overflow-hidden flex items-center justify-center">
+          <div className="w-12 h-12 shrink-0 rounded-md bg-white border border-white/15 overflow-hidden flex items-center justify-center">
             <img src="/cinemasync-logo.svg" alt="CinemaSync" className="w-[92%] h-[92%] object-contain" />
           </div>
           <div className="flex flex-col leading-none">
             <span className="font-head text-lg sm:text-xl tracking-wider uppercase">CinemaSync</span>
-            <span className="font-mono text-[8px] sm:text-[9px] tracking-[0.3em] text-[#6b5b84] uppercase hidden sm:block">
+            <span className="font-mono text-[8px] sm:text-[9px] tracking-[0.3em] text-[#cccccc] uppercase hidden sm:block">
               Watch · Party · Sync
             </span>
           </div>
@@ -58,7 +58,7 @@ export default function Navbar() {
             <button
               data-testid="logout-button"
               onClick={async () => { await logout(); navigate("/"); }}
-              className="ml-2 sm:ml-3 border border-[#7209b7]/35 text-[#1a0b2e] hover:border-[#f72585] hover:text-[#f72585] font-mono tracking-[0.2em] uppercase text-xs px-2 sm:px-4 py-2 transition-colors flex items-center gap-2"
+              className="ml-2 sm:ml-3 border border-[#6a14ff]/35 text-[#ffffff] hover:border-[#ffd100] hover:text-[#ffd100] font-mono tracking-[0.2em] uppercase text-xs px-2 sm:px-4 py-2 transition-colors flex items-center gap-2"
             >
               <LogOut size={13} /> <span className="hidden sm:inline">Logout</span>
             </button>
@@ -68,14 +68,14 @@ export default function Navbar() {
             <Link
               to="/login"
               data-testid="nav-login-link"
-              className="font-mono tracking-[0.2em] uppercase text-xs text-[#6b5b84] hover:text-[#1a0b2e] px-4 py-2"
+              className="font-mono tracking-[0.2em] uppercase text-xs text-[#cccccc] hover:text-[#ffffff] px-4 py-2"
             >
               Login
             </Link>
             <Link
               to="/register"
               data-testid="nav-register-link"
-              className="bg-[#7209b7] text-[#1a0b2e] font-mono tracking-[0.2em] uppercase text-xs px-4 py-2 hover:bg-[#4a0580] transition-colors"
+              className="bg-[#ffd100] text-black font-mono tracking-[0.2em] uppercase text-xs px-4 py-2 hover:bg-[#e8bd00] transition-colors font-semibold"
             >
               Get Started
             </Link>
