@@ -1,6 +1,7 @@
-import React from "react";
+import React, { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import Navbar from "../components/Navbar";
+import SplashIntro from "../components/SplashIntro";
 import { Film, Users, MessageCircleMore, PlayCircle, Cast, ShieldCheck } from "lucide-react";
 
 const HERO_IMG = "/logo.jpg";
@@ -22,8 +23,34 @@ const Feature = ({ icon: Icon, title, copy, testid }) => (
 const MARQUEE_TEXT = "NOW SHOWING · CINEMASYNC · WATCH TOGETHER · LIVE · REEL · BUTTERED POPCORN · SCREEN #1 · ";
 
 export default function Landing() {
+  // Splash intro — runs only on first-ever landing visit.
+  const [showSplash, setShowSplash] = useState(() => {
+    if (typeof window === "undefined") return false;
+    try {
+      return !localStorage.getItem("cs-splash-seen");
+    } catch {
+      return false;
+    }
+  });
+
+  useEffect(() => {
+    if (!showSplash) return;
+    // Lock scroll while splash plays
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.body.style.overflow = prev;
+    };
+  }, [showSplash]);
+
+  const finishSplash = () => {
+    try { localStorage.setItem("cs-splash-seen", "1"); } catch {}
+    setShowSplash(false);
+  };
+
   return (
     <div>
+      {showSplash && <SplashIntro onDone={finishSplash} />}
       <Navbar />
 
       {/* Hero */}
