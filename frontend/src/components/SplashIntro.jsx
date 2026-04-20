@@ -2,31 +2,29 @@ import React, { useLayoutEffect, useRef, useMemo } from "react";
 import { gsap } from "gsap";
 
 /**
- * CinemaSync splash intro.
+ * CinemaSync splash intro — smooth, low-GPU edition.
  *
- *   Beat 1 — C (film-reel) writes itself anti-clockwise, the way a
- *            hand draws a "C": from top-right, sweeping round, to
- *            bottom-right.
+ *  Beat 1 — C (film-reel) writes itself anti-clockwise (hand draws a C:
+ *           top-right → up → left → down → bottom-right).
  *
- *   Beat 2 — S (pair of circular arrows) writes itself BEHIND the C as
- *            a single continuous hand-written "S" (top curl → middle →
- *            bottom curl).  Its arrow tails sit just outside the C so
- *            the S is visible peeking around the film-reel.
+ *  Beat 2 — S (arrows) writes itself behind C as one continuous
+ *           hand-written S (top curl → middle → bottom curl).
  *
- *   Beat 3 — The finished composition smoothly flies into the empty
- *            Navbar logo slot (top-left of the page).  The real Navbar
- *            logo is kept hidden while the splash runs; the moment the
- *            composition docks into place we hand off with a cross-fade
- *            so the drawn logo visually *becomes* the header logo.
+ *  Beat 3 — Composition flies into the empty Navbar logo slot and the
+ *           real logo cross-fades in so the drawn logo becomes the
+ *           header logo.
  *
- * Linear easing on the strokes keeps pen speed constant (no pulsing),
- * power3.inOut on the fly gives it that polished "the logo was just
- * created and now it settled home" feel.
- *
- * Runs on every page load.
+ * Performance notes:
+ *  • SVG viewBox is intentionally small (100×100) so mask rasterization
+ *    per frame is 25× cheaper than a 500×500 viewBox.
+ *  • `stroke-dashoffset` is driven through the CSS pipeline (GSAP's
+ *    default) rather than `attr:` so Chromium/Safari can GPU-composite.
+ *  • Ambient effects (rings, rays, particles, glow) are kept idle while
+ *    C and S are drawing — they only start once the writing is done, so
+ *    the GPU budget during the reveal is dedicated to the mask/stroke.
  */
 
-const STAGE_PX = 300;
+const STAGE_PX = 260;
 
 export default function SplashIntro({ onDone }) {
   const rootRef = useRef(null);
@@ -40,24 +38,22 @@ export default function SplashIntro({ onDone }) {
   const raysRef = useRef(null);
   const bulbsRef = useRef([]);
 
-  // Pre-compute particle positions once so re-renders don't jitter them
   const particles = useMemo(
     () =>
       Array.from({ length: 10 }).map((_, i) => ({
         id: i,
         left: `${Math.random() * 100}%`,
         top: `${Math.random() * 100}%`,
-        size: 2 + Math.random() * 4,
-        delay: Math.random() * 3,
-        dur: 4 + Math.random() * 4,
-        hue: i % 3, // 0=yellow 1=purple 2=white
+        size: 2 + Math.random() * 3,
+        hue: i % 3,
       })),
     []
   );
 
   useLayoutEffect(() => {
-    const navLogoBox =
-      document.querySelector('[data-testid="logo-home-link"] > div');
+    const navLogoBox = document.querySelector(
+      '[data-testid="logo-home-link"] > div'
+    );
     if (navLogoBox) {
       navLogoBox.style.opacity = "0";
       navLogoBox.style.transition = "none";
@@ -66,91 +62,21 @@ export default function SplashIntro({ onDone }) {
     gsap.fromTo(
       rootRef.current,
       { opacity: 0 },
-      { opacity: 1, duration: 0.45, ease: "power2.out" }
+      { opacity: 1, duration: 0.4, ease: "power2.out" }
     );
     gsap.fromTo(
       stageRef.current,
-      { scale: 0.86, opacity: 0 },
-      { scale: 1, opacity: 1, duration: 0.9, ease: "power3.out" }
+      { scale: 0.88, opacity: 0 },
+      { scale: 1, opacity: 1, duration: 0.7, ease: "power3.out" }
     );
-    gsap.to(glowRef.current, {
-      opacity: 0.55,
-      duration: 1.6,
-      ease: "sine.inOut",
-      yoyo: true,
-      repeat: -1,
-    });
 
-    // Projector rings — three concentric rings pulse outward continuously
-    ringsRef.current.forEach((r, i) => {
-      if (!r) return;
-      gsap.fromTo(
-        r,
-        { scale: 0.6, opacity: 0 },
-        {
-          scale: 1.8,
-          opacity: 0,
-          duration: 3.2,
-          ease: "sine.out",
-          repeat: -1,
-          delay: i * 1.05,
-          keyframes: [
-            { scale: 0.6, opacity: 0, duration: 0 },
-            { opacity: 0.45, duration: 0.4 },
-            { scale: 1.8, opacity: 0, duration: 2.8 },
-          ],
-        }
-      );
-    });
-
-    // Floating cinema particles — gentle drift + twinkle
-    particlesRef.current.forEach((p) => {
-      if (!p) return;
-      const drift = 20 + Math.random() * 40;
-      gsap.to(p, {
-        y: `-=${drift}`,
-        x: `+=${(Math.random() - 0.5) * 30}`,
-        opacity: 0.15 + Math.random() * 0.5,
-        duration: 4 + Math.random() * 3,
-        ease: "sine.inOut",
-        yoyo: true,
-        repeat: -1,
-      });
-    });
-
-    // Light rays — slow rotation for a projector-beam feel
-    if (raysRef.current) {
-      gsap.to(raysRef.current, {
-        rotation: 360,
-        duration: 60,
-        ease: "none",
-        repeat: -1,
-        transformOrigin: "50% 50%",
-        force3D: true,
-      });
-    }
-
-    // Corner marquee bulbs — staggered blink
-    bulbsRef.current.forEach((b, i) => {
-      if (!b) return;
-      gsap.to(b, {
-        opacity: 0.35,
-        duration: 0.9,
-        ease: "sine.inOut",
-        yoyo: true,
-        repeat: -1,
-        delay: i * 0.25,
-      });
-    });
-
-    // Note: no continuous 3D tilt on the stage — it conflicts with the
-    // fly-to-header tween and increases per-frame cost.  The ambient
-    // particles + rings + rays + glow already give the composition a
-    // lively, cinema-like feel.
-
+    // Seed stroke-dasharray/offset BOTH as CSS inline style (preferred,
+    // GPU-composited) and attribute (browser fallback).
     const seed = (el) => {
       if (!el) return 0;
       const len = el.getTotalLength();
+      el.style.strokeDasharray = `${len}`;
+      el.style.strokeDashoffset = `${len}`;
       el.setAttribute("stroke-dasharray", `${len}`);
       el.setAttribute("stroke-dashoffset", `${len}`);
       return len;
@@ -160,87 +86,141 @@ export default function SplashIntro({ onDone }) {
 
     const tl = gsap.timeline();
 
-    // Beat 1 — C writes in (linear, smooth handwriting)
+    // Beat 1 — C writes in, CSS-style (no `attr:`), linear handwriting
     tl.to(
       cPathRef.current,
-      { attr: { "stroke-dashoffset": 0 }, duration: 1.9, ease: "none" },
-      0.55
+      { strokeDashoffset: 0, duration: 1.9, ease: "none" },
+      0.45
     );
 
-    // Beat 2 — S writes in behind C, single continuous stroke
+    // Beat 2 — S writes in behind C as one continuous stroke
     tl.to(
       sPathRef.current,
-      { attr: { "stroke-dashoffset": 0 }, duration: 2.0, ease: "none" },
-      "+=0.4"
+      { strokeDashoffset: 0, duration: 2.0, ease: "none" },
+      "+=0.35"
     );
 
-    // Beat 3 — composition flies to the Navbar logo slot
+    // Beat 3 — ambient effects kick in NOW (after the writing is done,
+    // so they don't fight for GPU budget during the reveal).
+    tl.call(() => {
+      if (glowRef.current) {
+        gsap.to(glowRef.current, {
+          opacity: 0.5,
+          duration: 1.4,
+          ease: "sine.inOut",
+          yoyo: true,
+          repeat: -1,
+        });
+      }
+      ringsRef.current.forEach((r, i) => {
+        if (!r) return;
+        gsap.fromTo(
+          r,
+          { scale: 0.6, opacity: 0 },
+          {
+            scale: 1.7,
+            opacity: 0,
+            duration: 2.8,
+            ease: "sine.out",
+            repeat: -1,
+            delay: i * 1.0,
+            keyframes: [
+              { scale: 0.6, opacity: 0, duration: 0 },
+              { opacity: 0.42, duration: 0.35 },
+              { scale: 1.7, opacity: 0, duration: 2.45 },
+            ],
+          }
+        );
+      });
+      particlesRef.current.forEach((p) => {
+        if (!p) return;
+        gsap.to(p, {
+          y: `-=${25 + Math.random() * 35}`,
+          x: `+=${(Math.random() - 0.5) * 24}`,
+          opacity: 0.2 + Math.random() * 0.45,
+          duration: 3.5 + Math.random() * 2.5,
+          ease: "sine.inOut",
+          yoyo: true,
+          repeat: -1,
+        });
+      });
+      if (raysRef.current) {
+        gsap.to(raysRef.current, {
+          rotation: 360,
+          duration: 60,
+          ease: "none",
+          repeat: -1,
+          transformOrigin: "50% 50%",
+          force3D: true,
+        });
+      }
+      bulbsRef.current.forEach((b, i) => {
+        if (!b) return;
+        gsap.to(b, {
+          opacity: 0.35,
+          duration: 0.9,
+          ease: "sine.inOut",
+          yoyo: true,
+          repeat: -1,
+          delay: i * 0.2,
+        });
+      });
+    }, null, "+=0.05");
+
+    // Beat 4 — fly composition into Navbar logo slot
     tl.add(() => {
-      const target = navLogoBox || document.querySelector('[data-testid="logo-home-link"] > div');
+      const target =
+        navLogoBox ||
+        document.querySelector('[data-testid="logo-home-link"] > div');
       const stage = stageRef.current;
 
-      const fallbackFinish = () => {
+      const finalise = () => {
         if (navLogoBox) {
-          gsap.to(navLogoBox, {
-            opacity: 1,
-            duration: 0.4,
-            ease: "power2.out",
-            onStart: () => {
-              navLogoBox.style.transition = "";
-            },
-          });
+          navLogoBox.style.transition = "";
+          gsap.set(navLogoBox, { opacity: 1 });
         }
+      };
+
+      const fallbackFinish = () => {
+        finalise();
         gsap.to(rootRef.current, {
           opacity: 0,
-          duration: 0.5,
+          duration: 0.45,
           ease: "power1.inOut",
           onComplete: () => onDone?.(),
         });
       };
 
-      if (!target || !stage) {
-        fallbackFinish();
-        return;
-      }
+      if (!target || !stage) return fallbackFinish();
       const tgtRect = target.getBoundingClientRect();
       const srcRect = stage.getBoundingClientRect();
-      if (!tgtRect.width || !srcRect.width) {
-        fallbackFinish();
-        return;
-      }
-      const tgtCx = tgtRect.left + tgtRect.width / 2;
-      const tgtCy = tgtRect.top + tgtRect.height / 2;
-      const srcCx = srcRect.left + srcRect.width / 2;
-      const srcCy = srcRect.top + srcRect.height / 2;
-      const dx = tgtCx - srcCx;
-      const dy = tgtCy - srcCy;
+      if (!tgtRect.width || !srcRect.width) return fallbackFinish();
+
+      const dx =
+        tgtRect.left + tgtRect.width / 2 - (srcRect.left + srcRect.width / 2);
+      const dy =
+        tgtRect.top + tgtRect.height / 2 - (srcRect.top + srcRect.height / 2);
       const scale = tgtRect.width / srcRect.width;
 
-      // Fade the dark backdrop + glow out as the logo travels.
       gsap.to(bgRef.current, { opacity: 0, duration: 0.9, ease: "power2.inOut" });
-      gsap.to(glowRef.current, { opacity: 0, duration: 0.6, ease: "power1.out" });
+      gsap.to(glowRef.current, { opacity: 0, duration: 0.5, ease: "power1.out" });
 
       gsap.to(stage, {
         x: dx,
         y: dy,
         scale,
-        duration: 1.15,
+        duration: 1.1,
         ease: "power3.inOut",
         onComplete: () => {
-          // Hand-off: reveal the real navbar logo in the exact same spot,
-          // then fade the splash composition away so the swap is invisible.
-          if (navLogoBox) {
-            navLogoBox.style.transition = "";
-            gsap.set(navLogoBox, { opacity: 1 });
-          }
+          finalise();
           gsap.to(stage, {
             opacity: 0,
-            duration: 0.25,
+            duration: 0.22,
             ease: "power1.out",
             onComplete: () => {
               gsap.to(rootRef.current, {
                 opacity: 0,
-                duration: 0.25,
+                duration: 0.22,
                 ease: "power1.out",
                 onComplete: () => onDone?.(),
               });
@@ -248,11 +228,10 @@ export default function SplashIntro({ onDone }) {
           });
         },
       });
-    }, "+=0.35");
+    }, "+=0.6");
 
     return () => {
       tl.kill();
-      // Safety: ensure the real logo is visible again if splash unmounts early.
       if (navLogoBox) {
         navLogoBox.style.opacity = "";
         navLogoBox.style.transition = "";
@@ -261,22 +240,23 @@ export default function SplashIntro({ onDone }) {
   }, [onDone]);
 
   // ---- C stroke path (anti-clockwise: top-right → bottom-right) ----
-  const C_RADIUS = 230;
-  const C_CX = 250;
-  const C_CY = 250;
-  const toPt = (cx, cy, r, deg) => ({
+  //   SVG viewBox intentionally tiny (100×100) → 25× cheaper rasterization
+  const C_R = 46;
+  const C_CX = 50;
+  const C_CY = 50;
+  const pt = (cx, cy, r, deg) => ({
     x: cx + r * Math.cos((deg * Math.PI) / 180),
     y: cy + r * Math.sin((deg * Math.PI) / 180),
   });
-  const cStart = toPt(C_CX, C_CY, C_RADIUS, -55);
-  const cEnd = toPt(C_CX, C_CY, C_RADIUS, 55);
-  const cPath = `M ${cStart.x} ${cStart.y} A ${C_RADIUS} ${C_RADIUS} 0 1 0 ${cEnd.x} ${cEnd.y}`;
+  const cStart = pt(C_CX, C_CY, C_R, -55);
+  const cEnd = pt(C_CX, C_CY, C_R, 55);
+  const cPath = `M ${cStart.x} ${cStart.y} A ${C_R} ${C_R} 0 1 0 ${cEnd.x} ${cEnd.y}`;
 
   // ---- S stroke path — single continuous hand-written S ----
-  const S_R = 180;
-  const sStart = { x: 430, y: 60 };
-  const sMid = { x: 250, y: 250 };
-  const sEnd = { x: 70, y: 440 };
+  const S_R = 36;
+  const sStart = { x: 86, y: 12 };
+  const sMid = { x: 50, y: 50 };
+  const sEnd = { x: 14, y: 88 };
   const sPath =
     `M ${sStart.x} ${sStart.y} ` +
     `A ${S_R} ${S_R} 0 1 0 ${sMid.x} ${sMid.y} ` +
@@ -287,26 +267,16 @@ export default function SplashIntro({ onDone }) {
       ref={rootRef}
       data-testid="splash-intro"
       className="fixed inset-0 z-[9998] select-none overflow-hidden"
-      style={{ opacity: 0, perspective: "1200px" }}
+      style={{ opacity: 0 }}
       aria-hidden
     >
-      {/* Translucent backdrop — Landing bleeds through just enough to feel alive */}
+      {/* Translucent backdrop — Landing faintly bleeds through */}
       <div
         ref={bgRef}
         className="absolute inset-0"
         style={{
           background:
             "radial-gradient(ellipse at center, rgba(10,10,10,0.78) 0%, rgba(5,5,5,0.90) 55%, rgba(0,0,0,0.96) 100%)",
-        }}
-      />
-
-      {/* Subtle film-grain vignette overlay */}
-      <div
-        className="pointer-events-none absolute inset-0 opacity-[0.18] mix-blend-overlay"
-        style={{
-          backgroundImage:
-            "radial-gradient(rgba(255,255,255,0.08) 1px, transparent 1px)",
-          backgroundSize: "3px 3px",
         }}
       />
 
@@ -323,10 +293,11 @@ export default function SplashIntro({ onDone }) {
           background:
             "radial-gradient(circle, rgba(255,209,0,0.22) 0%, rgba(106,20,255,0.14) 35%, rgba(0,0,0,0) 65%)",
           filter: "blur(30px)",
+          willChange: "opacity",
         }}
       />
 
-      {/* Soft rotating light rays — projector beam feel, low cost */}
+      {/* Rotating light rays — idle until writing is done */}
       <div
         ref={raysRef}
         className="pointer-events-none absolute left-1/2 top-1/2"
@@ -337,14 +308,14 @@ export default function SplashIntro({ onDone }) {
           marginTop: "-70vmax",
           opacity: 0.18,
           background:
-            "conic-gradient(from 0deg, rgba(255,209,0,0) 0deg, rgba(255,209,0,0.18) 14deg, rgba(255,209,0,0) 30deg, rgba(106,20,255,0) 140deg, rgba(106,20,255,0.14) 160deg, rgba(106,20,255,0) 180deg, rgba(255,209,0,0) 360deg)",
+            "conic-gradient(from 0deg, rgba(255,209,0,0) 0deg, rgba(255,209,0,0.16) 14deg, rgba(255,209,0,0) 30deg, rgba(106,20,255,0) 140deg, rgba(106,20,255,0.12) 160deg, rgba(106,20,255,0) 180deg, rgba(255,209,0,0) 360deg)",
           filter: "blur(22px)",
           mixBlendMode: "screen",
           willChange: "transform",
         }}
       />
 
-      {/* Concentric projector rings — pulse outward from stage centre */}
+      {/* Concentric projector rings — idle until writing is done */}
       {[0, 1].map((i) => (
         <div
           key={`ring-${i}`}
@@ -359,11 +330,12 @@ export default function SplashIntro({ onDone }) {
             boxShadow:
               "0 0 40px rgba(255,209,0,0.25), inset 0 0 30px rgba(255,209,0,0.15)",
             opacity: 0,
+            willChange: "transform, opacity",
           }}
         />
       ))}
 
-      {/* Floating cinema particles (popcorn / film dust bokeh) */}
+      {/* Floating cinema particles — idle until writing is done */}
       {particles.map((p, idx) => (
         <div
           key={p.id}
@@ -383,20 +355,21 @@ export default function SplashIntro({ onDone }) {
                 : "rgba(255,255,255,0.9)",
             boxShadow:
               p.hue === 0
-                ? "0 0 12px rgba(255,209,0,0.9)"
+                ? "0 0 10px rgba(255,209,0,0.9)"
                 : p.hue === 1
-                ? "0 0 10px rgba(168,85,247,0.9)"
-                : "0 0 8px rgba(255,255,255,0.9)",
+                ? "0 0 8px rgba(168,85,247,0.9)"
+                : "0 0 7px rgba(255,255,255,0.9)",
+            willChange: "transform, opacity",
           }}
         />
       ))}
 
-      {/* Corner marquee bulbs — classic theatre border flourish */}
+      {/* Corner marquee bulbs */}
       {[
-        { top: 32, left: 32 },
-        { top: 32, right: 32 },
-        { bottom: 32, left: 32 },
-        { bottom: 32, right: 32 },
+        { top: 28, left: 28 },
+        { top: 28, right: 28 },
+        { bottom: 28, left: 28 },
+        { bottom: 28, right: 28 },
       ].map((pos, i) => (
         <div
           key={`bulb-${i}`}
@@ -404,12 +377,13 @@ export default function SplashIntro({ onDone }) {
           className="pointer-events-none absolute rounded-full"
           style={{
             ...pos,
-            width: 10,
-            height: 10,
+            width: 9,
+            height: 9,
             background: "#ffd100",
             boxShadow:
-              "0 0 18px rgba(255,209,0,0.9), 0 0 36px rgba(255,209,0,0.45)",
+              "0 0 14px rgba(255,209,0,0.9), 0 0 28px rgba(255,209,0,0.4)",
             opacity: 1,
+            willChange: "opacity",
           }}
         />
       ))}
@@ -426,39 +400,42 @@ export default function SplashIntro({ onDone }) {
           marginLeft: -STAGE_PX / 2,
           marginTop: -STAGE_PX / 2,
           transformOrigin: "50% 50%",
-          willChange: "transform",
-          filter: "drop-shadow(0 10px 40px rgba(0,0,0,0.55))",
+          willChange: "transform, opacity",
+          filter: "drop-shadow(0 8px 28px rgba(0,0,0,0.55))",
         }}
       >
         <svg
-          viewBox="0 0 500 500"
+          viewBox="0 0 100 100"
           className="absolute inset-0 w-full h-full"
-          shapeRendering="geometricPrecision"
+          shapeRendering="optimizeSpeed"
           style={{ overflow: "visible" }}
         >
           <defs>
+            {/* Mask for the C — anti-clockwise stroke */}
             <mask id="maskC" maskUnits="userSpaceOnUse">
-              <rect width="500" height="500" fill="black" />
+              <rect width="100" height="100" fill="black" />
               <path
                 ref={cPathRef}
                 d={cPath}
                 stroke="white"
-                strokeWidth={C_RADIUS * 0.95}
+                strokeWidth={C_R * 0.95}
                 strokeLinecap="round"
                 strokeLinejoin="round"
                 fill="none"
+                style={{ willChange: "stroke-dashoffset" }}
               />
             </mask>
 
+            {/* Mask for the S — single continuous stroke */}
             <mask
               id="maskS"
               maskUnits="userSpaceOnUse"
-              x="-200"
-              y="-200"
-              width="900"
-              height="900"
+              x="-40"
+              y="-40"
+              width="180"
+              height="180"
             >
-              <rect x="-200" y="-200" width="900" height="900" fill="black" />
+              <rect x="-40" y="-40" width="180" height="180" fill="black" />
               <path
                 ref={sPathRef}
                 d={sPath}
@@ -467,17 +444,18 @@ export default function SplashIntro({ onDone }) {
                 strokeLinecap="round"
                 strokeLinejoin="round"
                 fill="none"
+                style={{ willChange: "stroke-dashoffset" }}
               />
             </mask>
           </defs>
 
-          {/* BACKGROUND — S arrows artwork (extends past C so tails peek out) */}
+          {/* BACKGROUND — S arrows artwork (slightly larger than C) */}
           <image
             href="/cinemasync-s-arrows.png"
-            x="-120"
-            y="-120"
-            width="740"
-            height="740"
+            x="-24"
+            y="-24"
+            width="148"
+            height="148"
             preserveAspectRatio="xMidYMid meet"
             mask="url(#maskS)"
             style={{ opacity: 0.95 }}
@@ -486,10 +464,10 @@ export default function SplashIntro({ onDone }) {
           {/* FOREGROUND — C film-reel logo */}
           <image
             href="/cinemasync-c-logo.jpg"
-            x="10"
-            y="10"
-            width="480"
-            height="480"
+            x="2"
+            y="2"
+            width="96"
+            height="96"
             preserveAspectRatio="xMidYMid meet"
             mask="url(#maskC)"
           />
