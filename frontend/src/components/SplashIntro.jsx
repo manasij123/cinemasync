@@ -15,7 +15,7 @@ import { gsap } from "gsap";
  *      logo and FLIPs to the top-left header slot.
  */
 
-const MIN_DISPLAY_MS = 4000;
+const MIN_DISPLAY_MS = 4300;
 
 // Palette (from the user's logo + our brand)
 const CREAM = "#F3E3C3";
@@ -127,12 +127,10 @@ export default function SplashIntro({ onDone }) {
 
     // Tighten the composition — remove the background arrows first so the
     // flying shape reads as the logo silhouette, not a full splash scene.
-    gsap.to(['[data-arrow3d]', '[data-arrow-icons]'], {
+    gsap.to(['[data-arrow-top]', '[data-arrow-bot]'], {
       opacity: 0,
-      scale: 0.6,
       duration: 0.4,
       ease: "power2.in",
-      transformOrigin: "center",
     });
 
     requestAnimationFrame(() => {
@@ -215,48 +213,25 @@ export default function SplashIntro({ onDone }) {
       .to('[data-pop^="strip-top-frame"]', { scale: 1, opacity: 1, duration: 0.3, stagger: 0.06, ease: "back.out(2)" }, 1.9)
       .to('[data-pop^="strip-bot-frame"]', { scale: 1, opacity: 1, duration: 0.3, stagger: 0.06, ease: "back.out(2)" }, 2.05);
 
-    // -------- BEAT 3 (2.4 – 3.3) : 3D tab arrows sweep in from centre --------
-    // Seed 3D-entry state on the arrows
-    gsap.set('[data-arrow3d]', {
-      transformPerspective: 700,
-      scale: 0.35,
-      opacity: 0,
-    });
-    gsap.set('[data-arrow3d="top"]', { rotationX: 75, rotationZ: -25, y: 20 });
-    gsap.set('[data-arrow3d="bot"]', { rotationX: -75, rotationZ: 25, y: -20 });
-    gsap.set('[data-arrow-icons]', { opacity: 0, scale: 0.4, transformOrigin: "center" });
+    // -------- BEAT 3 (2.4 – 3.4) : S-arrows reveal ALONG their paths --------
+    // Arrowheads start hidden; they pop at the end of each path reveal.
+    gsap.set('[data-pop="arrow-top-head"]', { opacity: 0, scale: 0, transformOrigin: "center" });
+    gsap.set('[data-pop="arrow-bot-head"]', { opacity: 0, scale: 0, transformOrigin: "center" });
 
-    tl.to('[data-arrow3d="top"]', {
-      rotationX: 0,
-      rotationZ: 0,
-      y: 0,
-      scale: 1,
-      opacity: 1,
-      duration: 0.9,
-      ease: "power3.out",
-    }, 2.45)
-      .to('[data-arrow3d="bot"]', {
-        rotationX: 0,
-        rotationZ: 0,
-        y: 0,
-        scale: 1,
-        opacity: 1,
-        duration: 0.9,
-        ease: "power3.out",
-      }, 2.6)
-      .to('[data-arrow-icons]', {
-        opacity: 1,
-        scale: 1,
-        duration: 0.35,
-        stagger: 0.12,
-        ease: "back.out(2)",
-      }, 3.05);
+    // Top arrow: draws from centre → left → up → right over 0.9s
+    tl.to('[data-draw="arrow-top-shadow"]', { strokeDashoffset: 0, duration: 0.9, ease: "power2.inOut" }, 2.40)
+      .to('[data-draw="arrow-top-body"]',   { strokeDashoffset: 0, duration: 0.9, ease: "power2.inOut" }, 2.45)
+      .to('[data-pop="arrow-top-head"]',    { opacity: 1, scale: 1, duration: 0.25, ease: "back.out(2)" }, 3.30)
+    // Bottom arrow: draws from centre → right → down → left
+      .to('[data-draw="arrow-bot-shadow"]', { strokeDashoffset: 0, duration: 0.9, ease: "power2.inOut" }, 2.60)
+      .to('[data-draw="arrow-bot-body"]',   { strokeDashoffset: 0, duration: 0.9, ease: "power2.inOut" }, 2.65)
+      .to('[data-pop="arrow-bot-head"]',    { opacity: 1, scale: 1, duration: 0.25, ease: "back.out(2)" }, 3.50);
 
-    // -------- BEAT 4 (3.3 – 3.8) : Hold + glow --------
+    // -------- BEAT 4 (3.8 – 4.3) : Hold + glow --------
     tl.to('#cs-splash-group', {
       filter: "drop-shadow(0 0 18px rgba(255,209,0,0.55)) drop-shadow(0 0 32px rgba(106,20,255,0.4))",
       duration: 0.45, ease: "power2.inOut",
-    }, 3.35);
+    }, 3.80);
 
     const kickoff = setTimeout(runMorph, MIN_DISPLAY_MS);
     return () => {
@@ -286,62 +261,16 @@ export default function SplashIntro({ onDone }) {
     };
   });
 
-  // Background arrows — tab-shaped, like the user's hand-drawn logo.
-  // Each is a thick banana-shape arc with an arrowhead at the tip.
-  // Top arrow (orange): sweeps from left-of-reel up and around to the right.
-  // Bottom arrow (blue): sweeps from right-of-reel down and around to the left.
-  const tabArrow = ({ cx, cy, rIn, rOut, start, end, headLen = 36 }) => {
-    const startOuter = pt(cx, cy, rOut, start);
-    const endOuter = pt(cx, cy, rOut, end);
-    const endInner = pt(cx, cy, rIn, end);
-    const startInner = pt(cx, cy, rIn, start);
-    // Tangent direction at `end` (for placing the arrowhead tip)
-    const tang = {
-      x: -Math.sin((end * Math.PI) / 180),
-      y: Math.cos((end * Math.PI) / 180),
-    };
-    const sweepSign = end > start ? 1 : -1;
-    // Tip = mid-radius, pushed further along tangent
-    const midR = (rIn + rOut) / 2;
-    const base = pt(cx, cy, midR, end);
-    const tip = {
-      x: base.x + tang.x * headLen * sweepSign,
-      y: base.y + tang.y * headLen * sweepSign,
-    };
-    // Arrowhead wings extend perpendicular to the tangent
-    const wingOuter = {
-      x: endOuter.x + tang.x * (headLen * 0.4) * sweepSign,
-      y: endOuter.y + tang.y * (headLen * 0.4) * sweepSign,
-    };
-    const wingInner = {
-      x: endInner.x + tang.x * (headLen * 0.4) * sweepSign,
-      y: endInner.y + tang.y * (headLen * 0.4) * sweepSign,
-    };
-    const large = Math.abs(end - start) > 180 ? 1 : 0;
-    const sweepOut = end > start ? 1 : 0;
-    const d = [
-      `M ${startOuter.x} ${startOuter.y}`,
-      `A ${rOut} ${rOut} 0 ${large} ${sweepOut} ${endOuter.x} ${endOuter.y}`,
-      `L ${wingOuter.x} ${wingOuter.y}`,
-      `L ${tip.x} ${tip.y}`,
-      `L ${wingInner.x} ${wingInner.y}`,
-      `L ${endInner.x} ${endInner.y}`,
-      `A ${rIn} ${rIn} 0 ${large} ${1 - sweepOut} ${startInner.x} ${startInner.y}`,
-      `Z`,
-    ].join(" ");
-    return d;
-  };
-
-  // Top arrow (orange tab): arcs over the top, points up-right
-  const arrowTopD = tabArrow({
-    cx: 200, cy: 200, rIn: 115, rOut: 165,
-    start: 200, end: 335, headLen: 40,
-  });
-  // Bottom arrow (blue tab): arcs under the bottom, points down-left
-  const arrowBotD = tabArrow({
-    cx: 200, cy: 200, rIn: 115, rOut: 165,
-    start: 20, end: 155, headLen: 40,
-  });
+  // ===== S-shaped motion arrows (two arrows circling behind the C) =====
+  // TOP arrow : starts at centre, sweeps LEFT, curves UP and over to the RIGHT
+  //             (with arrowhead pointing down-right at the upper-right corner)
+  // BOTTOM arr: starts at centre, sweeps RIGHT, curves DOWN and over to the LEFT
+  //             (with arrowhead pointing up-left at the lower-left corner)
+  // Together they trace the "S" of CinemaSync, behind the C composition.
+  const arrowTopD = "M 200 200 C 140 200, 110 150, 140 100 C 170 60, 250 45, 310 80 C 340 100, 350 140, 340 180";
+  const arrowTopTip = { x: 340, y: 180, rot: 50 }; // local rotation for head
+  const arrowBotD = "M 200 200 C 260 200, 290 250, 260 300 C 230 340, 150 355, 90 320 C 60 300, 50 260, 60 220";
+  const arrowBotTip = { x: 60, y: 220, rot: -130 };
 
   return (
     <div
@@ -360,67 +289,65 @@ export default function SplashIntro({ onDone }) {
       <div ref={stageRef} className="relative" style={{ width: 480, height: 480, willChange: "transform, opacity, filter" }}>
         <svg ref={svgRef} viewBox="0 0 400 400" className="absolute inset-0 w-full h-full">
           <g id="cs-splash-group">
-            {/* ===== BACKGROUND TAB ARROWS (orange top, blue bottom) ===== */}
-            <defs>
-              <linearGradient id="arrowOrangeGrad" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="0%"  stopColor="#F7B876" />
-                <stop offset="55%" stopColor="#E8A16A" />
-                <stop offset="100%" stopColor="#B5763C" />
-              </linearGradient>
-              <linearGradient id="arrowBlueGrad" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="0%"  stopColor="#7AA1D8" />
-                <stop offset="55%" stopColor="#4A77B5" />
-                <stop offset="100%" stopColor="#2A4777" />
-              </linearGradient>
-            </defs>
-
-            <g data-arrow3d="top" style={{ transformOrigin: "200px 200px", transformBox: "fill-box" }}>
+            {/* ===== S-SHAPED MOTION ARROWS (behind C composition) ===== */}
+            <g data-arrow-top>
+              {/* Blue shadow stroke — offset, hand-drawn feel */}
               <path
-                d={arrowTopD}
-                fill="url(#arrowOrangeGrad)"
-                opacity="0.92"
-                style={{ filter: "drop-shadow(0 6px 10px rgba(0,0,0,0.5))" }}
-              />
-              <path
+                data-draw="arrow-top-shadow"
                 d={arrowTopD}
                 fill="none"
-                stroke={NAVY}
-                strokeWidth="4"
-                strokeLinejoin="round"
+                stroke="#4A77B5"
+                strokeWidth="20"
                 strokeLinecap="round"
-                opacity="0.85"
+                opacity="0.55"
+                transform="translate(2, 4)"
               />
-              {/* Mini icon hint — lightbulb + gear dots inside the tab */}
-              <g data-arrow-icons="top">
-                <circle cx="260" cy="85" r="7" fill="#FFE0A8" stroke={NAVY} strokeWidth="2" />
-                <circle cx="295" cy="105" r="9" fill="none" stroke={NAVY} strokeWidth="2.5" />
-                <circle cx="295" cy="105" r="4" fill={NAVY} />
+              {/* Main orange body */}
+              <path
+                data-draw="arrow-top-body"
+                d={arrowTopD}
+                fill="none"
+                stroke="#E8A16A"
+                strokeWidth="16"
+                strokeLinecap="round"
+                style={{ filter: "drop-shadow(0 3px 6px rgba(0,0,0,0.4))" }}
+              />
+              {/* Arrowhead */}
+              <g
+                data-pop="arrow-top-head"
+                transform={`translate(${arrowTopTip.x} ${arrowTopTip.y}) rotate(${arrowTopTip.rot})`}
+                style={{ filter: "drop-shadow(0 3px 6px rgba(0,0,0,0.45))" }}
+              >
+                <polygon points="0,0 -24,-14 -24,14" fill="#E8A16A" stroke={NAVY} strokeWidth="3" strokeLinejoin="round" />
               </g>
             </g>
 
-            <g data-arrow3d="bot" style={{ transformOrigin: "200px 200px", transformBox: "fill-box" }}>
+            <g data-arrow-bot>
               <path
-                d={arrowBotD}
-                fill="url(#arrowBlueGrad)"
-                opacity="0.92"
-                style={{ filter: "drop-shadow(0 6px 10px rgba(0,0,0,0.5))" }}
-              />
-              <path
+                data-draw="arrow-bot-shadow"
                 d={arrowBotD}
                 fill="none"
-                stroke={NAVY}
-                strokeWidth="4"
-                strokeLinejoin="round"
+                stroke="#4A77B5"
+                strokeWidth="20"
                 strokeLinecap="round"
-                opacity="0.85"
+                opacity="0.55"
+                transform="translate(-2, -4)"
               />
-              {/* Mini icon hint — calendar + clock inside the tab */}
-              <g data-arrow-icons="bot">
-                <rect x="112" y="275" width="16" height="16" rx="2" fill="#F0F6FF" stroke={NAVY} strokeWidth="2" />
-                <line x1="115" y1="280" x2="125" y2="280" stroke={NAVY} strokeWidth="1.5" />
-                <circle cx="148" cy="300" r="9" fill="#F0F6FF" stroke={NAVY} strokeWidth="2" />
-                <line x1="148" y1="300" x2="148" y2="295" stroke={NAVY} strokeWidth="1.8" />
-                <line x1="148" y1="300" x2="152" y2="303" stroke={NAVY} strokeWidth="1.8" />
+              <path
+                data-draw="arrow-bot-body"
+                d={arrowBotD}
+                fill="none"
+                stroke="#E8A16A"
+                strokeWidth="16"
+                strokeLinecap="round"
+                style={{ filter: "drop-shadow(0 3px 6px rgba(0,0,0,0.4))" }}
+              />
+              <g
+                data-pop="arrow-bot-head"
+                transform={`translate(${arrowBotTip.x} ${arrowBotTip.y}) rotate(${arrowBotTip.rot})`}
+                style={{ filter: "drop-shadow(0 3px 6px rgba(0,0,0,0.45))" }}
+              >
+                <polygon points="0,0 -24,-14 -24,14" fill="#E8A16A" stroke={NAVY} strokeWidth="3" strokeLinejoin="round" />
               </g>
             </g>
 
