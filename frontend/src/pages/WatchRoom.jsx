@@ -148,7 +148,7 @@ export default function WatchRoom() {
   const [sharing, setSharing] = useState(false);
   const [remoteSharerId, setRemoteSharerId] = useState(null);
   const [remoteSharerName, setRemoteSharerName] = useState("");
-  const [videoMuted, setVideoMuted] = useState(true);
+  const [needsAudioTap, setNeedsAudioTap] = useState(false);
   const [showShareGuide, setShowShareGuide] = useState(false);
   const [showEndConfirm, setShowEndConfirm] = useState(false);
 
@@ -296,7 +296,7 @@ export default function WatchRoom() {
       } else if (msg.type === "screenshare-stop") {
         setRemoteSharerId(null);
         setRemoteSharerName("");
-        setVideoMuted(true);
+        setNeedsAudioTap(false);
         if (videoRef.current) videoRef.current.srcObject = null;
       } else if (msg.type === "room-ended") {
         const byName = msg.by_name || "Host";
@@ -408,6 +408,27 @@ export default function WatchRoom() {
     sendSync("seek", playing, 0);
   };
 
+  // Google-Meet style: if unmuted autoplay was blocked, the next user gesture
+  // anywhere in the page unlocks it automatically without needing the banner.
+  useEffect(() => {
+    if (!needsAudioTap) return;
+    const unlock = () => {
+      if (!videoRef.current) return;
+      videoRef.current.muted = false;
+      setNeedsAudioTap(false);
+      const p = videoRef.current.play();
+      if (p && typeof p.catch === "function") p.catch(() => {});
+    };
+    window.addEventListener("click", unlock, { once: true });
+    window.addEventListener("keydown", unlock, { once: true });
+    window.addEventListener("touchstart", unlock, { once: true });
+    return () => {
+      window.removeEventListener("click", unlock);
+      window.removeEventListener("keydown", unlock);
+      window.removeEventListener("touchstart", unlock);
+    };
+  }, [needsAudioTap]);
+
   // Voice commands (host / co-host only for controls)
   const voice = useVoiceCommands({
     enabled: canControl,
@@ -464,6 +485,17 @@ export default function WatchRoom() {
       if (preferTab) constraints.preferCurrentTab = false; // want OTT tab, not CinemaSync tab
       const stream = await navigator.mediaDevices.getDisplayMedia(constraints);
       localStreamRef.current = stream;
+      // Warn host if Chrome returned video but no audio (i.e. they forgot the
+      // "Share tab audio" checkbox). Without this, guests watch silent video.
+      if (stream.getAudioTracks().length === 0) {
+        toast(
+          "No audio in shared stream",
+          {
+            description: "Guests won't hear anything. Stop sharing and retry with 'Share tab audio' ticked.",
+            duration: 8000,
+          }
+        );
+      }
       if (videoRef.current) {
         videoRef.current.srcObject = stream;
         videoRef.current.muted = true; // avoid echo for host
@@ -527,13 +559,24 @@ export default function WatchRoom() {
     pc.ontrack = (ev) => {
       console.log("[CinemaSync] ontrack fired from peer", peerId, "streams:", ev.streams.length);
       if (videoRef.current) {
-        // Mute initially to satisfy browser autoplay policy — user can tap to unmute
-        videoRef.current.muted = true;
         videoRef.current.srcObject = ev.streams[0];
-        const play = videoRef.current.play();
-        if (play && typeof play.catch === "function") play.catch((err) => {
-          console.warn("[CinemaSync] video.play() failed (expected in some cases):", err?.name);
-        });
+        // Try unmuted autoplay first (Google-Meet style). The guest has already
+        // made a user gesture by joining the room, so most browsers allow audio
+        // to auto-start. If the browser still blocks, silently retry muted and
+        // surface a one-tap banner to unmute.
+        videoRef.current.muted = false;
+        setNeedsAudioTap(false);
+        const p = videoRef.current.play();
+        if (p && typeof p.catch === "function") {
+          p.catch((err) => {
+            console.warn("[CinemaSync] unmuted autoplay blocked, falling back to muted:", err?.name);
+            try {
+              videoRef.current.muted = true;
+              setNeedsAudioTap(true);
+              videoRef.current.play().catch(() => {});
+            } catch {}
+          });
+        }
       }
     };
     pc.onconnectionstatechange = () => {
@@ -575,7 +618,6 @@ export default function WatchRoom() {
       // surface even if we missed the screenshare-start broadcast.
       setRemoteSharerId(from);
       setRemoteSharerName(msg.from_name || "Host");
-      setVideoMuted(true);
       await pc.setRemoteDescription(new RTCSessionDescription(signal));
       const answer = await pc.createAnswer();
       await pc.setLocalDescription(answer);
@@ -850,7 +892,6 @@ export default function WatchRoom() {
                 ref={videoRef}
                 autoPlay
                 playsInline
-                muted
                 className={`w-full h-full object-contain bg-[#0A0908] ${sharing || remoteSharerId ? "block" : "hidden"}`}
                 data-testid="watch-video-surface"
               />
@@ -867,22 +908,21 @@ export default function WatchRoom() {
                   sandbox="allow-same-origin allow-scripts allow-forms allow-popups allow-presentation"
                 />
               )}
-              {remoteSharerId && !sharing && (
+              {remoteSharerId && !sharing && needsAudioTap && (
                 <button
                   onClick={() => {
                     if (videoRef.current) {
-                      const next = !videoRef.current.muted;
-                      videoRef.current.muted = next ? false : true;
-                      setVideoMuted(videoRef.current.muted);
+                      videoRef.current.muted = false;
+                      setNeedsAudioTap(false);
                       const p = videoRef.current.play();
                       if (p && typeof p.catch === "function") p.catch(() => {});
                     }
                   }}
                   data-testid="watch-unmute-button"
-                  className="absolute top-3 right-3 bg-[#ffffff]/95 border border-[#7209b7] text-[#1a0b2e] px-3 py-1.5 font-mono text-[10px] tracking-[0.25em] uppercase hover:bg-[#7209b7]/20 z-10"
-                  title="Toggle audio"
+                  className="absolute top-3 right-3 bg-[#f72585] text-white px-3 py-1.5 font-mono text-[10px] tracking-[0.25em] uppercase hover:bg-[#d81674] z-10 shadow-lg animate-pulse"
+                  title="Tap once to enable audio"
                 >
-                  {videoMuted ? "🔇 Tap to unmute" : "🔊 Unmuted"}
+                  🔇 Tap to enable audio
                 </button>
               )}
               {/* Fullscreen toggle — available to everyone */}
