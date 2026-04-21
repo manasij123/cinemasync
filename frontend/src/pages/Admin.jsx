@@ -181,8 +181,8 @@ function UsersTab({ stats }) {
         </div>
       )}
 
-      <div className="overflow-x-auto">
-        <table className="w-full text-sm" data-testid="admin-users-table">
+      <div className="overflow-x-auto -mx-4 px-4 sm:mx-0 sm:px-0">
+        <table className="w-full min-w-[640px] text-sm" data-testid="admin-users-table">
           <thead>
             <tr className="text-left font-mono text-[10px] tracking-[0.3em] uppercase text-[#cccccc] border-b border-[#3a3a3a]">
               <th className="py-2 pr-3 w-10">

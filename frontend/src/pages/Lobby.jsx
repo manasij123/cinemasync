@@ -398,7 +398,7 @@ export default function Lobby() {
   return (
     <div>
       <Navbar />
-      <main className="max-w-[1200px] mx-auto px-6 md:px-10 py-10">
+      <main className="max-w-[1200px] mx-auto px-4 sm:px-6 md:px-10 py-10">
         <div className="flex items-end justify-between flex-wrap gap-4 mb-8">
           <div>
             <div className="font-mono text-xs tracking-[0.3em] uppercase text-[#6a14ff] mb-3">Lobby</div>

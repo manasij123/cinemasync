@@ -44,9 +44,13 @@ export default function Landing() {
       <section className="relative min-h-[85vh] sm:min-h-[90vh] overflow-hidden">
         <div
           className="absolute inset-0 bg-cover bg-center"
-          style={{ backgroundImage: `url(${HERO_IMG})` }}
+          style={{
+            backgroundImage: `url(${HERO_IMG})`,
+            filter: "blur(6px)",
+            transform: "scale(1.06)", // hide blur edge artifact
+          }}
         />
-        <div className="absolute inset-0 bg-gradient-to-b from-[#2a2a2a]/40 via-[#2a2a2a]/75 to-[#2a2a2a]" />
+        <div className="absolute inset-0 bg-gradient-to-b from-[#2a2a2a]/55 via-[#2a2a2a]/80 to-[#2a2a2a]" />
 
         {/* Marquee strip */}
         <div className="absolute top-16 left-0 right-0 overflow-hidden border-y border-[#6a14ff]/40 bg-[#6a14ff]/5 py-2">
@@ -59,38 +63,38 @@ export default function Landing() {
           </div>
         </div>
 
-        <div className="relative max-w-[1400px] mx-auto px-6 md:px-10 pt-32 sm:pt-40 pb-16 sm:pb-24">
+        <div className="relative max-w-[1400px] mx-auto px-4 sm:px-6 md:px-10 pt-32 sm:pt-40 pb-16 sm:pb-24">
           <div className="max-w-3xl reveal">
             <div className="inline-flex items-center gap-2 px-3 py-1.5 border border-[#6a14ff]/40 bg-[#6a14ff]/5 text-[#6a14ff] font-mono text-[10px] sm:text-[11px] tracking-[0.3em] uppercase mb-6">
               <span className="w-2 h-2 bg-[#ffd100] pulse-live" /> Live Watch Parties · Nightly
             </div>
-            <h1 className="font-head text-4xl sm:text-6xl lg:text-7xl uppercase leading-[0.95] text-[#ffffff] mb-6 break-words">
+            <h1 className="font-head text-[2.25rem] sm:text-6xl lg:text-7xl uppercase leading-[1.02] sm:leading-[0.95] text-[#ffffff] mb-6 break-words">
               The theatre you
               <br />
               <span className="text-[#6a14ff]">carry in your browser.</span>
             </h1>
-            <p className="text-[#cccccc] text-base sm:text-lg max-w-xl mb-8 sm:mb-10 leading-relaxed">
+            <p className="text-[#cccccc] text-sm sm:text-lg max-w-xl mb-8 sm:mb-10 leading-relaxed">
               Host a synchronized watch party with your crew. Play, pause, and seek on every screen at
               once — with chat, emojis, and optional screen share. Your subscription stays yours.
             </p>
-            <div className="flex flex-wrap gap-3 sm:gap-4">
+            <div className="flex flex-col sm:flex-row flex-wrap gap-3 sm:gap-4">
               <Link
                 to="/register"
                 data-testid="hero-cta-register"
-                className="bg-[#ffd100] text-black font-mono font-semibold tracking-[0.2em] sm:tracking-[0.25em] uppercase text-xs sm:text-sm px-5 sm:px-7 py-3 sm:py-4 hover:bg-[#e8bd00] hover:shadow-[0_0_25px_rgba(255,209,0,0.35)] transition-all"
+                className="text-center bg-[#ffd100] text-black font-mono font-semibold tracking-[0.2em] sm:tracking-[0.25em] uppercase text-xs sm:text-sm px-5 sm:px-7 py-3 sm:py-4 hover:bg-[#e8bd00] hover:shadow-[0_0_25px_rgba(255,209,0,0.35)] transition-all"
               >
                 Book your seat
               </Link>
               <Link
                 to="/login"
                 data-testid="hero-cta-login"
-                className="border border-[#6a14ff]/45 text-[#ffffff] font-mono tracking-[0.25em] uppercase text-xs sm:text-sm px-5 sm:px-7 py-3 sm:py-4 hover:border-[#4cc9f0] hover:text-[#4cc9f0] transition-all"
+                className="text-center border border-[#6a14ff]/45 text-[#ffffff] font-mono tracking-[0.25em] uppercase text-xs sm:text-sm px-5 sm:px-7 py-3 sm:py-4 hover:border-[#4cc9f0] hover:text-[#4cc9f0] transition-all"
               >
                 Take me to my balcony
               </Link>
             </div>
 
-            <div className="mt-10 sm:mt-16 grid grid-cols-3 gap-4 sm:gap-6 max-w-xl">
+            <div className="mt-10 sm:mt-16 grid grid-cols-3 gap-3 sm:gap-6 max-w-xl">
               {[
                 { k: "01", v: "Sync to ±50ms" },
                 { k: "02", v: "No credential sharing" },
@@ -98,7 +102,7 @@ export default function Landing() {
               ].map((s) => (
                 <div key={s.k}>
                   <div className="font-mono text-[10px] tracking-[0.3em] text-[#6a14ff]">{s.k}</div>
-                  <div className="font-head text-xs sm:text-sm uppercase text-[#ffffff] mt-1">{s.v}</div>
+                  <div className="font-head text-[11px] sm:text-sm uppercase text-[#ffffff] mt-1 leading-tight">{s.v}</div>
                 </div>
               ))}
             </div>
@@ -107,7 +111,7 @@ export default function Landing() {
       </section>
 
       {/* Features */}
-      <section className="max-w-[1400px] mx-auto px-6 md:px-10 py-12 sm:py-20">
+      <section className="max-w-[1400px] mx-auto px-4 sm:px-6 md:px-10 py-12 sm:py-20">
         <div className="flex items-end justify-between flex-wrap gap-6 mb-8 sm:mb-12">
           <div>
             <div className="font-mono text-xs tracking-[0.3em] uppercase text-[#6a14ff] mb-3">Feature Reel</div>
@@ -129,7 +133,7 @@ export default function Landing() {
       </section>
 
       {/* Context */}
-      <section className="max-w-[1400px] mx-auto px-6 md:px-10 py-12 sm:py-20">
+      <section className="max-w-[1400px] mx-auto px-4 sm:px-6 md:px-10 py-12 sm:py-20">
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-10 items-center">
           <div className="relative h-[280px] sm:h-[420px]">
             <img src={CONTEXT_IMG} alt="Friends watching" className="w-full h-full object-cover grayscale-[30%]" />
@@ -159,7 +163,7 @@ export default function Landing() {
 
       {/* Footer */}
       <footer className="border-t border-[#6a14ff]/20 mt-10">
-        <div className="max-w-[1400px] mx-auto px-6 md:px-10 py-10 flex flex-wrap gap-6 justify-between items-center">
+        <div className="max-w-[1400px] mx-auto px-4 sm:px-6 md:px-10 py-10 flex flex-wrap gap-6 justify-between items-center">
           <div className="font-mono text-[10px] tracking-[0.3em] uppercase text-[#888888]">
             © {new Date().getFullYear()} CinemaSync · A reel-time watch party
           </div>

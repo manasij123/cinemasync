@@ -1,0 +1,30 @@
+{
+  "summary": "Iteration 8 — Mobile responsive regression + splash verification. Tested 9 pages across 3 viewports (375/768/1280). ALL pages pass the document.documentElement.scrollWidth === window.innerWidth check — no horizontal overflow anywhere. Splash intro runs on fresh landing load and reveals hero within ~5s; navbar logo visible (42x42) after splash; Landing tagline 'The theatre you carry in your browser.' rendered and readable at 375px; CTA buttons ('Book your seat', 'Take me to my balcony') stack vertically and span full-width on mobile. Admin Users table confirmed to scroll horizontally ONLY within its container (wrapScrollW=1244 vs wrapClientW=333, overflow-x:auto) while the page itself stays at 375px wide.",
+  "backend_issues": {"critical": [], "minor": []},
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "test_report_links": [
+    "/app/test_reports/iteration_8.json"
+  ],
+  "action_items": [],
+  "critical_code_review_comments": [
+    "SplashIntro timing — on fresh landing load splash visually runs ~4-5s, but the splash remembers completion across same-tab navigations (0.07s on subsequent goto). If that's intentional (sessionStorage gate), no action. If not, consider gating it with a time-based cookie so users who soft-navigate away and back during the same session don't trigger it repeatedly.",
+    "Landing hero h1 is split into two sibling elements ('The theatre you' + 'carry in your browser.') making a single-string selector impossible; either wrap in one <span class='sr-only'> with the full tagline for a11y/testability, or use one <h1> with two styled spans, preserving the current visual break.",
+    "Admin Users table uses '-mx-4 px-4 sm:mx-0 sm:px-0' to let the horizontal scrollbar reach screen edges on mobile — nice pattern, but min-w-[640px] on the <table> plus overflow-x-auto on a non-wrapping parent still forces 1212px content width; consider hiding low-priority columns at <640px (email / unique id are already the long ones) instead of forcing horizontal scroll.",
+    "Dashboard first-visit checklist card (visible in screenshot) obscures a lot of above-the-fold real estate on mobile — consider collapsing to a compact progress pill once 80% complete, since at 4/5 the user is essentially done.",
+    "Carry-over from iter 7: server.py still ~1642 lines; CORS allow_origins=['*'] + allow_credentials=True remains spec-invalid."
+  ],
+  "updated_files": [],
+  "success_rate": {"backend": "n/a (frontend-only iteration)", "frontend": "100% — 13/13 viewport-page combos pass overflow check; splash + logo + tagline + CTA stacking + admin-table inline scroll all verified"},
+  "test_credentials": {
+    "admin": {"email": "manasijmandal1999@gmail.com", "password": "Manasij@081199"}
+  },
+  "seed_data_creation": "None — read-only responsive regression.",
+  "retest_needed": false,
+  "should_main_agent_self_test": false,
+  "context_for_next_testing_agent": "Overflow check pattern used: await page.evaluate('() => ({scrollW: document.documentElement.scrollWidth, innerW: window.innerWidth})') and fail when scrollW-innerW > 1. Verified on MOBILE 375x667: Landing, Login, Register, Dashboard, Friends, Profile, Admin (+ Admin/Users tab). TABLET 768x1024: Landing, Dashboard, Admin. DESKTOP 1280x800: Landing, Dashboard, Admin. html + body + #root all computed overflow-x:hidden. Admin Users table-wrapper has 'overflow-x-auto -mx-4 px-4 sm:mx-0 sm:px-0' which correctly contains the 1212px-wide table within a 333px-wide mobile wrapper without leaking to page scroll. Splash reveals landing in ~5s on fresh load; subsequent same-session reloads bypass it (0.07s). Lobby and WatchRoom not deep-tested (require room creation flow) but their containers share the same AppShell wrapper that already passed overflow check on sibling pages.",
+  "rca of the issue": "n/a — all responsive fixes from main agent (html/body overflow-x:hidden, AppShell min-w-0/max-w-full, Landing px responsive + CTA stacking, Admin table overflow-x-auto, Lobby/WatchRoom px) verified effective. No residual horizontal scrolling on any tested page/viewport."
+}

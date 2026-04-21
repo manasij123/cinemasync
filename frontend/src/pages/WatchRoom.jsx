@@ -893,7 +893,7 @@ export default function WatchRoom() {
   return (
     <div>
       <Navbar />
-      <main className="max-w-[1600px] mx-auto px-4 md:px-6 py-6">
+      <main className="max-w-[1600px] mx-auto px-3 sm:px-4 md:px-6 py-4 sm:py-6">
         {/* Header */}
         <div className="flex items-center justify-between flex-wrap gap-3 mb-5">
           <div className="flex items-center gap-3">
