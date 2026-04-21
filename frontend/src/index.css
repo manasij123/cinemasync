@@ -93,7 +93,7 @@ body {
 /* Font utilities — powered by Poppins */
 .font-head { font-family: 'Poppins', sans-serif; font-weight: 900; letter-spacing: 0.04em; }
 .font-body { font-family: 'Poppins', sans-serif; font-weight: 400; letter-spacing: 0.005em; }
-.font-mono { font-family: 'Poppins', 'Courier New', monospace; font-weight: 500; letter-spacing: 0.18em; }
+.font-mono { font-family: 'Poppins', 'Courier New', monospace; font-weight: 600; letter-spacing: 0.18em; }
 
 /* Marquee animation */
 @keyframes marquee {

@@ -475,37 +475,32 @@ export default function WatchRoom() {
   const doStartShare = async (opts = {}) => {
     const { preferTab = false } = opts;
     try {
+      const videoConstraints = {
+        frameRate: { ideal: 24, max: 30 },
+        width: { max: 1280 },
+        height: { max: 720 },
+      };
+      if (preferTab) videoConstraints.displaySurface = "browser";
       const constraints = {
-        video: preferTab
-          ? {
-              displaySurface: "browser",
-              frameRate: { ideal: 30, max: 30 },
-              width: { max: 1920 },
-              height: { max: 1080 },
-            }
-          : {
-              frameRate: { ideal: 30, max: 30 },
-              width: { max: 1920 },
-              height: { max: 1080 },
-            },
+        video: videoConstraints,
         audio: true,
       };
-      // `preferCurrentTab` is a recent Chromium hint; pass only when supported
-      if (preferTab) constraints.preferCurrentTab = false; // want OTT tab, not CinemaSync tab
+      if (preferTab) constraints.preferCurrentTab = false;
       const stream = await navigator.mediaDevices.getDisplayMedia(constraints);
       localStreamRef.current = stream;
 
       // Hint the encoder that this is motion-heavy video content (not UI /
-      // text). This lets Chrome pick better codec parameters and cut
-      // stutters on the guest side.
+      // text). Lowered capture resolution (720p) + 24-30 fps keeps the
+      // outbound bitrate well inside a typical TURN relay budget so the
+      // guest decoder never starves.
       const vTrack = stream.getVideoTracks()[0];
       if (vTrack) {
         try { vTrack.contentHint = "motion"; } catch {}
         try {
           await vTrack.applyConstraints({
-            frameRate: { ideal: 30, max: 30 },
-            width: { max: 1920 },
-            height: { max: 1080 },
+            frameRate: { ideal: 24, max: 30 },
+            width: { max: 1280 },
+            height: { max: 720 },
           });
         } catch {}
       }
@@ -583,15 +578,15 @@ export default function WatchRoom() {
     pc.ontrack = (ev) => {
       console.log("[CinemaSync] ontrack fired from peer", peerId, "streams:", ev.streams.length);
 
-      // Give Chrome a ~400ms playout buffer — dramatically reduces micro
+      // Give Chrome a ~600ms playout buffer — dramatically reduces micro
       // stutters when TURN relay jitters. The tiny latency is unnoticeable
       // for a synced watch party (host-authoritative playback is still
       // frame-accurate).
       try {
         const r = ev.receiver;
-        if (r && "playoutDelayHint" in r) r.playoutDelayHint = 0.4;
+        if (r && "playoutDelayHint" in r) r.playoutDelayHint = 0.6;
         if (r && r.track && "jitterBufferTarget" in r.track) {
-          r.track.jitterBufferTarget = 400;
+          r.track.jitterBufferTarget = 600;
         }
       } catch {}
 
@@ -640,8 +635,8 @@ export default function WatchRoom() {
         if (!params.encodings || params.encodings.length === 0) {
           params.encodings = [{}];
         }
-        params.encodings[0].maxBitrate = 2_500_000; // 2.5 Mbps — smooth over TURN
-        params.encodings[0].maxFramerate = 30;
+        params.encodings[0].maxBitrate = 1_500_000; // 1.5 Mbps — reliable over TURN
+        params.encodings[0].maxFramerate = 24;
         params.degradationPreference = "maintain-framerate";
         sender.setParameters(params).catch(() => {});
       } catch {}

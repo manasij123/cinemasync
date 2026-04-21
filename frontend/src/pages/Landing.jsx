@@ -43,20 +43,23 @@ export default function Landing() {
       {/* Hero */}
       <section className="relative min-h-[85vh] sm:min-h-[90vh] overflow-hidden">
         <div
-          className="absolute inset-0 bg-cover bg-center"
+          className="absolute inset-0"
           style={{
             backgroundImage: `url(${HERO_IMG})`,
-            filter: "blur(6px)",
-            transform: "scale(1.06)", // hide blur edge artifact
+            backgroundSize: "cover",
+            backgroundPosition: "center center",
+            backgroundRepeat: "no-repeat",
+            filter: "blur(3px)",
+            transform: "scale(1.03)",
           }}
         />
         <div className="absolute inset-0 bg-gradient-to-b from-[#2a2a2a]/55 via-[#2a2a2a]/80 to-[#2a2a2a]" />
 
         {/* Marquee strip */}
-        <div className="absolute top-16 left-0 right-0 overflow-hidden border-y border-[#6a14ff]/40 bg-[#6a14ff]/5 py-2">
+        <div className="absolute top-16 left-0 right-0 overflow-hidden border-y border-[#4cc9f0]/45 bg-[#4cc9f0]/5 py-2">
           <div className="marquee-track whitespace-nowrap flex gap-12">
             {Array.from({ length: 8 }).map((_, i) => (
-              <span key={i} className="font-head text-base sm:text-xl uppercase tracking-[0.3em] text-[#6a14ff] flicker">
+              <span key={i} className="font-head font-bold text-base sm:text-xl uppercase tracking-[0.3em] text-[#4cc9f0] flicker">
                 {MARQUEE_TEXT}
               </span>
             ))}
