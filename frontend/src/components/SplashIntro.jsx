@@ -23,12 +23,12 @@ import { gsap } from "gsap";
  */
 
 const STAGE_PX = 260; // 👈 adjust here to scale the animation
-const C_DURATION = 2.6;
-const C_DELAY = 0.35;
-const S_DURATION = 2.4;
-const S_DELAY = C_DELAY + C_DURATION + 0.35;
+const C_DURATION = 1.7;
+const C_DELAY = 0.3;
+const S_DURATION = 1.6;
+const S_DELAY = C_DELAY + C_DURATION + 0.25;
 const DRAW_DONE_MS = (S_DELAY + S_DURATION) * 1000;
-const FLY_START_MS = DRAW_DONE_MS + 350;
+const FLY_START_MS = DRAW_DONE_MS + 250;
 
 const KEYFRAMES = `
 @keyframes cinemasync-draw {
