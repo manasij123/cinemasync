@@ -1,29 +1,30 @@
-import React, { useLayoutEffect, useRef, useState, useEffect } from "react";
+import React, { useLayoutEffect, useRef, useEffect } from "react";
+import { gsap } from "gsap";
 
 /**
- * CinemaSync splash intro — Step 2.
+ * CinemaSync splash intro — Step 3 (C → S → fly to header).
  *
- *   Beat 1 — C (film-reel) writes itself anti-clockwise the way a hand
- *            writes a "C": top-right → up → left → down → bottom-right.
- *
+ *   Beat 1 — C (film-reel) writes itself anti-clockwise (2.6s).
  *   Beat 2 — S (arrows) writes itself BEHIND the C as one continuous
- *            hand-written S: top-right → anti-cw top curl → middle →
- *            cw bottom curl → bottom-left.
+ *            hand-written S (2.4s).
+ *   Beat 3 — The finished composition flies smoothly into the empty
+ *            navbar logo slot.  On arrival, the real navbar logo
+ *            cross-fades in so the drawn composition becomes the
+ *            header logo.  (The navbar slot is kept hidden for the
+ *            duration of the splash to avoid a double-logo flash.)
  *
- * The draw animation is driven by pure CSS @keyframes (not JS) so the
- * browser hands it off to the compositor thread for the smoothest
- * possible pen speed — no frame-pacing jitter from GSAP or rAF.
+ * Drawing is driven by CSS @keyframes (compositor-thread, jitter-free).
+ * Only the fly uses GSAP — it needs dynamic target measurement.
  */
 
 const STAGE_PX = 340;
-const C_DURATION = 2.6; // seconds
+const C_DURATION = 2.6;
 const C_DELAY = 0.25;
 const S_DURATION = 2.4;
-const S_DELAY = C_DELAY + C_DURATION + 0.35;
-const TOTAL_MS = (S_DELAY + S_DURATION + 0.9) * 1000;
+const S_DELAY = C_DELAY + C_DURATION + 0.35; // 3.2s
+const DRAW_DONE_MS = (S_DELAY + S_DURATION) * 1000; // 5600ms
+const FLY_START_MS = DRAW_DONE_MS + 350; // 5950ms
 
-// Keep keyframes in a single injected <style> tag so every re-use of the
-// splash shares the same GPU-compiled rule.
 const KEYFRAMES = `
 @keyframes cinemasync-draw {
   from { stroke-dashoffset: var(--draw-len); }
@@ -46,23 +47,110 @@ function usePathSeed(ref) {
 
 export default function SplashIntro({ onDone }) {
   const rootRef = useRef(null);
+  const bgRef = useRef(null);
+  const stageRef = useRef(null);
   const cPathRef = useRef(null);
   const sPathRef = useRef(null);
-  const [exiting, setExiting] = useState(false);
 
   usePathSeed(cPathRef);
   usePathSeed(sPathRef);
 
   useEffect(() => {
-    const t = setTimeout(() => setExiting(true), TOTAL_MS - 500);
-    const t2 = setTimeout(() => onDone?.(), TOTAL_MS);
+    // Hide the real Navbar logo while the splash is drawing, so the fly
+    // can land into an empty slot and then cross-fade the real logo in.
+    const navLogoBox = document.querySelector(
+      '[data-testid="logo-home-link"] > div'
+    );
+    if (navLogoBox) {
+      navLogoBox.style.opacity = "0";
+      navLogoBox.style.transition = "none";
+    }
+
+    const flyTimer = setTimeout(() => {
+      const stage = stageRef.current;
+      const target =
+        navLogoBox ||
+        document.querySelector('[data-testid="logo-home-link"] > div');
+
+      const finish = () => {
+        // Reveal real navbar logo so the drawn composition "becomes" it.
+        if (navLogoBox) {
+          navLogoBox.style.transition = "";
+          gsap.to(navLogoBox, { opacity: 1, duration: 0.3, ease: "power2.out" });
+        }
+        gsap.to(rootRef.current, {
+          opacity: 0,
+          duration: 0.45,
+          ease: "power1.in",
+          onComplete: () => onDone?.(),
+        });
+      };
+
+      if (!stage || !target) return finish();
+
+      const srcRect = stage.getBoundingClientRect();
+      const tgtRect = target.getBoundingClientRect();
+      if (!srcRect.width || !tgtRect.width) return finish();
+
+      const dx =
+        tgtRect.left + tgtRect.width / 2 - (srcRect.left + srcRect.width / 2);
+      const dy =
+        tgtRect.top + tgtRect.height / 2 - (srcRect.top + srcRect.height / 2);
+      const scale = tgtRect.width / srcRect.width;
+
+      // Fade the dark backdrop as the logo travels so it feels like the
+      // composition escapes the splash and docks into the navbar.
+      gsap.to(bgRef.current, {
+        opacity: 0,
+        duration: 0.9,
+        ease: "power2.inOut",
+      });
+
+      gsap.to(stage, {
+        x: dx,
+        y: dy,
+        scale,
+        duration: 1.1,
+        ease: "power3.inOut",
+        force3D: true,
+        onComplete: () => {
+          // Cross-fade: reveal real navbar logo, fade the drawn one out.
+          if (navLogoBox) {
+            navLogoBox.style.transition = "";
+            gsap.to(navLogoBox, {
+              opacity: 1,
+              duration: 0.25,
+              ease: "power2.out",
+            });
+          }
+          gsap.to(stage, {
+            opacity: 0,
+            duration: 0.25,
+            ease: "power1.out",
+            onComplete: () => {
+              gsap.to(rootRef.current, {
+                opacity: 0,
+                duration: 0.25,
+                ease: "power1.out",
+                onComplete: () => onDone?.(),
+              });
+            },
+          });
+        },
+      });
+    }, FLY_START_MS);
+
     return () => {
-      clearTimeout(t);
-      clearTimeout(t2);
+      clearTimeout(flyTimer);
+      // Safety: if splash unmounts early, make sure navbar logo is visible.
+      if (navLogoBox) {
+        navLogoBox.style.opacity = "";
+        navLogoBox.style.transition = "";
+      }
     };
   }, [onDone]);
 
-  // ---- C stroke path (anti-clockwise from top-right to bottom-right) ----
+  // ---- C stroke path (anti-clockwise: top-right → bottom-right) ----
   const C_R = 23;
   const C_CX = 25;
   const C_CY = 25;
@@ -74,8 +162,7 @@ export default function SplashIntro({ onDone }) {
   const cEnd = pt(C_CX, C_CY, C_R, 55);
   const cPath = `M ${cStart.x} ${cStart.y} A ${C_R} ${C_R} 0 1 0 ${cEnd.x} ${cEnd.y}`;
 
-  // ---- S stroke path (one continuous hand-written S) ----
-  //   top-right → anti-cw top curl → middle → cw bottom curl → bottom-left
+  // ---- S stroke path — single continuous hand-written S ----
   const S_R = 15;
   const sStart = { x: 42, y: 8 };
   const sMid = { x: 25, y: 25 };
@@ -89,18 +176,26 @@ export default function SplashIntro({ onDone }) {
     <div
       ref={rootRef}
       data-testid="splash-intro"
-      className="fixed inset-0 z-[9998] select-none overflow-hidden bg-[#0b0b0b]"
+      className="fixed inset-0 z-[9998] select-none overflow-hidden"
       style={{
         opacity: 0,
-        animation: exiting
-          ? "cinemasync-fade-out 0.5s ease-in forwards"
-          : "cinemasync-fade-in 0.35s ease-out forwards",
+        animation: "cinemasync-fade-in 0.35s ease-out forwards",
       }}
       aria-hidden
     >
       <style>{KEYFRAMES}</style>
 
       <div
+        ref={bgRef}
+        className="absolute inset-0 bg-[#0b0b0b]"
+        style={{
+          background:
+            "radial-gradient(ellipse at center, #141414 0%, #080808 60%, #000 100%)",
+        }}
+      />
+
+      <div
+        ref={stageRef}
         className="absolute left-1/2 top-1/2"
         style={{
           width: STAGE_PX,
@@ -108,7 +203,8 @@ export default function SplashIntro({ onDone }) {
           marginLeft: -STAGE_PX / 2,
           marginTop: -STAGE_PX / 2,
           transform: "translateZ(0)",
-          willChange: "transform",
+          willChange: "transform, opacity",
+          transformOrigin: "50% 50%",
         }}
       >
         <svg
@@ -118,7 +214,6 @@ export default function SplashIntro({ onDone }) {
           style={{ overflow: "visible" }}
         >
           <defs>
-            {/* Mask for the C — anti-clockwise hand-written stroke */}
             <mask id="maskC" maskUnits="userSpaceOnUse">
               <rect width="50" height="50" fill="black" />
               <path
@@ -138,7 +233,6 @@ export default function SplashIntro({ onDone }) {
               />
             </mask>
 
-            {/* Mask for the S — single continuous hand-written stroke */}
             <mask
               id="maskS"
               maskUnits="userSpaceOnUse"
@@ -166,7 +260,7 @@ export default function SplashIntro({ onDone }) {
             </mask>
           </defs>
 
-          {/* BACKGROUND — S arrows artwork (slightly larger than C so tails peek out) */}
+          {/* BACKGROUND — S arrows (slightly larger than C, tails peek out) */}
           <image
             href="/cinemasync-s-arrows.png"
             x="-4"
@@ -178,7 +272,7 @@ export default function SplashIntro({ onDone }) {
             style={{ opacity: 0.95 }}
           />
 
-          {/* FOREGROUND — C film-reel logo, drawn on top */}
+          {/* FOREGROUND — C film-reel */}
           <image
             href="/cinemasync-c-logo.png"
             x="2"
