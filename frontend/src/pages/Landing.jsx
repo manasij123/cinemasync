@@ -56,10 +56,10 @@ export default function Landing() {
         <div className="absolute inset-0 bg-gradient-to-b from-[#2a2a2a]/55 via-[#2a2a2a]/80 to-[#2a2a2a]" />
 
         {/* Marquee strip */}
-        <div className="absolute top-16 left-0 right-0 overflow-hidden border-y border-[#4cc9f0]/45 bg-[#4cc9f0]/5 py-2">
+        <div className="absolute top-16 left-0 right-0 overflow-hidden border-y border-[#ffd100]/50 bg-[#ffd100]/5 py-2">
           <div className="marquee-track whitespace-nowrap flex gap-12">
             {Array.from({ length: 8 }).map((_, i) => (
-              <span key={i} className="font-head font-bold text-base sm:text-xl uppercase tracking-[0.3em] text-[#4cc9f0] flicker">
+              <span key={i} className="font-head font-bold text-base sm:text-xl uppercase tracking-[0.3em] text-[#ffd100] flicker">
                 {MARQUEE_TEXT}
               </span>
             ))}
