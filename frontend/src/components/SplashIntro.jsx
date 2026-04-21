@@ -2,28 +2,33 @@ import React, { useLayoutEffect, useRef, useEffect } from "react";
 import { gsap } from "gsap";
 
 /**
- * CinemaSync splash intro — Step 3 (C → S → fly to header).
+ * CinemaSync splash intro — Step 4 (smaller shape + cinema ambience).
  *
+ *   Beat 0 — letter-box bars slide in from top/bottom (movie-opening cue).
  *   Beat 1 — C (film-reel) writes itself anti-clockwise (2.6s).
  *   Beat 2 — S (arrows) writes itself BEHIND the C as one continuous
  *            hand-written S (2.4s).
- *   Beat 3 — The finished composition flies smoothly into the empty
- *            navbar logo slot.  On arrival, the real navbar logo
- *            cross-fades in so the drawn composition becomes the
- *            header logo.  (The navbar slot is kept hidden for the
- *            duration of the splash to avoid a double-logo flash.)
+ *   Beat 3 — Composition flies into the navbar logo slot; real logo
+ *            cross-fades in so the drawn composition becomes the header.
  *
- * Drawing is driven by CSS @keyframes (compositor-thread, jitter-free).
- * Only the fly uses GSAP — it needs dynamic target measurement.
+ * Size reference (change STAGE_PX) — lighter = smaller compositing layer:
+ *   260px  — comfortable (default)
+ *   220px  — lighter
+ *   180px  — very light
+ *   140px  — badge-size, ultra-light
+ *
+ * Drawing: pure CSS @keyframes on stroke-dashoffset (compositor thread,
+ * jitter-free).  Ambience: pure CSS too.  GSAP only for the dynamic
+ * fly-to-header measurement.
  */
 
-const STAGE_PX = 340;
+const STAGE_PX = 260; // 👈 adjust here to scale the animation
 const C_DURATION = 2.6;
-const C_DELAY = 0.25;
+const C_DELAY = 0.35;
 const S_DURATION = 2.4;
-const S_DELAY = C_DELAY + C_DURATION + 0.35; // 3.2s
-const DRAW_DONE_MS = (S_DELAY + S_DURATION) * 1000; // 5600ms
-const FLY_START_MS = DRAW_DONE_MS + 350; // 5950ms
+const S_DELAY = C_DELAY + C_DURATION + 0.35;
+const DRAW_DONE_MS = (S_DELAY + S_DURATION) * 1000;
+const FLY_START_MS = DRAW_DONE_MS + 350;
 
 const KEYFRAMES = `
 @keyframes cinemasync-draw {
@@ -31,7 +36,30 @@ const KEYFRAMES = `
   to   { stroke-dashoffset: 0; }
 }
 @keyframes cinemasync-fade-in  { from { opacity: 0 } to { opacity: 1 } }
-@keyframes cinemasync-fade-out { from { opacity: 1 } to { opacity: 0 } }
+@keyframes cinemasync-bar-top {
+  from { transform: translate3d(0, -100%, 0); }
+  to   { transform: translate3d(0, 0, 0); }
+}
+@keyframes cinemasync-bar-bot {
+  from { transform: translate3d(0, 100%, 0); }
+  to   { transform: translate3d(0, 0, 0); }
+}
+@keyframes cinemasync-glow-pulse {
+  0%,100% { opacity: .35; transform: scale(1); }
+  50%     { opacity: .7;  transform: scale(1.08); }
+}
+@keyframes cinemasync-ray-sweep {
+  0%,100% { transform: translate3d(-50%, -50%, 0) rotate(-22deg); opacity: 0; }
+  50%     { opacity: .22; }
+}
+@keyframes cinemasync-film-scroll {
+  from { transform: translate3d(0, 0, 0); }
+  to   { transform: translate3d(0, -40px, 0); }
+}
+@keyframes cinemasync-flicker {
+  0%,  9%, 11%, 49%, 51%, 89%, 91%, 100% { opacity: 1; }
+  10%, 50%, 90% { opacity: .82; }
+}
 `;
 
 function usePathSeed(ref) {
@@ -56,8 +84,6 @@ export default function SplashIntro({ onDone }) {
   usePathSeed(sPathRef);
 
   useEffect(() => {
-    // Hide the real Navbar logo while the splash is drawing, so the fly
-    // can land into an empty slot and then cross-fade the real logo in.
     const navLogoBox = document.querySelector(
       '[data-testid="logo-home-link"] > div'
     );
@@ -73,7 +99,6 @@ export default function SplashIntro({ onDone }) {
         document.querySelector('[data-testid="logo-home-link"] > div');
 
       const finish = () => {
-        // Reveal real navbar logo so the drawn composition "becomes" it.
         if (navLogoBox) {
           navLogoBox.style.transition = "";
           gsap.to(navLogoBox, { opacity: 1, duration: 0.3, ease: "power2.out" });
@@ -87,7 +112,6 @@ export default function SplashIntro({ onDone }) {
       };
 
       if (!stage || !target) return finish();
-
       const srcRect = stage.getBoundingClientRect();
       const tgtRect = target.getBoundingClientRect();
       if (!srcRect.width || !tgtRect.width) return finish();
@@ -98,14 +122,11 @@ export default function SplashIntro({ onDone }) {
         tgtRect.top + tgtRect.height / 2 - (srcRect.top + srcRect.height / 2);
       const scale = tgtRect.width / srcRect.width;
 
-      // Fade the dark backdrop as the logo travels so it feels like the
-      // composition escapes the splash and docks into the navbar.
       gsap.to(bgRef.current, {
         opacity: 0,
         duration: 0.9,
         ease: "power2.inOut",
       });
-
       gsap.to(stage, {
         x: dx,
         y: dy,
@@ -114,7 +135,6 @@ export default function SplashIntro({ onDone }) {
         ease: "power3.inOut",
         force3D: true,
         onComplete: () => {
-          // Cross-fade: reveal real navbar logo, fade the drawn one out.
           if (navLogoBox) {
             navLogoBox.style.transition = "";
             gsap.to(navLogoBox, {
@@ -142,7 +162,6 @@ export default function SplashIntro({ onDone }) {
 
     return () => {
       clearTimeout(flyTimer);
-      // Safety: if splash unmounts early, make sure navbar logo is visible.
       if (navLogoBox) {
         navLogoBox.style.opacity = "";
         navLogoBox.style.transition = "";
@@ -172,6 +191,14 @@ export default function SplashIntro({ onDone }) {
     `A ${S_R} ${S_R} 0 1 0 ${sMid.x} ${sMid.y} ` +
     `A ${S_R} ${S_R} 0 1 1 ${sEnd.x} ${sEnd.y}`;
 
+  // CSS film-strip sprocket pattern
+  const filmStripBg = `repeating-linear-gradient(
+    to bottom,
+    rgba(0,0,0,0) 0 8px,
+    rgba(255,255,255,0.12) 8px 10px,
+    rgba(0,0,0,0) 10px 20px
+  )`;
+
   return (
     <div
       ref={rootRef}
@@ -185,15 +212,125 @@ export default function SplashIntro({ onDone }) {
     >
       <style>{KEYFRAMES}</style>
 
+      {/* Deep cinema backdrop */}
       <div
         ref={bgRef}
-        className="absolute inset-0 bg-[#0b0b0b]"
+        className="absolute inset-0"
         style={{
           background:
-            "radial-gradient(ellipse at center, #141414 0%, #080808 60%, #000 100%)",
+            "radial-gradient(ellipse at center, #161616 0%, #080808 55%, #000 100%)",
         }}
       />
 
+      {/* Film grain noise (subtle) */}
+      <div
+        className="pointer-events-none absolute inset-0 opacity-[0.08] mix-blend-overlay"
+        style={{
+          backgroundImage:
+            "radial-gradient(rgba(255,255,255,0.5) 1px, transparent 1px)",
+          backgroundSize: "3px 3px",
+          animation: "cinemasync-flicker 3s steps(1,end) infinite",
+        }}
+      />
+
+      {/* Cinema letter-box bars (top + bottom) — slide in, movie-opening feel */}
+      <div
+        className="pointer-events-none absolute left-0 right-0 top-0 h-[8vh]"
+        style={{
+          background:
+            "linear-gradient(to bottom, #000 0%, #000 70%, rgba(0,0,0,0) 100%)",
+          animation: "cinemasync-bar-top 0.9s cubic-bezier(.2,.8,.2,1) both",
+          willChange: "transform",
+        }}
+      />
+      <div
+        className="pointer-events-none absolute left-0 right-0 bottom-0 h-[8vh]"
+        style={{
+          background:
+            "linear-gradient(to top, #000 0%, #000 70%, rgba(0,0,0,0) 100%)",
+          animation: "cinemasync-bar-bot 0.9s cubic-bezier(.2,.8,.2,1) both",
+          willChange: "transform",
+        }}
+      />
+
+      {/* Film-strip sprockets scrolling on left & right edges */}
+      <div
+        className="pointer-events-none absolute top-0 bottom-0 left-0 w-5"
+        style={{
+          backgroundImage: filmStripBg,
+          backgroundSize: "100% 20px",
+          animation: "cinemasync-film-scroll 1.6s linear infinite",
+          opacity: 0.55,
+          willChange: "transform",
+        }}
+      />
+      <div
+        className="pointer-events-none absolute top-0 bottom-0 right-0 w-5"
+        style={{
+          backgroundImage: filmStripBg,
+          backgroundSize: "100% 20px",
+          animation: "cinemasync-film-scroll 2s linear infinite reverse",
+          opacity: 0.55,
+          willChange: "transform",
+        }}
+      />
+
+      {/* Soft neon glow pulse behind the composition */}
+      <div
+        className="pointer-events-none absolute left-1/2 top-1/2"
+        style={{
+          width: STAGE_PX * 1.8,
+          height: STAGE_PX * 1.8,
+          marginLeft: -(STAGE_PX * 1.8) / 2,
+          marginTop: -(STAGE_PX * 1.8) / 2,
+          background:
+            "radial-gradient(circle, rgba(255,209,0,0.22) 0%, rgba(106,20,255,0.14) 35%, rgba(0,0,0,0) 65%)",
+          filter: "blur(28px)",
+          animation: "cinemasync-glow-pulse 3.2s ease-in-out infinite",
+          willChange: "opacity, transform",
+        }}
+      />
+
+      {/* Rotating projector ray slash */}
+      <div
+        className="pointer-events-none absolute left-1/2 top-1/2"
+        style={{
+          width: "120vmax",
+          height: "28vmax",
+          background:
+            "linear-gradient(to right, rgba(255,209,0,0) 0%, rgba(255,209,0,0.18) 45%, rgba(255,209,0,0) 100%)",
+          filter: "blur(20px)",
+          mixBlendMode: "screen",
+          animation: "cinemasync-ray-sweep 7s ease-in-out infinite",
+          willChange: "transform, opacity",
+        }}
+      />
+
+      {/* Corner marquee bulbs */}
+      {[
+        { top: "calc(8vh + 24px)", left: 36 },
+        { top: "calc(8vh + 24px)", right: 36 },
+        { bottom: "calc(8vh + 24px)", left: 36 },
+        { bottom: "calc(8vh + 24px)", right: 36 },
+      ].map((pos, i) => (
+        <div
+          key={`bulb-${i}`}
+          className="pointer-events-none absolute rounded-full"
+          style={{
+            ...pos,
+            width: 8,
+            height: 8,
+            background: "#ffd100",
+            boxShadow:
+              "0 0 14px rgba(255,209,0,0.9), 0 0 28px rgba(255,209,0,0.4)",
+            animation: `cinemasync-glow-pulse ${1.2 + i * 0.15}s ease-in-out infinite`,
+            animationDelay: `${i * 0.15}s`,
+            willChange: "opacity, transform",
+          }}
+        />
+      ))}
+
+      {/* Composition stage */}
       <div
         ref={stageRef}
         className="absolute left-1/2 top-1/2"
@@ -205,6 +342,7 @@ export default function SplashIntro({ onDone }) {
           transform: "translateZ(0)",
           willChange: "transform, opacity",
           transformOrigin: "50% 50%",
+          filter: "drop-shadow(0 8px 32px rgba(0,0,0,0.6))",
         }}
       >
         <svg
@@ -260,7 +398,6 @@ export default function SplashIntro({ onDone }) {
             </mask>
           </defs>
 
-          {/* BACKGROUND — S arrows (slightly larger than C, tails peek out) */}
           <image
             href="/cinemasync-s-arrows.png"
             x="-4"
@@ -272,7 +409,6 @@ export default function SplashIntro({ onDone }) {
             style={{ opacity: 0.95 }}
           />
 
-          {/* FOREGROUND — C film-reel */}
           <image
             href="/cinemasync-c-logo.png"
             x="2"
