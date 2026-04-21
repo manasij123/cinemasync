@@ -463,7 +463,7 @@ export default function SplashIntro({ onDone }) {
 
           {/* FOREGROUND — C film-reel logo */}
           <image
-            href="/cinemasync-c-logo.jpg"
+            href="/cinemasync-c-logo.png"
             x="2"
             y="2"
             width="96"
