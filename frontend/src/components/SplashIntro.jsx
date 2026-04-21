@@ -1,72 +1,68 @@
-import React, { useLayoutEffect, useRef } from "react";
-import { gsap } from "gsap";
+import React, { useLayoutEffect, useRef, useState, useEffect } from "react";
 
 /**
- * CinemaSync splash intro — Step 1 (C only, ultra-smooth).
+ * CinemaSync splash intro — Step 2.
  *
- * Centres the film-reel C and reveals it the exact way a hand writes a
- * C: anti-clockwise, starting top-right and finishing bottom-right.
+ *   Beat 1 — C (film-reel) writes itself anti-clockwise the way a hand
+ *            writes a "C": top-right → up → left → down → bottom-right.
  *
- * Smoothness tuning:
- *   • Tiny 50×50 viewBox → mask rasterization is 4× cheaper than 100×100
- *     and 100× cheaper than the original 500×500.
- *   • `stroke-dashoffset` animated through the CSS pipeline with
- *     `will-change` so it GPU-composites.
- *   • `force3D` tells GSAP to promote the element to its own layer.
- *   • No competing layers (no vignette / glow / rings / particles) so
- *     the GPU budget is dedicated entirely to the reveal.
+ *   Beat 2 — S (arrows) writes itself BEHIND the C as one continuous
+ *            hand-written S: top-right → anti-cw top curl → middle →
+ *            cw bottom curl → bottom-left.
+ *
+ * The draw animation is driven by pure CSS @keyframes (not JS) so the
+ * browser hands it off to the compositor thread for the smoothest
+ * possible pen speed — no frame-pacing jitter from GSAP or rAF.
  */
 
-const STAGE_PX = 320;
-const HOLD_MS = 3500;
+const STAGE_PX = 340;
+const C_DURATION = 2.6; // seconds
+const C_DELAY = 0.25;
+const S_DURATION = 2.4;
+const S_DELAY = C_DELAY + C_DURATION + 0.35;
+const TOTAL_MS = (S_DELAY + S_DURATION + 0.9) * 1000;
+
+// Keep keyframes in a single injected <style> tag so every re-use of the
+// splash shares the same GPU-compiled rule.
+const KEYFRAMES = `
+@keyframes cinemasync-draw {
+  from { stroke-dashoffset: var(--draw-len); }
+  to   { stroke-dashoffset: 0; }
+}
+@keyframes cinemasync-fade-in  { from { opacity: 0 } to { opacity: 1 } }
+@keyframes cinemasync-fade-out { from { opacity: 1 } to { opacity: 0 } }
+`;
+
+function usePathSeed(ref) {
+  useLayoutEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    const len = el.getTotalLength();
+    el.style.setProperty("--draw-len", `${len}`);
+    el.style.strokeDasharray = `${len}`;
+    el.style.strokeDashoffset = `${len}`;
+  }, [ref]);
+}
 
 export default function SplashIntro({ onDone }) {
   const rootRef = useRef(null);
-  const stageRef = useRef(null);
   const cPathRef = useRef(null);
+  const sPathRef = useRef(null);
+  const [exiting, setExiting] = useState(false);
 
-  useLayoutEffect(() => {
-    gsap.fromTo(
-      rootRef.current,
-      { opacity: 0 },
-      { opacity: 1, duration: 0.3, ease: "power1.out", force3D: true }
-    );
+  usePathSeed(cPathRef);
+  usePathSeed(sPathRef);
 
-    const el = cPathRef.current;
-    if (el) {
-      const len = el.getTotalLength();
-      el.style.strokeDasharray = `${len}`;
-      el.style.strokeDashoffset = `${len}`;
-    }
-
-    // Single tween — nothing else animating = buttery-smooth pen speed.
-    const tween = gsap.to(cPathRef.current, {
-      strokeDashoffset: 0,
-      duration: 2.6,
-      ease: "none",
-      delay: 0.25,
-      force3D: true,
-    });
-
-    const t = setTimeout(() => {
-      gsap.to(rootRef.current, {
-        opacity: 0,
-        duration: 0.5,
-        ease: "power1.in",
-        force3D: true,
-        onComplete: () => onDone?.(),
-      });
-    }, HOLD_MS);
-
+  useEffect(() => {
+    const t = setTimeout(() => setExiting(true), TOTAL_MS - 500);
+    const t2 = setTimeout(() => onDone?.(), TOTAL_MS);
     return () => {
       clearTimeout(t);
-      tween.kill();
+      clearTimeout(t2);
     };
   }, [onDone]);
 
-  // ---- C stroke path (anti-clockwise: top-right → bottom-right) ----
-  // Tiny 50×50 viewBox → cheap rasterization, pin-sharp output because
-  // the browser scales the SVG, not the stroke bitmap.
+  // ---- C stroke path (anti-clockwise from top-right to bottom-right) ----
   const C_R = 23;
   const C_CX = 25;
   const C_CY = 25;
@@ -78,16 +74,33 @@ export default function SplashIntro({ onDone }) {
   const cEnd = pt(C_CX, C_CY, C_R, 55);
   const cPath = `M ${cStart.x} ${cStart.y} A ${C_R} ${C_R} 0 1 0 ${cEnd.x} ${cEnd.y}`;
 
+  // ---- S stroke path (one continuous hand-written S) ----
+  //   top-right → anti-cw top curl → middle → cw bottom curl → bottom-left
+  const S_R = 15;
+  const sStart = { x: 42, y: 8 };
+  const sMid = { x: 25, y: 25 };
+  const sEnd = { x: 8, y: 42 };
+  const sPath =
+    `M ${sStart.x} ${sStart.y} ` +
+    `A ${S_R} ${S_R} 0 1 0 ${sMid.x} ${sMid.y} ` +
+    `A ${S_R} ${S_R} 0 1 1 ${sEnd.x} ${sEnd.y}`;
+
   return (
     <div
       ref={rootRef}
       data-testid="splash-intro"
       className="fixed inset-0 z-[9998] select-none overflow-hidden bg-[#0b0b0b]"
-      style={{ opacity: 0 }}
+      style={{
+        opacity: 0,
+        animation: exiting
+          ? "cinemasync-fade-out 0.5s ease-in forwards"
+          : "cinemasync-fade-in 0.35s ease-out forwards",
+      }}
       aria-hidden
     >
+      <style>{KEYFRAMES}</style>
+
       <div
-        ref={stageRef}
         className="absolute left-1/2 top-1/2"
         style={{
           width: STAGE_PX,
@@ -102,8 +115,10 @@ export default function SplashIntro({ onDone }) {
           viewBox="0 0 50 50"
           className="absolute inset-0 w-full h-full"
           shapeRendering="optimizeSpeed"
+          style={{ overflow: "visible" }}
         >
           <defs>
+            {/* Mask for the C — anti-clockwise hand-written stroke */}
             <mask id="maskC" maskUnits="userSpaceOnUse">
               <rect width="50" height="50" fill="black" />
               <path
@@ -116,19 +131,60 @@ export default function SplashIntro({ onDone }) {
                 fill="none"
                 style={{
                   willChange: "stroke-dashoffset",
-                  strokeDasharray: "500",
-                  strokeDashoffset: "500",
+                  strokeDasharray: "1000",
+                  strokeDashoffset: "1000",
+                  animation: `cinemasync-draw ${C_DURATION}s linear ${C_DELAY}s forwards`,
+                }}
+              />
+            </mask>
+
+            {/* Mask for the S — single continuous hand-written stroke */}
+            <mask
+              id="maskS"
+              maskUnits="userSpaceOnUse"
+              x="-20"
+              y="-20"
+              width="90"
+              height="90"
+            >
+              <rect x="-20" y="-20" width="90" height="90" fill="black" />
+              <path
+                ref={sPathRef}
+                d={sPath}
+                stroke="white"
+                strokeWidth={S_R * 2.4}
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                fill="none"
+                style={{
+                  willChange: "stroke-dashoffset",
+                  strokeDasharray: "1000",
+                  strokeDashoffset: "1000",
+                  animation: `cinemasync-draw ${S_DURATION}s linear ${S_DELAY}s forwards`,
                 }}
               />
             </mask>
           </defs>
 
+          {/* BACKGROUND — S arrows artwork (slightly larger than C so tails peek out) */}
+          <image
+            href="/cinemasync-s-arrows.png"
+            x="-4"
+            y="-4"
+            width="58"
+            height="58"
+            preserveAspectRatio="xMidYMid meet"
+            mask="url(#maskS)"
+            style={{ opacity: 0.95 }}
+          />
+
+          {/* FOREGROUND — C film-reel logo, drawn on top */}
           <image
             href="/cinemasync-c-logo.png"
-            x="0"
-            y="0"
-            width="50"
-            height="50"
+            x="2"
+            y="2"
+            width="46"
+            height="46"
             preserveAspectRatio="xMidYMid meet"
             mask="url(#maskC)"
           />
