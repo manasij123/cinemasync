@@ -418,11 +418,15 @@ export default function SplashIntro({ onDone }) {
                 ref={cPathRef}
                 d={cPath}
                 stroke="white"
-                strokeWidth={C_R * 0.95}
+                strokeWidth={C_R * 2.2}
                 strokeLinecap="round"
                 strokeLinejoin="round"
                 fill="none"
-                style={{ willChange: "stroke-dashoffset" }}
+                style={{
+                  willChange: "stroke-dashoffset",
+                  strokeDasharray: "1000",
+                  strokeDashoffset: "1000",
+                }}
               />
             </mask>
 
@@ -440,22 +444,26 @@ export default function SplashIntro({ onDone }) {
                 ref={sPathRef}
                 d={sPath}
                 stroke="white"
-                strokeWidth={S_R * 1.5}
+                strokeWidth={S_R * 2.5}
                 strokeLinecap="round"
                 strokeLinejoin="round"
                 fill="none"
-                style={{ willChange: "stroke-dashoffset" }}
+                style={{
+                  willChange: "stroke-dashoffset",
+                  strokeDasharray: "1000",
+                  strokeDashoffset: "1000",
+                }}
               />
             </mask>
           </defs>
 
-          {/* BACKGROUND — S arrows artwork (slightly larger than C) */}
+          {/* BACKGROUND — S arrows artwork (slightly larger so tails peek out) */}
           <image
             href="/cinemasync-s-arrows.png"
-            x="-24"
-            y="-24"
-            width="148"
-            height="148"
+            x="-8"
+            y="-8"
+            width="116"
+            height="116"
             preserveAspectRatio="xMidYMid meet"
             mask="url(#maskS)"
             style={{ opacity: 0.95 }}
@@ -464,10 +472,10 @@ export default function SplashIntro({ onDone }) {
           {/* FOREGROUND — C film-reel logo */}
           <image
             href="/cinemasync-c-logo.png"
-            x="2"
-            y="2"
-            width="96"
-            height="96"
+            x="5"
+            y="5"
+            width="90"
+            height="90"
             preserveAspectRatio="xMidYMid meet"
             mask="url(#maskC)"
           />
