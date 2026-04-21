@@ -1,4 +1,4 @@
-import React, { useLayoutEffect, useRef, useEffect } from "react";
+import React, { useLayoutEffect, useRef, useEffect, useState } from "react";
 import { gsap } from "gsap";
 
 /**
@@ -79,11 +79,51 @@ export default function SplashIntro({ onDone }) {
   const stageRef = useRef(null);
   const cPathRef = useRef(null);
   const sPathRef = useRef(null);
+  const [ready, setReady] = useState(false);
 
   usePathSeed(cPathRef);
   usePathSeed(sPathRef);
 
+  // Preload + decode both PNGs BEFORE starting the reveal. Browsers can
+  // stall the first frame of a mask animation while they decode the
+  // underlying image — gating the render on decode completion kills the
+  // "atke jachhe" freeze at the start.
   useEffect(() => {
+    let cancelled = false;
+    const loadOne = (src) =>
+      new Promise((resolve) => {
+        const img = new Image();
+        img.onload = () => {
+          if (typeof img.decode === "function") {
+            img.decode().then(() => resolve()).catch(() => resolve());
+          } else {
+            resolve();
+          }
+        };
+        img.onerror = () => resolve();
+        img.src = src;
+      });
+    Promise.all([
+      loadOne("/cinemasync-c-logo.png"),
+      loadOne("/cinemasync-s-arrows.png"),
+    ]).then(() => {
+      if (!cancelled) {
+        // Next frame, so React can commit the ready-state paint before
+        // the browser schedules our CSS animation keyframes.
+        requestAnimationFrame(() => {
+          requestAnimationFrame(() => {
+            if (!cancelled) setReady(true);
+          });
+        });
+      }
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!ready) return;
     const navLogoBox = document.querySelector(
       '[data-testid="logo-home-link"] > div'
     );
@@ -167,7 +207,7 @@ export default function SplashIntro({ onDone }) {
         navLogoBox.style.transition = "";
       }
     };
-  }, [onDone]);
+  }, [onDone, ready]);
 
   // ---- C stroke path (anti-clockwise: top-right → bottom-right) ----
   const C_R = 23;
@@ -366,7 +406,9 @@ export default function SplashIntro({ onDone }) {
                   willChange: "stroke-dashoffset",
                   strokeDasharray: "1000",
                   strokeDashoffset: "1000",
-                  animation: `cinemasync-draw ${C_DURATION}s linear ${C_DELAY}s forwards`,
+                  animation: ready
+                    ? `cinemasync-draw ${C_DURATION}s linear ${C_DELAY}s forwards`
+                    : "none",
                 }}
               />
             </mask>
@@ -392,7 +434,9 @@ export default function SplashIntro({ onDone }) {
                   willChange: "stroke-dashoffset",
                   strokeDasharray: "1000",
                   strokeDashoffset: "1000",
-                  animation: `cinemasync-draw ${S_DURATION}s linear ${S_DELAY}s forwards`,
+                  animation: ready
+                    ? `cinemasync-draw ${S_DURATION}s linear ${S_DELAY}s forwards`
+                    : "none",
                 }}
               />
             </mask>
